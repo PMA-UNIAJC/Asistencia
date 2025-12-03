@@ -1,0 +1,3647 @@
+// URL y KEY optimizadas - Construcción más eficiente
+const SUPABASE_URL = `https://vkfjttukyrtiumzfmyuk.supabase.co`;
+
+const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZmp0dHVreXJ0aXVtemZteXVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NTU0MjQsImV4cCI6MjA3ODAzMTQyNH0.eU8GeI8IVazXydMDwY98TUzT9xvjhcbXBu6cruCPiEk`;
+
+// Variables globales
+let datosEstudiante = null;
+let instructorActual = null;
+let formularioEnviandose = false;
+let graficoTutorias = null;
+// Variable para controlar la página actual del formulario
+let paginaFormularioActual = 1;
+
+// NUEVO: Variable para el estudiante que está actualizando
+let estudianteActualizando = null;
+
+// Cache de datos precargados
+const datosCache = {
+  facultadesCarreras: [],
+  tutoresNorte: [],
+  tutoresSur: [],
+  profesores: [],
+  materias: [],
+  temas: []
+};
+
+let facultadesData = {};
+
+
+// ===================================
+// FUNCIÓN DE REINTENTOS AUTOMÁTICOS
+// ===================================
+async function fetchConReintentos(url, options, intentos = 3) {
+  for (let i = 0; i < intentos; i++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+      
+      return await response.json();
+      
+    } catch (error) {
+      console.log(`Intento ${i + 1} de ${intentos} falló:`, error.message);
+      
+      if (i === intentos - 1) {
+        throw new Error('No pudimos conectar con el servidor después de varios intentos. Por favor verifica tu conexión a internet e intenta de nuevo.');
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      console.log('Reintentando...');
+    }
+  }
+}
+
+// ===================================
+// FUNCIONES HELPER PARA FECHAS EN HORA DE COLOMBIA
+// ===================================
+/**
+ * Obtiene la fecha y hora actual en zona horaria de Colombia (America/Bogota, GMT-5)
+ * @returns {Date} Objeto Date con la fecha/hora actual en hora de Colombia
+ */
+function obtenerFechaActualColombia() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+}
+
+/**
+ * Convierte una fecha UTC a hora de Colombia
+ * @param {Date|string} fechaUTC - Fecha en UTC a convertir
+ * @returns {Date} Objeto Date con la fecha convertida a hora de Colombia
+ */
+function convertirFechaAColombia(fechaUTC) {
+  const fecha = fechaUTC instanceof Date ? fechaUTC : new Date(fechaUTC);
+  return new Date(fecha.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+}
+
+/**
+ * Obtiene la fecha y hora actual en Colombia en formato ISO
+ * @returns {string} String ISO de la fecha actual en hora de Colombia
+ */
+function obtenerFechaISOColombia() {
+  return obtenerFechaActualColombia().toISOString();
+}
+
+/**
+ * Convierte una fecha de input (YYYY-MM-DD) a ISO en hora de Colombia
+ * @param {string} fechaInput - Fecha en formato YYYY-MM-DD (de input type="date")
+ * @param {string} hora - Hora en formato HH:MM:SS (por defecto "00:00:00" o "23:59:59")
+ * @returns {string} String ISO de la fecha en hora de Colombia
+ */
+function convertirFechaInputAISOColombia(fechaInput, hora = "00:00:00") {
+  // Crear fecha en hora de Colombia para la fecha y hora especificadas
+  const [año, mes, dia] = fechaInput.split('-');
+  const [horas, minutos, segundos] = hora.split(':');
+  
+  // Crear fecha en hora de Colombia
+  const fechaColombia = obtenerFechaActualColombia();
+  fechaColombia.setFullYear(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+  fechaColombia.setHours(parseInt(horas), parseInt(minutos), parseInt(segundos || 0), 0);
+  
+  return fechaColombia.toISOString();
+}
+
+// ===================================
+// FUNCIONES DE SUPABASE
+// ===================================
+async function supabaseQuery(table, options = {}) {
+  let url = `${SUPABASE_URL}/rest/v1/${table}`;
+  
+  if (options.select) url += `?select=${options.select}`;
+  if (options.eq) url += `${options.select ? '&' : '?'}${options.eq.field}=eq.${options.eq.value}`;
+  if (options.order) url += `${url.includes('?') ? '&' : '?'}order=${options.order}`;
+  
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json'
+  };
+  
+  return await fetchConReintentos(url, { headers });
+}
+
+async function supabaseInsert(table, data) {
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+  
+  return await fetchConReintentos(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(data)
+  });
+}
+
+// ===================================
+// PRECARGA OPTIMIZADA POR MÓDULO
+// ===================================
+async function precargarDatosFormulario() {
+  // Verificar si TODOS los datos necesarios están cargados
+  const todosCargados = 
+    datosCache.tutoresNorte.length > 0 &&
+    datosCache.tutoresSur.length > 0 &&
+    datosCache.profesores.length > 0 &&
+    datosCache.materias.length > 0 &&
+    datosCache.temas.length > 0;
+  
+  if (todosCargados) {
+    console.log('✅ Todos los datos del formulario ya están cargados');
+    return; // Ya cargados
+  }
+  
+  try {
+    console.log('🔄 Precargando datos del formulario...');
+    
+    // Recargar todos los datos para asegurar que estén completos
+    const [tutoresNorte, tutoresSur, profesores, materias, temas] = await Promise.all([
+      supabaseQuery('tutores_norte'),
+      supabaseQuery('tutores_sur'),
+      supabaseQuery('profesores'),
+      supabaseQuery('materias'),
+      supabaseQuery('temas')
+    ]);
+    
+    // Actualizar el caché solo si los datos son válidos
+    if (tutoresNorte && Array.isArray(tutoresNorte)) {
+      datosCache.tutoresNorte = tutoresNorte;
+    }
+    if (tutoresSur && Array.isArray(tutoresSur)) {
+      datosCache.tutoresSur = tutoresSur;
+    }
+    if (profesores && Array.isArray(profesores)) {
+      datosCache.profesores = profesores;
+    }
+    if (materias && Array.isArray(materias)) {
+      datosCache.materias = materias;
+    }
+    if (temas && Array.isArray(temas)) {
+      datosCache.temas = temas;
+    }
+    
+    console.log('✅ Datos del formulario cargados correctamente');
+  } catch (error) {
+    console.error('❌ Error precargando datos del formulario:', error);
+    throw error;
+  }
+}
+
+async function precargarDatosRegistro() {
+  if (datosCache.facultadesCarreras.length > 0) return; // Ya cargados
+  
+  try {
+    console.log('Precargando datos del registro...');
+    
+    const facultadesCarreras = await supabaseQuery('facultades_carreras');
+    
+    datosCache.facultadesCarreras = facultadesCarreras;
+    procesarFacultadesData();
+    
+    console.log('Datos del registro cargados');
+  } catch (error) {
+    console.error('Error precargando datos del registro:', error);
+    throw error;
+  }
+}
+
+async function precargarDatosEstadisticas() {
+  // Para estadísticas necesitamos tutores y profesores
+  if (datosCache.tutoresNorte.length > 0 && datosCache.profesores.length > 0) return; // Ya cargados
+  
+  try {
+    console.log('Precargando datos de estadísticas...');
+    
+    const [tutoresNorte, tutoresSur, profesores] = await Promise.all([
+      supabaseQuery('tutores_norte'),
+      supabaseQuery('tutores_sur'),
+      supabaseQuery('profesores')
+    ]);
+    
+    datosCache.tutoresNorte = tutoresNorte;
+    datosCache.tutoresSur = tutoresSur;
+    datosCache.profesores = profesores;
+    
+    console.log('Datos de estadísticas cargados');
+  } catch (error) {
+    console.error('Error precargando datos de estadísticas:', error);
+    throw error;
+  }
+}
+
+
+
+function procesarFacultadesData() {
+  facultadesData = {};
+  
+  for (const item of datosCache.facultadesCarreras) {
+    if (!facultadesData[item.facultad]) {
+      facultadesData[item.facultad] = [];
+    }
+    facultadesData[item.facultad].push(item.programa);
+  }
+}
+
+
+function limpiarEspacios(input) {
+  const valorOriginal = input.value;
+  
+  // Limpiar espacios
+  let valor = input.value.trim();
+  valor = valor.replace(/\s+/g, ' ');
+  
+  // Si cambió algo, hacer un pequeño efecto
+  if (valorOriginal !== valor) {
+    input.value = valor;
+    input.style.backgroundColor = '#e8f4fd';
+    setTimeout(() => {
+      input.style.backgroundColor = '';
+    }, 300);
+  }
+}
+
+
+
+// ===================================
+// FUNCIONES DE NAVEGACIÓN
+// ===================================
+function mostrarPantalla(id) {
+  document.querySelectorAll('.container > div').forEach(div => div.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function mostrarLogin() {
+  mostrarPantalla('pantallaLogin');
+  document.getElementById('mensajeLogin').innerHTML = '';
+  
+  // PRECARGAR DATOS DEL FORMULARIO
+  if (datosCache.tutoresNorte.length === 0) {
+    const mensajeLogin = document.getElementById('mensajeLogin');
+    mensajeLogin.innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; font-size: 13px; margin-top: 10px;">Cargando datos del formulario...</p>';
+    
+    try {
+      await precargarDatosFormulario();
+      mensajeLogin.innerHTML = '';
+    } catch (error) {
+      mensajeLogin.innerHTML = '';
+      console.error('Error precargando datos:', error);
+    }
+  }
+}
+
+
+async function mostrarRegistro() {
+  mostrarPantalla('pantallaRegistro');
+  document.getElementById('mensajeRegistro').innerHTML = '';
+  document.getElementById('confirmacionDatos').classList.add('hidden');
+  document.getElementById('btnConfirmarRegistro').classList.add('hidden');
+  
+  // Mostrar paso de verificación de documento
+  document.getElementById('pasoDocumento').classList.remove('hidden');
+  document.getElementById('formRegistro').classList.add('hidden');
+  document.getElementById('regDocumento').value = '';
+  
+  // CARGAR DATOS DEL REGISTRO
+  if (datosCache.facultadesCarreras.length === 0) {
+    mostrarCargando('mensajeRegistro');
+    try {
+      await precargarDatosRegistro();
+      document.getElementById('mensajeRegistro').innerHTML = '';
+      cargarFacultades();
+    } catch (error) {
+      mostrarMensaje('mensajeRegistro', 'Error al cargar los datos. Por favor intenta de nuevo.', 'error');
+    }
+  } else {
+    cargarFacultades();
+  }
+}
+
+
+function mostrarLoginAdmin() {
+  mostrarPantalla('pantallaAdminLogin');
+  document.getElementById('mensajeAdminLogin').innerHTML = '';
+}
+
+function toggleHorarios() {
+  const contenedor = document.getElementById('contenedorHorarios');
+  contenedor.classList.toggle('hidden');
+  
+  if (contenedor.classList.contains('hidden')) {
+    document.getElementById('horarioNorte').classList.add('hidden');
+    document.getElementById('horarioSur').classList.add('hidden');
+    document.getElementById('horarioVirtual').classList.add('hidden');
+  }
+}
+
+function toggleHorario(sede) {
+  document.getElementById('horarioNorte').classList.add('hidden');
+  document.getElementById('horarioSur').classList.add('hidden');
+  document.getElementById('horarioVirtual').classList.add('hidden');
+  
+  if (sede === 'norte') {
+    document.getElementById('horarioNorte').classList.toggle('hidden');
+  } else if (sede === 'sur') {
+    document.getElementById('horarioSur').classList.toggle('hidden');
+  } else if (sede === 'virtual') {
+    document.getElementById('horarioVirtual').classList.toggle('hidden');
+  }
+}
+
+function volverInicio() {
+  mostrarPantalla('pantallaInicio');
+  limpiarFormularios();
+  formularioEnviandose = false;
+  document.getElementById('btnContinuar').classList.remove('hidden');
+  document.getElementById('btnConfirmarRegistro').classList.add('hidden');
+  document.getElementById('confirmacionDatos').classList.add('hidden');
+  document.getElementById('contenedorHorarios').classList.add('hidden');
+  document.getElementById('horarioNorte').classList.add('hidden');
+  document.getElementById('horarioSur').classList.add('hidden');
+  document.getElementById('horarioVirtual').classList.add('hidden');
+
+
+// REACTIVAR BOTONES
+  const btnEnviar = document.getElementById('btnEnviar');
+  if (btnEnviar) {
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
+  }
+  
+  const btnRegistro = document.getElementById('btnConfirmarRegistro');
+  if (btnRegistro) {
+    btnRegistro.disabled = false;
+    btnRegistro.textContent = 'Confirmar y Registrarme';
+    btnRegistro.style.opacity = '1';
+    btnRegistro.style.cursor = 'pointer';
+  }
+}
+
+function limpiarFormularios() {
+  document.getElementById('formRegistro').reset();
+  document.getElementById('formLogin').reset();
+  document.getElementById('formTutoria').reset();
+  document.getElementById('formAdminLogin').reset();
+}
+
+function mostrarMensaje(elementId, mensaje, tipo) {
+  const elemento = document.getElementById(elementId);
+  elemento.innerHTML = `<div class="mensaje ${tipo}">${mensaje}</div>`;
+  
+  setTimeout(() => {
+    elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+  
+  setTimeout(() => elemento.innerHTML = '', 10000);
+}
+
+function mostrarCargando(elementId) {
+  const elemento = document.getElementById(elementId);
+  elemento.innerHTML = '<div class="loader"></div>';
+  
+  setTimeout(() => {
+    elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+// ===================================
+// VALIDACIÓN DE DOCUMENTO
+// ===================================
+function validarDocumento(documento) {
+  if (documento.length < 6) {
+    return {
+      valido: false,
+      mensaje: 'Documento no válido'
+    };
+  }
+  
+  return { valido: true };
+}
+
+// ===================================
+// CARGAR FACULTADES Y PROGRAMAS
+// ===================================
+function cargarFacultades() {
+  const select = document.getElementById('regFacultad');
+  select.innerHTML = '<option value="">Seleccione una facultad</option>';
+  
+  const facultadesOrdenadas = Object.keys(facultadesData).sort();
+  const fragment = document.createDocumentFragment();
+  
+  for (const facultad of facultadesOrdenadas) {
+    const option = document.createElement('option');
+    option.value = facultad;
+    option.textContent = facultad;
+    fragment.appendChild(option);
+  }
+  
+  select.appendChild(fragment);
+}
+
+function cargarProgramas() {
+  const facultad = document.getElementById('regFacultad').value;
+  const selectPrograma = document.getElementById('regPrograma');
+  
+  if (!facultad) {
+    selectPrograma.disabled = true;
+    selectPrograma.innerHTML = '<option value="">Primero seleccione una facultad</option>';
+    return;
+  }
+  
+  selectPrograma.disabled = false;
+  selectPrograma.innerHTML = '<option value="">Seleccione un programa</option>';
+  
+  const programas = facultadesData[facultad] || [];
+  const programasOrdenados = programas.sort();
+  const fragment = document.createDocumentFragment();
+  
+  for (const programa of programasOrdenados) {
+    const option = document.createElement('option');
+    option.value = programa;
+    option.textContent = programa;
+    fragment.appendChild(option);
+  }
+  
+  selectPrograma.appendChild(fragment);
+}
+
+// ===================================
+// CONFIRMACIÓN Y REGISTRO
+// ===================================
+function mostrarConfirmacion() {
+  // Validar que el formulario sea válido antes de continuar
+  const form = document.getElementById('formRegistro');
+  if (!form.checkValidity()) {
+    form.reportValidity(); // Muestra los mensajes de required del navegador
+    return;
+  }
+  
+  const doc = document.getElementById('regDocumento').value;
+  
+  const validacion = validarDocumento(doc);
+  if (!validacion.valido) {
+    mostrarMensaje('mensajeRegistro', validacion.mensaje, 'error');
+    return;
+  }
+    
+  const primerNombre = document.getElementById('regPrimerNombre').value.toUpperCase();
+  const segundoNombre = document.getElementById('regSegundoNombre').value.toUpperCase();
+  const primerApellido = document.getElementById('regPrimerApellido').value.toUpperCase();
+  const segundoApellido = document.getElementById('regSegundoApellido').value.toUpperCase();
+  const facultad = document.getElementById('regFacultad').value;
+  const programa = document.getElementById('regPrograma').value;
+  const sede = document.getElementById('regSede').value;
+  
+  const nombreCompleto = `${primerNombre} ${segundoNombre} ${primerApellido} ${segundoApellido}`.replace(/\s+/g, ' ');
+  const semestre = document.getElementById('regSemestre').value;
+  const grupo = document.getElementById('regGrupo').value.toUpperCase();
+
+  const html = `
+    <div class="confirmation-item">
+      <div class="confirmation-label">Documento:</div>
+      <div class="confirmation-value">${doc}</div>
+    </div>
+    <div class="confirmation-item">
+      <div class="confirmation-label">Nombre Completo:</div>
+      <div class="confirmation-value">${nombreCompleto}</div>
+    </div>
+    <div class="confirmation-item">
+      <div class="confirmation-label">Facultad:</div>
+      <div class="confirmation-value">${facultad}</div>
+    </div>
+    <div class="confirmation-item">
+      <div class="confirmation-label">Programa:</div>
+      <div class="confirmation-value">${programa}</div>
+    </div>
+    <div class="confirmation-item">
+      <div class="confirmation-label">Sede:</div>
+      <div class="confirmation-value">${sede}</div>
+    </div>
+    <div class="confirmation-item">
+      <div class="confirmation-label">Semestre:</div>
+      <div class="confirmation-value">${semestre}</div>
+    </div>
+    <div class="confirmation-item">
+      <div class="confirmation-label">Grupo:</div>
+      <div class="confirmation-value">${grupo}</div>
+    </div>
+  `;
+
+document.getElementById('datosConfirmacion').innerHTML = html;
+  document.getElementById('confirmacionDatos').classList.remove('hidden');
+  document.getElementById('btnConfirmarRegistro').classList.remove('hidden');
+  document.getElementById('btnContinuar').classList.add('hidden');
+  
+  setTimeout(() => {
+    document.getElementById('confirmacionDatos').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+// NUEVA FUNCIÓN: Verificar documento antes de mostrar el formulario
+async function verificarDocumento(event) {
+  event.preventDefault();
+  
+  const doc = document.getElementById('regDocumento').value;
+  
+  const validacion = validarDocumento(doc);
+  if (!validacion.valido) {
+    mostrarMensaje('mensajeRegistro', validacion.mensaje, 'error');
+    return;
+  }
+  
+  mostrarCargando('mensajeRegistro');
+
+  try {
+    const existing = await supabaseQuery('estudiantes', {
+      eq: { field: 'documento', value: doc }
+    });
+
+    if (existing.length > 0) {
+      mostrarMensaje('mensajeRegistro', 'Este documento ya está registrado en el sistema. Si necesita actualizar sus datos, contacte al administrador.', 'error');
+      return;
+    }
+
+    // Si el documento NO está registrado, mostrar el formulario completo
+    document.getElementById('mensajeRegistro').innerHTML = '';
+    document.getElementById('pasoDocumento').classList.add('hidden');
+    document.getElementById('formRegistro').classList.remove('hidden');
+    document.getElementById('regDocumentoMostrar').value = doc;
+    
+    // Hacer scroll al inicio de la página
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+
+  } catch (error) {
+    mostrarMensaje('mensajeRegistro', 'Error al verificar el documento: ' + error.message, 'error');
+  }
+}
+
+// FUNCIÓN MODIFICADA: Registrar estudiante (sin verificación de documento duplicado)
+async function registrarEstudiante(event) {
+  event.preventDefault();
+  
+  const doc = document.getElementById('regDocumentoMostrar').value;
+  const btnRegistro = document.getElementById('btnConfirmarRegistro');
+  
+  // Desactivar botón para evitar doble click
+  btnRegistro.disabled = true;
+  btnRegistro.textContent = '⏳ Registrando...';
+  btnRegistro.style.opacity = '0.6';
+  btnRegistro.style.cursor = 'not-allowed';
+  
+  mostrarCargando('mensajeRegistro');
+
+const datos = {
+    documento: doc,
+    primer_nombre: document.getElementById('regPrimerNombre').value.toUpperCase(),
+    segundo_nombre: document.getElementById('regSegundoNombre').value.toUpperCase() || null,
+    primer_apellido: document.getElementById('regPrimerApellido').value.toUpperCase(),
+    segundo_apellido: document.getElementById('regSegundoApellido').value.toUpperCase(),
+    facultad: document.getElementById('regFacultad').value,
+    programa: document.getElementById('regPrograma').value,
+    sede: document.getElementById('regSede').value,
+    semestre: parseInt(document.getElementById('regSemestre').value),
+    grupo: document.getElementById('regGrupo').value.toUpperCase(),
+    fecha_actualizacion: obtenerFechaISOColombia()
+  };
+
+  try {
+    const resultado = await supabaseInsert('estudiantes', datos);
+    
+    if (resultado && resultado.length > 0) {
+      document.getElementById('mensajeRegistro').innerHTML = '';
+      
+      const modal = document.getElementById('modalExitoRegistro');
+      modal.style.display = 'flex';
+      modal.classList.remove('hidden');
+      
+      setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+        volverInicio();
+      }, 3000);
+    } else {
+      mostrarMensaje('mensajeRegistro', 'Error: No se pudo completar el registro', 'error');
+      // Reactivar botón si falla
+      btnRegistro.disabled = false;
+      btnRegistro.textContent = 'Confirmar y Registrarme';
+      btnRegistro.style.opacity = '1';
+      btnRegistro.style.cursor = 'pointer';
+    }
+  } catch (error) {
+    mostrarMensaje('mensajeRegistro', error.message, 'error');
+    // Reactivar botón si hay error
+    btnRegistro.disabled = false;
+    btnRegistro.textContent = 'Confirmar y Registrarme';
+    btnRegistro.style.opacity = '1';
+    btnRegistro.style.cursor = 'pointer';
+  }
+}
+
+// ===================================
+// LOGIN
+// ===================================
+function censurarNombre(nombreCompleto) {
+  const partes = nombreCompleto.split(' ');
+  return partes.map(parte => {
+    if (parte.length <= 2) return parte;
+    return parte.substring(0, 2) + '*'.repeat(parte.length - 2);
+  }).join(' ');
+}
+
+async function iniciarSesion(event) {
+  event.preventDefault();
+  
+  const documento = document.getElementById('loginDocumento').value;
+  
+  const validacion = validarDocumento(documento);
+  if (!validacion.valido) {
+    mostrarMensaje('mensajeLogin', validacion.mensaje, 'error');
+    return;
+  }
+  
+  mostrarCargando('mensajeLogin');
+
+  // ASEGURAR QUE TODOS LOS DATOS DEL FORMULARIO ESTÉN CARGADOS
+  if (datosCache.tutoresNorte.length === 0 || datosCache.materias.length === 0 || datosCache.temas.length === 0) {
+    try {
+      console.log('🔄 Precargando datos del formulario antes de iniciar sesión...');
+      await precargarDatosFormulario();
+      console.log('✅ Datos del formulario cargados correctamente');
+    } catch (error) {
+      console.error('❌ Error al cargar datos:', error);
+      mostrarMensaje('mensajeLogin', 'Error al cargar los datos del formulario. Por favor intenta de nuevo.', 'error');
+      return;
+    }
+  }
+
+  try {
+    const data = await supabaseQuery('estudiantes', {
+      eq: { field: 'documento', value: documento }
+    });
+
+    if (data.length === 0) {
+      mostrarMensaje('mensajeLogin', 'Documento no encontrado. Por favor regístrese primero.', 'error');
+      return;
+    }
+
+    const estudiante = data[0];
+    
+    // NUEVO: Verificar si necesita actualizar datos
+    const necesitaActualizacion = verificarActualizacionSemestral(estudiante);
+    
+    if (necesitaActualizacion) {
+      estudianteActualizando = estudiante;
+      mostrarFormularioActualizacion(estudiante);
+      return;
+    }
+
+    // Continuar con el flujo normal
+    const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
+    const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
+    const nombreCompleto = `${nombres} ${apellidos}`;
+
+    datosEstudiante = {
+      documento: estudiante.documento,
+      nombres: nombres,
+      apellidos: apellidos,
+      nombreCensurado: censurarNombre(nombreCompleto),
+      facultad: estudiante.facultad,
+      programa: estudiante.programa,
+      sede: estudiante.sede || '',
+      semestre: estudiante.semestre,
+      grupo: estudiante.grupo
+    };
+
+    formularioEnviandose = false;
+    mostrarPantalla('pantallaFormulario');
+    document.getElementById('nombreUsuario').textContent = 'Bienvenido(a): ' + datosEstudiante.nombreCensurado;
+    document.getElementById('mensajeFormulario').innerHTML = '';
+    actualizarBotonCerrarSesion();
+    actualizarProgreso(1);
+
+  } catch (error) {
+    mostrarMensaje('mensajeLogin', 'Error de conexión: ' + error.message, 'error');
+  }
+}
+
+
+// ===================================
+// VERIFICAR REGISTRO RECIENTE CON INSTRUCTOR ESPECÍFICO
+// ===================================
+async function verificarRegistroRecenteConInstructor(documento, instructorSeleccionado) {
+  try {
+    // Obtener la fecha y hora REAL actual en Colombia
+    const ahoraColombia = obtenerFechaActualColombia();
+    
+    // Calcular hace 1 hora y 30 minutos (90 minutos)
+    const hace90Minutos = new Date(ahoraColombia.getTime() - (90 * 60 * 1000));
+    const hace90MinutosISO = hace90Minutos.toISOString();
+    
+    // Consultar registros de los últimos 90 minutos CON EL MISMO INSTRUCTOR
+    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&instructor=eq.${encodeURIComponent(instructorSeleccionado)}&fecha=gte.${hace90MinutosISO}&order=fecha.desc`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    const registrosRecientes = await response.json();
+    
+    if (registrosRecientes.length === 0) {
+      // No hay registros recientes con este instructor, puede registrar
+      return { puedeRegistrar: true };
+    }
+    
+    // Obtener el registro más reciente con este instructor
+    const registroMasReciente = registrosRecientes[0];
+    const fechaRegistro = new Date(registroMasReciente.fecha);
+    const fechaRegistroColombia = convertirFechaAColombia(fechaRegistro);
+    
+    // Calcular tiempo transcurrido en minutos
+    const tiempoTranscurrido = Math.floor((ahoraColombia - fechaRegistroColombia) / (1000 * 60));
+    const tiempoRestanteMinutos = 90 - tiempoTranscurrido;
+    
+    // Formatear tiempo restante
+    let tiempoRestante;
+    if (tiempoRestanteMinutos >= 60) {
+      const horas = Math.floor(tiempoRestanteMinutos / 60);
+      const minutos = tiempoRestanteMinutos % 60;
+      tiempoRestante = minutos > 0 ? `${horas} hora y ${minutos} minutos` : `${horas} hora`;
+    } else {
+      tiempoRestante = `${tiempoRestanteMinutos} minutos`;
+    }
+    
+    return {
+      puedeRegistrar: false,
+      tiempoRestante: tiempoRestante,
+      instructor: instructorSeleccionado
+    };
+    
+  } catch (error) {
+    console.error('Error verificando registro reciente:', error);
+    // En caso de error, permitir el registro
+    return { puedeRegistrar: true };
+  }
+}
+
+
+// ===================================
+// CARGAR INSTRUCTORES - MODIFICADO
+// ===================================
+async function cargarInstructores() {
+  const sede = document.getElementById('sedeTutoria').value;
+  const tipo = document.getElementById('tipoInstructor').value;
+
+  if (!sede || !tipo) return;
+
+  // VERIFICAR QUE LOS DATOS ESTÉN CARGADOS ANTES DE USARLOS
+  const necesitaTutores = tipo === 'Tutor';
+  const necesitaProfesores = tipo === 'Profesor';
+  
+  if (necesitaTutores && (datosCache.tutoresNorte.length === 0 || datosCache.tutoresSur.length === 0)) {
+    console.warn('⚠️ Datos de tutores no disponibles, recargando...');
+    try {
+      await precargarDatosFormulario();
+    } catch (error) {
+      console.error('❌ Error recargando datos:', error);
+      mostrarMensaje('mensajeFormulario', 'Error al cargar los tutores. Por favor recargue la página.', 'error');
+      return;
+    }
+  }
+  
+  if (necesitaProfesores && datosCache.profesores.length === 0) {
+    console.warn('⚠️ Datos de profesores no disponibles, recargando...');
+    try {
+      await precargarDatosFormulario();
+    } catch (error) {
+      console.error('❌ Error recargando datos:', error);
+      mostrarMensaje('mensajeFormulario', 'Error al cargar los profesores. Por favor recargue la página.', 'error');
+      return;
+    }
+  }
+
+  const grupoFacultad = document.getElementById('grupoFacultadDepartamento');
+  const selectFacultad = document.getElementById('facultadDepartamento');
+  
+  grupoFacultad.classList.add('hidden');
+  document.getElementById('grupoInstructor').classList.add('hidden');
+  selectFacultad.value = '';
+  document.getElementById('instructor').value = '';
+  
+  selectFacultad.removeAttribute('required');
+
+  if (tipo === 'Tutor') {
+    const selectInstructor = document.getElementById('instructor');
+    document.getElementById('grupoInstructor').classList.remove('hidden');
+    document.getElementById('labelInstructor').textContent = 'Tutor *';
+
+    let instructores = [];
+    
+    if (sede === 'Virtual') {
+      instructores = [...datosCache.tutoresNorte, ...datosCache.tutoresSur];
+    } else if (sede === 'Norte') {
+      instructores = datosCache.tutoresNorte;
+    } else if (sede === 'Sur') {
+      instructores = datosCache.tutoresSur;
+    }
+
+    const instructoresOrdenados = [...instructores].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    selectInstructor.innerHTML = '<option value="">Seleccione un tutor</option>';
+    
+    const instructoresUnicos = [];
+    const nombresVistos = new Set();
+    
+    for (const inst of instructoresOrdenados) {
+      if (!nombresVistos.has(inst.nombre)) {
+        nombresVistos.add(inst.nombre);
+        instructoresUnicos.push(inst);
+      }
+    }
+    
+    const fragment = document.createDocumentFragment();
+    for (const inst of instructoresUnicos) {
+      const option = document.createElement('option');
+      option.value = inst.nombre;
+      option.textContent = inst.nombre;
+      fragment.appendChild(option);
+    }
+    selectInstructor.appendChild(fragment);
+    
+    actualizarProgreso(2);
+  } else if (tipo === 'Profesor') {
+    grupoFacultad.classList.remove('hidden');
+    selectFacultad.setAttribute('required', 'required');
+    actualizarProgreso(2);
+  }
+}
+
+// ===================================
+// CARGAR PROFESORES POR FACULTAD/DEPARTAMENTO
+// ===================================
+async function cargarProfesoresPorFacultad() {
+  const facultadDepartamento = document.getElementById('facultadDepartamento').value;
+
+  if (!facultadDepartamento) return;
+
+  // VERIFICAR QUE LOS DATOS ESTÉN CARGADOS
+  if (datosCache.profesores.length === 0) {
+    console.warn('⚠️ Datos de profesores no disponibles, recargando...');
+    try {
+      await precargarDatosFormulario();
+    } catch (error) {
+      console.error('❌ Error recargando datos:', error);
+      mostrarMensaje('mensajeFormulario', 'Error al cargar los profesores. Por favor recargue la página.', 'error');
+      return;
+    }
+  }
+
+  const selectInstructor = document.getElementById('instructor');
+  document.getElementById('grupoInstructor').classList.remove('hidden');
+  document.getElementById('labelInstructor').textContent = 'Profesor *';
+
+  const profesores = datosCache.profesores.filter(
+    prof => prof.facultad_departamento === facultadDepartamento
+  );
+
+  const profesoresOrdenados = [...profesores].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  selectInstructor.innerHTML = '<option value="">Seleccione un profesor</option>';
+  
+  const fragment = document.createDocumentFragment();
+  for (const prof of profesoresOrdenados) {
+    const option = document.createElement('option');
+    option.value = prof.nombre;
+    option.setAttribute('data-area', prof.area);
+    option.textContent = prof.nombre;
+    fragment.appendChild(option);
+  }
+  selectInstructor.appendChild(fragment);
+}
+
+// ===================================
+// CARGAR MATERIAS
+// ===================================
+async function cargarMaterias() {
+  const selectInstructor = document.getElementById('instructor');
+  const selectedOption = selectInstructor.options[selectInstructor.selectedIndex];
+  
+  if (!selectedOption || !selectedOption.value) return;
+
+  // VERIFICAR QUE TODOS LOS DATOS NECESARIOS ESTÉN CARGADOS
+  const tipoInstructor = document.getElementById('tipoInstructor').value;
+  const necesitaRecargar = 
+    datosCache.materias.length === 0 ||
+    (tipoInstructor === 'Tutor' && 
+     (datosCache.tutoresNorte.length === 0 || datosCache.tutoresSur.length === 0)) ||
+    (tipoInstructor === 'Profesor' && 
+     datosCache.profesores.length === 0);
+  
+  if (necesitaRecargar) {
+    console.warn('⚠️ Datos del formulario no disponibles, recargando...');
+    const mensajeFormulario = document.getElementById('mensajeFormulario');
+    if (mensajeFormulario) {
+      mensajeFormulario.innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 10px;">Cargando datos...</p>';
+    }
+    
+    try {
+      await precargarDatosFormulario();
+      if (mensajeFormulario) {
+        mensajeFormulario.innerHTML = '';
+      }
+      console.log('✅ Datos recargados correctamente');
+    } catch (error) {
+      console.error('❌ Error recargando datos:', error);
+      if (mensajeFormulario) {
+        mostrarMensaje('mensajeFormulario', 'Error al cargar los datos. Por favor recargue la página.', 'error');
+      }
+      return;
+    }
+  }
+
+  const instructorNombre = selectedOption.value;
+  
+  let areasInstructor = [];
+  
+  if (document.getElementById('tipoInstructor').value === 'Tutor') {
+    const sede = document.getElementById('sedeTutoria').value;
+    let tutores = [];
+    
+    if (sede === 'Virtual') {
+      tutores = [...datosCache.tutoresNorte, ...datosCache.tutoresSur];
+    } else if (sede === 'Norte') {
+      tutores = datosCache.tutoresNorte;
+    } else if (sede === 'Sur') {
+      tutores = datosCache.tutoresSur;
+    }
+    
+    for (const tutor of tutores) {
+      if (tutor.nombre === instructorNombre && !areasInstructor.includes(tutor.area)) {
+        areasInstructor.push(tutor.area);
+      }
+    }
+  } else {
+    for (const prof of datosCache.profesores) {
+      if (prof.nombre === instructorNombre && !areasInstructor.includes(prof.area)) {
+        areasInstructor.push(prof.area);
+      }
+    }
+  }
+
+  instructorActual = { nombre: instructorNombre, areas: areasInstructor };
+
+  document.getElementById('grupoMateria').classList.remove('hidden');
+
+  const materiasFiltradas = datosCache.materias.filter(mat => 
+    areasInstructor.includes(mat.area)
+  );
+  
+  const materiasOrdenadas = materiasFiltradas.sort((a, b) => a.materia.localeCompare(b.materia));
+
+  const selectMateria = document.getElementById('asignatura');
+  selectMateria.innerHTML = '<option value="">Seleccione una asignatura</option>';
+  
+  const fragment = document.createDocumentFragment();
+  for (const mat of materiasOrdenadas) {
+    const option = document.createElement('option');
+    option.value = mat.materia;
+    option.textContent = mat.materia;
+    fragment.appendChild(option);
+  }
+  
+  const optionOtra = document.createElement('option');
+  optionOtra.value = 'Otra';
+  optionOtra.textContent = 'Otra: ¿Cuál?';
+  optionOtra.style.fontWeight = 'bold';
+  fragment.appendChild(optionOtra);
+  
+  selectMateria.appendChild(fragment);
+  
+  actualizarProgreso(3);
+}
+
+// ===================================
+// CARGAR TEMAS
+// ===================================
+async function cargarTemas() {
+  const materia = document.getElementById('asignatura').value;
+  if (!materia) return;
+
+  // VERIFICAR QUE LOS DATOS ESTÉN CARGADOS
+  if (datosCache.temas.length === 0) {
+    console.warn('⚠️ Datos de temas no disponibles, recargando...');
+    try {
+      await precargarDatosFormulario();
+    } catch (error) {
+      console.error('❌ Error recargando datos:', error);
+      mostrarMensaje('mensajeFormulario', 'Error al cargar los temas. Por favor recargue la página.', 'error');
+      return;
+    }
+  }
+
+  const containerAsignatura = document.getElementById('otraAsignaturaContainer');
+  const inputAsignatura = document.getElementById('otraAsignatura');
+  
+  if (materia === 'Otra') {
+    containerAsignatura.classList.remove('hidden');
+    inputAsignatura.required = true;
+    
+    document.getElementById('grupoTema').classList.remove('hidden');
+    
+    const selectTema = document.getElementById('tema');
+    selectTema.style.display = 'none';
+    selectTema.required = false;
+    
+    const containerTema = document.getElementById('otroTemaContainer');
+    const inputTema = document.getElementById('otroTema');
+    containerTema.classList.remove('hidden');
+    inputTema.required = true;
+    
+    const labelTema = document.querySelector('#grupoTema label');
+    labelTema.textContent = 'Tema *';
+    
+    document.getElementById('grupoMotivo').classList.remove('hidden');
+    
+    formularioEnviandose = true;
+    actualizarBotonCerrarSesion();
+    actualizarProgreso(4);
+    return;
+  } else {
+    containerAsignatura.classList.add('hidden');
+    inputAsignatura.required = false;
+    inputAsignatura.value = '';
+  }
+
+  document.getElementById('grupoTema').classList.remove('hidden');
+
+  const temasFiltrados = datosCache.temas.filter(tem => tem.materia === materia);
+  
+  const selectTema = document.getElementById('tema');
+  const containerTema = document.getElementById('otroTemaContainer');
+  const inputTema = document.getElementById('otroTema');
+  const labelTema = document.querySelector('#grupoTema label');
+
+  if (temasFiltrados.length === 0) {
+    selectTema.style.display = 'none';
+    selectTema.required = false;
+    
+    containerTema.classList.remove('hidden');
+    inputTema.required = true;
+    inputTema.value = '';
+    
+    labelTema.textContent = 'Tema *';
+  } else {
+    const temasOrdenados = temasFiltrados.sort((a, b) => a.tema.localeCompare(b.tema));
+    
+    selectTema.style.display = '';
+    selectTema.required = true;
+    selectTema.innerHTML = '<option value="">Seleccione un tema</option>';
+    
+    const fragment = document.createDocumentFragment();
+    for (const tem of temasOrdenados) {
+      const option = document.createElement('option');
+      option.value = tem.tema;
+      option.textContent = tem.tema;
+      fragment.appendChild(option);
+    }
+
+    const optionOtro = document.createElement('option');
+    optionOtro.value = 'Otro';
+    optionOtro.textContent = 'Otro: ¿Cuál?';
+    optionOtro.style.fontWeight = 'bold';
+    fragment.appendChild(optionOtro);
+    
+    selectTema.appendChild(fragment);
+    
+    containerTema.classList.add('hidden');
+    inputTema.required = false;
+    inputTema.value = '';
+    
+    labelTema.textContent = 'Tema de la tutoría *';
+  }
+
+  document.getElementById('grupoMotivo').classList.remove('hidden');
+  
+  formularioEnviandose = true;
+  actualizarBotonCerrarSesion();
+  actualizarProgreso(4);
+}
+
+function toggleOtroTema() {
+  const tema = document.getElementById('tema').value;
+  const container = document.getElementById('otroTemaContainer');
+  const input = document.getElementById('otroTema');
+  
+  if (tema === 'Otro') {
+    container.classList.remove('hidden');
+    input.required = true;
+  } else {
+    container.classList.add('hidden');
+    input.required = false;
+    input.value = '';
+  }
+}
+
+// Agregar listener para calificación
+document.addEventListener('DOMContentLoaded', function() {
+  const calificaciones = document.querySelectorAll('input[name="calificacion"]');
+  calificaciones.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById('step4').classList.add('completed');
+        document.getElementById('step4').classList.remove('active');
+      }
+    });
+  });
+});
+
+
+function toggleTituloCurso() {
+  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
+  const grupoTituloCurso = document.getElementById('grupoTituloCurso');
+  const inputTituloCurso = document.getElementById('tituloCurso');
+  
+  if (tipoAcompanamiento === 'Curso y/o capacitación') {
+    grupoTituloCurso.classList.remove('hidden');
+    inputTituloCurso.required = true;
+  } else {
+    grupoTituloCurso.classList.add('hidden');
+    inputTituloCurso.required = false;
+    inputTituloCurso.value = '';
+  }
+}
+
+// ===================================
+// BOTÓN CANCELAR Y CONFIRMACIÓN
+// ===================================
+function actualizarBotonCerrarSesion() {
+  const btnCerrar = document.getElementById('btnCancelarFormulario');
+  if (btnCerrar) {
+    btnCerrar.textContent = 'Cancelar';
+    btnCerrar.onclick = confirmarCancelacion;
+  }
+}
+
+function confirmarCancelacion() {
+  mostrarModalConfirmacion(
+    '¿Estás seguro que deseas cancelar?',
+    'Se perderán todos los datos del formulario que has ingresado.',
+    function() {
+      cerrarSesion();
+    }
+  );
+}
+
+function mostrarModalConfirmacion(titulo, mensaje, callbackConfirmar) {
+  const modal = document.getElementById('modalConfirmacion');
+  document.getElementById('tituloConfirmacion').textContent = titulo;
+  document.getElementById('mensajeConfirmacion').textContent = mensaje;
+  
+  modal.style.display = 'flex';
+  modal.classList.remove('hidden');
+  
+  document.getElementById('btnConfirmarModal').onclick = function() {
+    modal.style.display = 'none';
+    modal.classList.add('hidden');
+    if (callbackConfirmar) callbackConfirmar();
+  };
+  
+  document.getElementById('btnCancelarModal').onclick = function() {
+    modal.style.display = 'none';
+    modal.classList.add('hidden');
+  };
+}
+
+// ===================================
+// GUARDAR FORMULARIO
+// ===================================
+async function guardarFormulario(event) {
+  event.preventDefault();
+  
+  const btnEnviar = document.getElementById('btnEnviar');
+  
+  // ===================================
+  // VALIDACIÓN DE TODAS LAS CALIFICACIONES
+  // ===================================
+  const calificacionRadio = document.querySelector('input[name="calificacion"]:checked');
+  const dudasResueltasRadio = document.querySelector('input[name="dudas_resueltas"]:checked');
+  const dominioTemaRadio = document.querySelector('input[name="dominio_tema"]:checked');
+  const ambienteRadio = document.querySelector('input[name="ambiente"]:checked');
+  const recomendaPmaRadio = document.querySelector('input[name="recomienda_pma"]:checked');
+  
+  // Validar que todas las calificaciones estén respondidas
+  if (!calificacionRadio || !dudasResueltasRadio || !dominioTemaRadio || !ambienteRadio || !recomendaPmaRadio) {
+    let camposFaltantes = [];
+    
+    if (!calificacionRadio) camposFaltantes.push('Calificación de la tutoría');
+    if (!dudasResueltasRadio) camposFaltantes.push('¿Se resolvieron tus dudas?');
+    if (!dominioTemaRadio) camposFaltantes.push('¿El tutor demostró dominio del tema?');
+    if (!ambienteRadio) camposFaltantes.push('¿Ambiente adecuado para concentrarte?');
+    if (!recomendaPmaRadio) camposFaltantes.push('¿Recomendarías el PMA?');
+    
+    mostrarMensaje('mensajeFormulario', 
+      `Por favor responde todas las preguntas de calificación: ${camposFaltantes.join(', ')}`, 
+      'error');
+    
+    // Scroll al mensaje de error
+    setTimeout(() => {
+      document.getElementById('mensajeFormulario').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }, 100);
+    
+    return;
+  }
+  
+  // Desactivar botón para evitar doble envío
+  btnEnviar.disabled = true;
+  btnEnviar.textContent = '⏳ Enviando...';
+  btnEnviar.style.opacity = '0.6';
+  btnEnviar.style.cursor = 'not-allowed';
+  
+  mostrarCargando('mensajeFormulario');
+  
+  // NUEVO: Verificar si el instructor seleccionado ya fue usado en los últimos 90 minutos
+  const instructorSeleccionado = document.getElementById('instructor').value;
+  
+  const verificacion = await verificarRegistroRecenteConInstructor(datosEstudiante.documento, instructorSeleccionado);
+  
+ if (!verificacion.puedeRegistrar) {
+    const mensajeElement = document.getElementById('mensajeFormulario');
+    
+    mostrarMensaje('mensajeFormulario', 
+      `Ya tienes una tutoría reciente con este tutor. Podrás registrar otra en ${verificacion.tiempoRestante}, o puedes realizarla con otro tutor si lo prefieres.`, 
+      'error');
+    
+    // Reactivar botón
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
+    
+    setTimeout(() => {
+      mensajeElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }, 100);
+    
+    return;
+  }
+
+  // Obtener asignatura (puede ser personalizada)
+  let asignatura = document.getElementById('asignatura').value;
+  if (asignatura === 'Otra') {
+    asignatura = document.getElementById('otraAsignatura').value.trim().toUpperCase();
+    if (!asignatura) {
+      mostrarMensaje('mensajeFormulario', 'Por favor especifique la asignatura', 'error');
+      btnEnviar.disabled = false;
+      btnEnviar.textContent = 'Enviar Formulario';
+      btnEnviar.style.opacity = '1';
+      btnEnviar.style.cursor = 'pointer';
+      return;
+    }
+  }
+
+  // Obtener tema (puede ser personalizado)
+const selectTema = document.getElementById('tema');
+const inputTema = document.getElementById('otroTema');
+let tema = '';
+
+// Caso 1: Select visible y con valor "Otro"
+if (selectTema.value === 'Otro') {
+  tema = inputTema.value.trim().toUpperCase();
+  if (!tema) {
+    mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
+    return;
+  }
+}
+// Caso 2: Select oculto (no hay temas en BD o asignatura es "Otra")
+else if (selectTema.style.display === 'none') {
+  tema = inputTema.value.trim().toUpperCase();
+  if (!tema) {
+    mostrarMensaje('mensajeFormulario', 'Por favor ingrese el tema de la tutoría', 'error');
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
+    return;
+  }
+}
+// Caso 3: Select visible con tema normal seleccionado
+else {
+  tema = selectTema.value;
+}
+
+  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
+  const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
+    ? document.getElementById('tituloCurso').value.toUpperCase() 
+    : null;
+  
+  // Obtener fecha y hora actual en Colombia (UTC-5)
+  const fechaISO = obtenerFechaISOColombia();
+  
+  // Obtener el valor de facultad_departamento (puede estar vacío si es tutor)
+  const facultadDepartamentoValue = document.getElementById('facultadDepartamento').value || null;
+  
+const datos = {
+    documento: datosEstudiante.documento,
+    nombres: datosEstudiante.nombres,
+    apellidos: datosEstudiante.apellidos,
+    facultad: datosEstudiante.facultad,
+    programa: datosEstudiante.programa,
+    semestre: datosEstudiante.semestre,
+    grupo: datosEstudiante.grupo,
+    tipo_acompanamiento: tipoAcompanamiento,
+    titulo_curso: tituloCurso,
+    sede_estudiante: datosEstudiante.sede,
+    sede_tutoria: document.getElementById('sedeTutoria').value,
+    tipo_instructor: document.getElementById('tipoInstructor').value,
+    facultad_departamento: facultadDepartamentoValue,
+    instructor: instructorSeleccionado,
+    asignatura: asignatura,
+    tema: tema,
+    motivo_consulta: document.getElementById('motivoConsulta').value,
+    calificacion: parseInt(calificacionRadio.value),
+    dudas_resueltas: parseInt(dudasResueltasRadio.value),
+    dominio_tema: parseInt(dominioTemaRadio.value),
+    ambiente: parseInt(ambienteRadio.value),
+    recomienda_pma: parseInt(recomendaPmaRadio.value),
+    sugerencias: document.getElementById('sugerencias').value.toUpperCase() || 'Ninguna',
+    fecha: fechaISO
+  };
+
+  try {
+    await supabaseInsert('formularios', datos);
+    
+    document.getElementById('mensajeFormulario').innerHTML = '';
+    
+    const modal = document.getElementById('modalExitoFormulario');
+    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+    
+    document.getElementById('formTutoria').reset();
+    document.getElementById('grupoTituloCurso').classList.add('hidden');
+    document.getElementById('grupoFacultadDepartamento').classList.add('hidden');
+    document.getElementById('grupoInstructor').classList.add('hidden');
+    document.getElementById('grupoMateria').classList.add('hidden');
+    document.getElementById('grupoTema').classList.add('hidden');
+    document.getElementById('grupoCalificacion').classList.add('hidden');
+    document.getElementById('grupoMotivo').classList.add('hidden');
+    document.getElementById('grupoSugerencias').classList.add('hidden');
+    document.getElementById('btnEnviar').classList.add('hidden');
+    formularioEnviandose = false;
+    
+    setTimeout(() => {
+      location.reload(); // Recargar página para limpiar todo
+    }, 3000);
+  } catch (error) {
+    mostrarMensaje('mensajeFormulario', error.message, 'error');
+    // Reactivar botón si hay error
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
+  }
+}
+
+// ===================================
+// ACTUALIZACIÓN DE DATOS SEMESTRALES
+// ===================================
+
+function verificarActualizacionSemestral(estudiante) {
+  // Si no hay fecha de última actualización, usar fecha de creación o considerar que necesita actualizar
+  if (!estudiante.fecha_actualizacion && !estudiante.created_at) {
+    console.log('⚠️ No hay fecha de actualización ni creación, pidiendo actualización');
+    return true; // Primera vez, pedir actualización
+  }
+  
+  // 🕐 OBTENER HORA REAL DE COLOMBIA
+  const ahoraColombia = obtenerFechaActualColombia();
+  
+  const ultimaActualizacion = estudiante.fecha_actualizacion 
+    ? new Date(estudiante.fecha_actualizacion) 
+    : new Date(estudiante.created_at);
+  
+  const ultimaActualizacionColombia = convertirFechaAColombia(ultimaActualizacion);
+  
+  // 📅 VERIFICAR SI HA PASADO UNA FECHA DE ACTUALIZACIÓN (01 ENERO o 01 JULIO)
+  
+  const añoActual = ahoraColombia.getFullYear();
+  const mesActual = ahoraColombia.getMonth(); // 0 = Enero, 6 = Julio
+  const diaActual = ahoraColombia.getDate();
+  
+  const añoUltimaActualizacion = ultimaActualizacionColombia.getFullYear();
+  const mesUltimaActualizacion = ultimaActualizacionColombia.getMonth();
+  
+  // Fechas clave de actualización en zona horaria de Colombia
+  const ahoraTemporal = obtenerFechaActualColombia();
+  const enero = new Date(ahoraTemporal);
+  enero.setFullYear(añoActual, 0, 1);
+  enero.setHours(0, 0, 0, 0);
+  const julio = new Date(ahoraTemporal);
+  julio.setFullYear(añoActual, 6, 1);
+  julio.setHours(0, 0, 0, 0);
+  
+  console.log('📅 Última actualización:', ultimaActualizacionColombia.toLocaleString('es-CO'));
+  console.log('📅 Ahora:', ahoraColombia.toLocaleString('es-CO'));
+  console.log('📅 Año actual:', añoActual, '| Mes actual:', mesActual + 1, '| Día actual:', diaActual);
+  
+  // CASO 1: Si la última actualización fue en un año anterior
+  if (añoUltimaActualizacion < añoActual) {
+    console.log('✅ Necesita actualizar: La última actualización fue en un año anterior');
+    return true;
+  }
+  
+  // CASO 2: Si estamos en el mismo año, verificar semestres
+  if (añoUltimaActualizacion === añoActual) {
+    // Si la última actualización fue ANTES de Julio y ya pasó el 01 de Julio
+    if (mesUltimaActualizacion < 6 && ahoraColombia >= julio) {
+      console.log('✅ Necesita actualizar: Ya pasó el 01 de Julio y no ha actualizado este semestre');
+      return true;
+    }
+  }
+  
+  console.log('❌ NO necesita actualizar aún');
+  return false;
+}
+
+function mostrarFormularioActualizacion(estudiante) {
+  mostrarPantalla('pantallaActualizacion');
+  document.getElementById('mensajeActualizacion').innerHTML = '';
+  
+  // Pre-llenar con datos actuales (SOLO semestre y grupo)
+  document.getElementById('actualizarSemestre').value = estudiante.semestre || '';
+  document.getElementById('actualizarGrupo').value = estudiante.grupo || '';
+  
+  // Mostrar nombre censurado
+  const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
+  const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
+  const nombreCompleto = `${nombres} ${apellidos}`;
+  document.getElementById('nombreEstudianteActualizacion').textContent = censurarNombre(nombreCompleto);
+}
+
+async function actualizarDatosEstudiante(event) {
+  event.preventDefault();
+  
+  if (!estudianteActualizando) {
+    mostrarMensaje('mensajeActualizacion', 'Error: No se encontró el estudiante', 'error');
+    return;
+  }
+  
+  const nuevoSemestre = parseInt(document.getElementById('actualizarSemestre').value);
+  const nuevoGrupo = document.getElementById('actualizarGrupo').value.toUpperCase().trim();
+  
+  if (!nuevoSemestre || !nuevoGrupo) {
+    mostrarMensaje('mensajeActualizacion', 'Por favor complete todos los campos', 'error');
+    return;
+  }
+  
+  mostrarCargando('mensajeActualizacion');
+  
+  try {
+    // Fecha REAL en Colombia
+    const fechaColombiaISO = obtenerFechaISOColombia();
+    
+    // Actualizar en Supabase
+    const url = `${SUPABASE_URL}/rest/v1/estudiantes?documento=eq.${estudianteActualizando.documento}`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        semestre: nuevoSemestre,
+        grupo: nuevoGrupo,
+        fecha_actualizacion: fechaColombiaISO
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al actualizar en la base de datos');
+    }
+    
+    const resultado = await response.json();
+    console.log('✅ Datos actualizados:', resultado);
+    
+    // Continuar con el login
+    const nombres = `${estudianteActualizando.primer_nombre} ${estudianteActualizando.segundo_nombre || ''}`.trim();
+    const apellidos = `${estudianteActualizando.primer_apellido} ${estudianteActualizando.segundo_apellido}`.trim();
+    const nombreCompleto = `${nombres} ${apellidos}`;
+    
+    datosEstudiante = {
+      documento: estudianteActualizando.documento,
+      nombres: nombres,
+      apellidos: apellidos,
+      nombreCensurado: censurarNombre(nombreCompleto),
+      facultad: estudianteActualizando.facultad,
+      programa: estudianteActualizando.programa,
+      sede: estudianteActualizando.sede,
+      semestre: nuevoSemestre,
+      grupo: nuevoGrupo
+    };
+    
+    formularioEnviandose = false;
+    
+    // ASEGURAR QUE TODOS LOS DATOS DEL FORMULARIO ESTÉN CARGADOS
+    if (datosCache.tutoresNorte.length === 0 || datosCache.materias.length === 0 || datosCache.temas.length === 0) {
+      try {
+        console.log('🔄 Precargando datos del formulario después de actualizar...');
+        await precargarDatosFormulario();
+        console.log('✅ Datos del formulario cargados correctamente');
+      } catch (error) {
+        console.error('❌ Error al cargar datos:', error);
+        mostrarMensaje('mensajeActualizacion', 'Error al cargar los datos del formulario. Por favor intenta de nuevo.', 'error');
+        return;
+      }
+    }
+    
+    mostrarPantalla('pantallaFormulario');
+    document.getElementById('nombreUsuario').textContent = 'Bienvenido(a): ' + datosEstudiante.nombreCensurado;
+    document.getElementById('mensajeFormulario').innerHTML = '';
+    actualizarBotonCerrarSesion();
+    actualizarProgreso(1);
+    
+  } catch (error) {
+    console.error('❌ Error:', error);
+    mostrarMensaje('mensajeActualizacion', 'Error al actualizar: ' + error.message, 'error');
+  }
+}
+
+function cerrarSesion() {
+  datosEstudiante = null;
+  instructorActual = null;
+  formularioEnviandose = false;
+  
+  // REACTIVAR BOTÓN DE ENVIAR
+  const btnEnviar = document.getElementById('btnEnviar');
+  if (btnEnviar) {
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    btnEnviar.style.opacity = '1';
+    btnEnviar.style.cursor = 'pointer';
+  }
+  
+  // Resetear paginación
+  paginaFormularioActual = 1;
+  document.getElementById('paginaFormulario1').classList.remove('hidden');
+  document.getElementById('paginaFormulario2').classList.add('hidden');
+  document.getElementById('btnEnviar').classList.add('hidden');
+  
+  document.querySelectorAll('.progress-step').forEach(step => {
+    step.classList.remove('active', 'completed');
+  });
+  
+  const primerPaso = document.getElementById('step1');
+  if (primerPaso) {
+    primerPaso.classList.add('active');
+  }
+  
+  // Recargar la página para limpiar todo
+  setTimeout(() => {
+    location.reload();
+  }, 300);
+}
+
+// ===================================
+// ADMINISTRADOR
+// ===================================
+async function loginAdmin(event) {
+  event.preventDefault();
+  mostrarCargando('mensajeAdminLogin');
+
+  const documento = document.getElementById('adminDocumento').value;
+  const contrasena = document.getElementById('adminContrasena').value;
+
+  try {
+    const data = await supabaseQuery('administradores', {
+      eq: { field: 'documento', value: documento }
+    });
+
+    // Verificar que el documento existe Y que la contraseña coincida
+    if (data.length === 0 || data[0].contra !== contrasena) {
+      mostrarMensaje('mensajeAdminLogin', 'Acceso denegado.', 'error');
+      return;
+    }
+
+    document.getElementById('nombreAdmin').textContent = 'Administrador: ' + data[0].nombre;
+    mostrarPantalla('pantallaAdmin');
+    // Ya NO cargamos estadísticas aquí, se cargan cuando el admin hace clic
+  } catch (error) {
+    mostrarMensaje('mensajeAdminLogin', 'Error de conexión: ' + error.message, 'error');
+  }
+}
+
+async function cambiarTab(event, tab) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  document.getElementById('tabEstadisticas').classList.add('hidden');
+  document.getElementById('tabGraficas').classList.add('hidden');
+  document.getElementById('tabDescargas').classList.add('hidden');
+  
+  if (tab === 'descargas') {
+    document.getElementById('tabDescargas').classList.remove('hidden');
+    // Inicializar buscador de grupos cuando se muestra la pestaña de descargas
+    setTimeout(() => inicializarBuscadorGrupos(), 100);
+  } else if (tab === 'estadisticas') {
+    document.getElementById('tabEstadisticas').classList.remove('hidden');
+    
+    // CARGAR DATOS DE ESTADÍSTICAS
+    if (datosCache.tutoresNorte.length === 0) {
+      document.getElementById('statsGrid').innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando datos...</p>';
+      try {
+        await precargarDatosEstadisticas();
+      } catch (error) {
+        document.getElementById('statsGrid').innerHTML = '<p style="text-align: center; color: #dc3545;">Error al cargar datos. Por favor intenta de nuevo.</p>';
+        return;
+      }
+    }
+    
+    // Cargar estadísticas si no existen
+    if (!window.datosFormulariosGlobal) {
+      await cargarEstadisticas();
+    }
+    
+  } else if (tab === 'graficas') {
+    document.getElementById('tabGraficas').classList.remove('hidden');
+    
+    // CARGAR DATOS PARA GRÁFICAS (solo necesita formularios)
+    if (!window.datosFormulariosGlobal) {
+      const container = document.querySelector('#tabGraficas .chart-container');
+      const contenidoOriginal = container.innerHTML;
+      container.innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando datos para gráficas...</p>';
+      
+      try {
+        const data = await supabaseQuery('formularios');
+        window.datosFormulariosGlobal = data;
+        container.innerHTML = contenidoOriginal;
+      } catch (error) {
+        container.innerHTML = '<p style="text-align: center; color: #dc3545;">Error al cargar datos. Por favor intenta de nuevo.</p>';
+        return;
+      }
+    }
+    
+    // Crear/actualizar gráfica
+    if (!graficoTutorias) {
+      actualizarGrafica();
+    }
+    
+  } else if (tab === 'descargas') {
+    document.getElementById('tabDescargas').classList.remove('hidden');
+    // Inicializar buscador de grupos cuando se muestra la pestaña de descargas
+    setTimeout(() => inicializarBuscadorGrupos(), 100);
+  }
+}
+
+// ===================================
+// ACTUALIZAR ESTADÍSTICAS
+// ===================================
+// ===================================
+// FORZAR ACTUALIZACIÓN DE DATOS DE ESTUDIANTES
+// ===================================
+function solicitarForzarActualizacion() {
+  mostrarModalConfirmacion(
+    '¿Forzar Actualización de Datos?',
+    'Esta acción hará que TODOS los estudiantes deban actualizar su semestre y grupo académico antes de llenar el formulario. ¿Está seguro de continuar?',
+    forzarActualizacionEstudiantes
+  );
+}
+
+async function forzarActualizacionEstudiantes() {
+  const btnForzar = document.getElementById('btnForzarActualizacion');
+  btnForzar.disabled = true;
+  btnForzar.style.opacity = '0.6';
+  
+  try {
+    // Obtener fecha antigua (01 de enero del año anterior) en zona horaria de Colombia
+    const ahoraColombia = obtenerFechaActualColombia();
+    const añoAnterior = ahoraColombia.getFullYear() - 1;
+    const fechaAntigua = new Date(ahoraColombia);
+    fechaAntigua.setFullYear(añoAnterior, 0, 1); // 01 Enero del año anterior
+    fechaAntigua.setHours(0, 0, 0, 0);
+    const fechaAntiguaISO = fechaAntigua.toISOString();
+    
+    // Intentar actualizar TODOS los estudiantes en Supabase usando un filtro que incluya todos
+    // Usamos un filtro que siempre es verdadero: documento=neq.'' (documento no igual a cadena vacía)
+    const url = `${SUPABASE_URL}/rest/v1/estudiantes?documento=neq.`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        fecha_actualizacion: fechaAntiguaISO
+      })
+    });
+    
+    if (!response.ok) {
+      // Si falla, intentar obtener todos los estudiantes y actualizarlos uno por uno
+      console.log('⚠️ PATCH masivo falló, intentando actualización individual...');
+      
+      const estudiantes = await supabaseQuery('estudiantes');
+      let actualizados = 0;
+      let errores = 0;
+      
+      for (const estudiante of estudiantes) {
+        try {
+          const urlIndividual = `${SUPABASE_URL}/rest/v1/estudiantes?documento=eq.${estudiante.documento}`;
+          const responseIndividual = await fetch(urlIndividual, {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              fecha_actualizacion: fechaAntiguaISO
+            })
+          });
+          
+          if (responseIndividual.ok) {
+            actualizados++;
+          } else {
+            errores++;
+          }
+        } catch (error) {
+          errores++;
+          console.error(`Error actualizando estudiante ${estudiante.documento}:`, error);
+        }
+      }
+      
+      if (errores > 0) {
+        alert(`⚠️ Actualización parcial: ${actualizados} estudiantes actualizados, ${errores} con errores.`);
+      } else {
+        alert(`✅ Actualización forzada exitosa. ${actualizados} estudiantes deberán actualizar sus datos antes de llenar el formulario.`);
+      }
+    } else {
+      // Mostrar mensaje de éxito
+      alert('✅ Actualización forzada exitosa. Todos los estudiantes deberán actualizar sus datos antes de llenar el formulario.');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error forzando actualización:', error);
+    alert('❌ Error al forzar actualización: ' + error.message);
+  } finally {
+    btnForzar.disabled = false;
+    btnForzar.style.opacity = '1';
+  }
+}
+
+async function actualizarEstadisticas() {
+  const btnActualizar = document.getElementById('btnActualizar');
+  const iconActualizar = document.getElementById('iconActualizar');
+  
+  // Deshabilitar botón mientras carga
+  btnActualizar.disabled = true;
+  btnActualizar.style.opacity = '0.6';
+  
+  // Agregar animación de rotación
+  iconActualizar.style.animation = 'spin 1s linear infinite';
+  
+  try {
+    await cargarEstadisticas();
+    
+    // Cambiar a check (éxito)
+    iconActualizar.style.animation = 'none';
+    iconActualizar.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+    iconActualizar.style.color = '#28a745';
+    
+    // Volver al icono original después de 1.5 segundos
+    setTimeout(() => {
+      iconActualizar.innerHTML = '<polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>';
+      iconActualizar.style.color = 'currentColor';
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error actualizando estadísticas:', error);
+    
+    // Mostrar X en caso de error
+    iconActualizar.style.animation = 'none';
+    iconActualizar.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
+    iconActualizar.style.color = '#dc3545';
+    
+    setTimeout(() => {
+      iconActualizar.innerHTML = '<polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>';
+      iconActualizar.style.color = 'currentColor';
+    }, 1500);
+  } finally {
+    btnActualizar.disabled = false;
+    btnActualizar.style.opacity = '1';
+  }
+}
+
+
+async function cargarEstadisticas() {
+  // Mostrar loader mientras carga
+  document.getElementById('statsGrid').innerHTML = '<div class="loader"></div><p style="text-align: center; color: #666; margin-top: 15px;">Cargando estadísticas...</p>';
+  document.getElementById('detallesStats').innerHTML = '';
+  
+  try {
+    const data = await supabaseQuery('formularios');
+
+    if (data.length === 0) {
+      document.getElementById('statsGrid').innerHTML = '<p style="text-align: center; color: #666;">No hay datos disponibles aún.</p>';
+      return;
+    }
+
+    // Crear HTML con estructura correcta
+    const contenidoHTML = `
+      <div class="estadisticas-menu-wrapper">
+        <button class="btn btn-sede activo" onclick="mostrarEstadisticas('general', this)">
+          General
+        </button>
+        <button class="btn btn-sede" onclick="mostrarEstadisticas('tutores', this)">
+          Tutores
+        </button>
+        <button class="btn btn-sede" onclick="mostrarEstadisticas('profesores', this)">
+          Profesores
+        </button>
+      </div>
+      <div id="contenidoEstadisticas"></div>
+    `;
+
+    document.getElementById('statsGrid').innerHTML = contenidoHTML;
+    document.getElementById('detallesStats').innerHTML = '';
+
+    // Guardar datos globalmente para uso posterior
+    window.datosFormulariosGlobal = data;
+
+    // Mostrar estadísticas generales por defecto
+    mostrarEstadisticas('general');
+
+  } catch (error) {
+    console.error('Error cargando estadísticas:', error);
+    document.getElementById('statsGrid').innerHTML = '<p style="text-align: center; color: #dc3545;">Error al cargar estadísticas. Por favor intenta de nuevo.</p>';
+  }
+
+  const ahora = new Date().toLocaleString('es-CO', {
+    timeZone: 'America/Bogota',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  document.getElementById('statsGrid').insertAdjacentHTML('afterbegin', 
+    `<p style="text-align: right; color: #666; font-size: 12px;">
+      Última actualización: ${ahora}
+    </p>`
+  );
+}
+
+function mostrarEstadisticas(tipo, botonClickeado) {
+  // Remover clase activo de todos los botones
+  document.querySelectorAll('.estadisticas-menu-wrapper .btn-sede').forEach(btn => {
+    btn.classList.remove('activo');
+  });
+  
+  // Agregar clase activo al botón clickeado (si existe)
+  if (botonClickeado) {
+    botonClickeado.classList.add('activo');
+  } else {
+    // Si se llama sin botón (carga inicial), activar el botón de General
+    const btnGeneral = document.querySelector('.estadisticas-menu-wrapper .btn-sede');
+    if (btnGeneral) btnGeneral.classList.add('activo');
+  }
+  
+  const data = window.datosFormulariosGlobal;
+  
+  let datosFiltrados;
+  
+  if (tipo === 'tutores') {
+    datosFiltrados = data.filter(item => item.tipo_instructor === 'Tutor');
+  } else if (tipo === 'profesores') {
+    datosFiltrados = data.filter(item => item.tipo_instructor === 'Profesor');
+  } else {
+    // General: todos los datos
+    datosFiltrados = data;
+  }
+
+  if (datosFiltrados.length === 0) {
+    document.getElementById('contenidoEstadisticas').innerHTML = `<p style="text-align: center; color: #666;">No hay datos de ${tipo} disponibles aún.</p>`;
+    document.getElementById('detallesStats').innerHTML = '';
+    return;
+  }
+
+  const stats = {
+    total: datosFiltrados.length,
+    instructoresPorSede: { Norte: {}, Sur: {} },
+    sedesTutorias: {},
+    calificacionesPorInstructor: {},
+    facultadDepartamento: {},
+    sumaCalificacionesTotal: 0,
+    sumaCalificacionesPMA: 0  // Para General: incluye las 5 calificaciones
+  };
+
+  datosFiltrados.forEach(item => {
+    const sede = item.sede_tutoria;
+    const instructor = item.instructor;
+    
+    if (!stats.instructoresPorSede[sede]) {
+      stats.instructoresPorSede[sede] = {};
+    }
+    stats.instructoresPorSede[sede][instructor] = (stats.instructoresPorSede[sede][instructor] || 0) + 1;
+
+    stats.sedesTutorias[sede] = (stats.sedesTutorias[sede] || 0) + 1;
+
+    // CÁLCULO: Promedio de 3 preguntas por tutoría (para Tutores y Profesores)
+    const calificacionTutoria = item.calificacion || 0;
+    const dudasResueltas = item.dudas_resueltas || 0;
+    const dominioTema = item.dominio_tema || 0;
+    
+    const promedioTutoria = (calificacionTutoria + dudasResueltas + dominioTema) / 3;
+    
+    // CÁLCULO: Promedio de 5 preguntas por tutoría (para General - Calificación PMA)
+    const ambiente = item.ambiente || 0;
+    const recomiendaPMA = item.recomienda_pma || 0;
+    const promedioPMA = (calificacionTutoria + dudasResueltas + dominioTema + ambiente + recomiendaPMA) / 5;
+    
+    if (!stats.calificacionesPorInstructor[instructor]) {
+      stats.calificacionesPorInstructor[instructor] = { suma: 0, cantidad: 0 };
+    }
+    stats.calificacionesPorInstructor[instructor].suma += promedioTutoria;
+    stats.calificacionesPorInstructor[instructor].cantidad += 1;
+
+    stats.sumaCalificacionesTotal += promedioTutoria;
+    stats.sumaCalificacionesPMA += promedioPMA;  // Acumular para General
+
+    // Para profesores: contar por facultad/departamento
+    if (tipo === 'profesores' && item.facultad_departamento) {
+      stats.facultadDepartamento[item.facultad_departamento] = (stats.facultadDepartamento[item.facultad_departamento] || 0) + 1;
+    }
+  });
+
+  const promedioCalificacion = (stats.sumaCalificacionesTotal / stats.total).toFixed(2);
+  const promedioCalificacionPMA = (stats.sumaCalificacionesPMA / stats.total).toFixed(2);
+
+  const promediosPorInstructor = {};
+  Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
+    const info = stats.calificacionesPorInstructor[instructor];
+    promediosPorInstructor[instructor] = (info.suma / info.cantidad).toFixed(2);
+  });
+
+  // Encontrar el MEJOR instructor: mayor calificación, y si hay empate, el que tiene más tutorías
+  let mejorInstructor = null;
+  
+  Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
+    const info = stats.calificacionesPorInstructor[instructor];
+    const promedio = parseFloat((info.suma / info.cantidad).toFixed(2));
+    
+    if (!mejorInstructor) {
+      // Primera iteración: inicializar
+      mejorInstructor = { 
+        nombre: instructor, 
+        promedio: promedio.toFixed(2),
+        cantidad: info.cantidad
+      };
+    } else {
+      const promedioMejor = parseFloat(mejorInstructor.promedio);
+      
+      // Si el promedio es mayor, gana
+      if (promedio > promedioMejor) {
+        mejorInstructor = { 
+          nombre: instructor, 
+          promedio: promedio.toFixed(2),
+          cantidad: info.cantidad
+        };
+      } 
+      // Si hay empate en calificación, gana el que tiene más tutorías
+      else if (promedio === promedioMejor && info.cantidad > mejorInstructor.cantidad) {
+        mejorInstructor = { 
+          nombre: instructor, 
+          promedio: promedio.toFixed(2),
+          cantidad: info.cantidad
+        };
+      }
+    }
+  });
+
+  // Encontrar el MENOR instructor: menor calificación, y si hay empate, el que tiene más tutorías
+  let peorInstructor = null;
+  
+  Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
+    const info = stats.calificacionesPorInstructor[instructor];
+    const promedio = parseFloat((info.suma / info.cantidad).toFixed(2));
+    
+    if (!peorInstructor) {
+      // Primera iteración: inicializar
+      peorInstructor = { 
+        nombre: instructor, 
+        promedio: promedio.toFixed(2),
+        cantidad: info.cantidad
+      };
+    } else {
+      const promedioPeor = parseFloat(peorInstructor.promedio);
+      
+      // Si el promedio es menor, gana
+      if (promedio < promedioPeor) {
+        peorInstructor = { 
+          nombre: instructor, 
+          promedio: promedio.toFixed(2),
+          cantidad: info.cantidad
+        };
+      } 
+      // Si hay empate en calificación, gana el que tiene más tutorías
+      else if (promedio === promedioPeor && info.cantidad > peorInstructor.cantidad) {
+        peorInstructor = { 
+          nombre: instructor, 
+          promedio: promedio.toFixed(2),
+          cantidad: info.cantidad
+        };
+      }
+    }
+  });
+  
+  // Si no hay instructores, usar valores por defecto
+  if (!mejorInstructor) {
+    mejorInstructor = { nombre: 'N/A', promedio: '0.00', cantidad: 0 };
+  }
+  if (!peorInstructor) {
+    peorInstructor = { nombre: 'N/A', promedio: '0.00', cantidad: 0 };
+  }
+
+  const grid = document.getElementById('contenidoEstadisticas');
+  
+// GENERAL
+if (tipo === 'general') {
+  // Calcular estudiantes únicos (beneficiados)
+  const estudiantesUnicos = new Set(datosFiltrados.map(item => item.documento));
+  const cantidadBeneficiados = estudiantesUnicos.size;
+  
+  grid.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>${stats.total}</h3>
+        <p>Total de Registros</p>
+      </div>
+      <div class="stat-card">
+        <h3>${cantidadBeneficiados}</h3>
+        <p>Beneficiados</p>
+      </div>
+      <div class="stat-card">
+        <h3>${promedioCalificacionPMA}</h3>
+        <p>Calificación PMA</p>
+      </div>
+      
+    </div>
+  `;
+  
+  // ===== NUEVAS LISTAS DE TOP 5 =====
+  
+  // Top 5 Materias
+  const materiasCuenta = {};
+  datosFiltrados.forEach(item => {
+    const materia = item.asignatura || 'Sin especificar';
+    materiasCuenta[materia] = (materiasCuenta[materia] || 0) + 1;
+  });
+  
+  const top5Materias = Object.entries(materiasCuenta)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  
+  // Top 5 Semestres
+  const semestresCuenta = {};
+  datosFiltrados.forEach(item => {
+    const semestre = item.semestre || 'Sin especificar';
+    semestresCuenta[semestre] = (semestresCuenta[semestre] || 0) + 1;
+  });
+  
+  const top5Semestres = Object.entries(semestresCuenta)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  
+  // Top 5 Programas
+  const programasCuenta = {};
+  datosFiltrados.forEach(item => {
+    const programa = item.programa || 'Sin especificar';
+    programasCuenta[programa] = (programasCuenta[programa] || 0) + 1;
+  });
+  
+  const top5Programas = Object.entries(programasCuenta)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  
+  // Lista de Facultades (todas, ordenadas de mayor a menor)
+  // Leer directamente desde la tabla de formularios
+  const facultadesCuenta = {};
+  
+  // Contar tutorías por facultad directamente desde formularios
+  datosFiltrados.forEach(item => {
+    const facultad = item.facultad || 'Sin especificar';
+    facultadesCuenta[facultad] = (facultadesCuenta[facultad] || 0) + 1;
+  });
+  
+  // Ordenar facultades de mayor a menor
+  const todasFacultades = Object.entries(facultadesCuenta)
+    .sort((a, b) => b[1] - a[1]);
+  
+  // Contar motivos de consulta
+  const motivosCuenta = {};
+  datosFiltrados.forEach(item => {
+    const motivo = item.motivo_consulta || 'Sin especificar';
+    motivosCuenta[motivo] = (motivosCuenta[motivo] || 0) + 1;
+  });
+  
+  // Ordenar motivos de consulta de mayor a menor
+  const todosMotivos = Object.entries(motivosCuenta)
+    .sort((a, b) => b[1] - a[1]);
+  
+  // Generar HTML de las listas (incluyendo facultades y motivos de consulta)
+  generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacultades, todosMotivos, stats.total);
+  
+  return;
+}
+
+// Función auxiliar para generar las listas de estadísticas
+function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacultades, todosMotivos, total) {
+  let detallesHTML = '';
+  
+  // Lista 1: Top 5 Materias
+  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Materias con Más Tutorías</h3>';
+  if (top5Materias.length > 0) {
+    top5Materias.forEach(([materia, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${materia}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+  } else {
+    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
+  }
+  detallesHTML += '</div>';
+  
+  // Lista 2: Top 5 Semestres
+  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Semestres con Más Tutorías</h3>';
+  if (top5Semestres.length > 0) {
+    top5Semestres.forEach(([semestre, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      const semestreTexto = semestre === 'Sin especificar' ? semestre : `Semestre ${semestre}`;
+      detallesHTML += `<div class="list-item"><span>${semestreTexto}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+  } else {
+    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
+  }
+  detallesHTML += '</div>';
+  
+  // Lista de Facultades (antes de Top 5 Programas)
+  if (todasFacultades.length > 0) {
+    detallesHTML += '<div class="chart-container"><h3 class="chart-title">Facultades con Más Tutorías</h3>';
+    todasFacultades.forEach(([facultad, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${facultad}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+    detallesHTML += '</div>';
+  }
+  
+  // Lista 3: Top 5 Programas
+  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Programas con Más Tutorías</h3>';
+  if (top5Programas.length > 0) {
+    top5Programas.forEach(([programa, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${programa}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+  } else {
+    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
+  }
+  detallesHTML += '</div>';
+  
+  // Lista de Motivos de Consulta (todas, ordenadas de mayor a menor)
+  if (todosMotivos && todosMotivos.length > 0) {
+    detallesHTML += '<div class="chart-container"><h3 class="chart-title">Motivos de Consulta</h3>';
+    todosMotivos.forEach(([motivo, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${motivo}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+    detallesHTML += '</div>';
+  }
+  
+  document.getElementById('detallesStats').innerHTML = detallesHTML;
+}
+
+  // TUTORES y PROFESORES: Cards completos
+  const tituloTipo = tipo === 'tutores' ? 'Tutorías' : 'Asesorías con Profesores';
+
+  grid.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>${stats.total}</h3>
+        <p>Total ${tituloTipo}</p>
+      </div>
+      <div class="stat-card">
+        <h3>${promedioCalificacion}</h3>
+        <p>Calificación Promedio</p>
+      </div>
+      <div class="stat-card">
+        <h3>${mejorInstructor.nombre}</h3>
+        <p>Mejor Calificación (${mejorInstructor.promedio})<br><small>${mejorInstructor.cantidad} ${mejorInstructor.cantidad === 1 ? 'tutoría' : 'tutorías'}</small></p>
+      </div>
+      <div class="stat-card">
+        <h3>${peorInstructor.nombre}</h3>
+        <p>Menor Calificación (${peorInstructor.promedio})<br><small>${peorInstructor.cantidad} ${peorInstructor.cantidad === 1 ? 'tutoría' : 'tutorías'}</small></p>
+      </div>
+    </div>
+  `;
+
+  let detalles = '';
+
+// TUTORES: Mostrar por sede
+  if (tipo === 'tutores') {
+    detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Sede</h3>';
+    Object.entries(stats.sedesTutorias).forEach(([sede, cantidad]) => {
+      const porcentaje = ((cantidad / stats.total) * 100).toFixed(1);
+      detalles += `<div class="list-item"><span>${sede}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+    detalles += '</div>';
+
+    // Contar tutorías totales por instructor (sin importar dónde las dio)
+    const tutoriasPorInstructor = {};
+    datosFiltrados.forEach(item => {
+      const instructor = item.instructor;
+      tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
+    });
+
+    // Agrupar tutores por SEDE DE ORIGEN (tabla donde están registrados)
+    // Si un tutor está en ambas tablas, aparece en ambas sedes con el mismo total
+    const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
+    
+    // Verificar si los datos están cargados
+    if (datosCache.tutoresNorte.length > 0 && datosCache.tutoresSur.length > 0) {
+      Object.keys(tutoriasPorInstructor).forEach(instructor => {
+        const cantidadTotal = tutoriasPorInstructor[instructor];
+        
+        // Verificar en qué tabla de ORIGEN está el tutor
+        const esTutorNorte = datosCache.tutoresNorte.some(t => t.nombre === instructor);
+        const esTutorSur = datosCache.tutoresSur.some(t => t.nombre === instructor);
+        
+        // Agregar a las sedes de origen con el TOTAL de tutorías
+        if (esTutorNorte) {
+          tutoresPorSedeOrigen.Norte[instructor] = cantidadTotal;
+        }
+        if (esTutorSur) {
+          tutoresPorSedeOrigen.Sur[instructor] = cantidadTotal;
+        }
+      });
+    }
+
+    detalles += `<div class="chart-container">
+      <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
+      
+      <div class="botones-sedes">
+        <button class="btn btn-secondary btn-sede" onclick="toggleInstructoresSede('norte')">
+          Sede Norte
+        </button>
+        <button class="btn btn-secondary btn-sede" onclick="toggleInstructoresSede('sur')">
+          Sede Sur
+        </button>
+      </div>
+
+      <div id="instructoresNorteAdmin" class="horario-info hidden">
+        <h4 class="horario-titulo">Tutores de Sede Norte</h4>`;
+    
+    const instructoresNorte = Object.entries(tutoresPorSedeOrigen.Norte)
+      .sort((a, b) => b[1] - a[1]); // Ordenar de mayor a menor cantidad
+    
+    if (instructoresNorte.length > 0) {
+      instructoresNorte.forEach(([instructor, cantidad]) => {
+        const promedio = promediosPorInstructor[instructor] || 'N/A';
+        detalles += `<div class="list-item">
+          <span>${instructor}</span>
+          <strong>${cantidad} tutoría${cantidad !== 1 ? 's' : ''}<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
+        </div>`;
+      });
+    } else {
+      detalles += '<p style="text-align: center; color: #666;">No hay tutores registrados en Sede Norte</p>';
+    }
+    
+    detalles += `</div>
+
+      <div id="instructoresSurAdmin" class="horario-info hidden">
+        <h4 class="horario-titulo">Tutores de Sede Sur</h4>`;
+    
+    const instructoresSur = Object.entries(tutoresPorSedeOrigen.Sur)
+      .sort((a, b) => b[1] - a[1]); // Ordenar de mayor a menor cantidad
+    
+    if (instructoresSur.length > 0) {
+      instructoresSur.forEach(([instructor, cantidad]) => {
+        const promedio = promediosPorInstructor[instructor] || 'N/A';
+        detalles += `<div class="list-item">
+          <span>${instructor}</span>
+          <strong>${cantidad} tutoría${cantidad !== 1 ? 's' : ''}<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
+        </div>`;
+      });
+    } else {
+      detalles += '<p style="text-align: center; color: #666;">No hay tutores registrados en Sede Sur</p>';
+    }
+    
+    detalles += '</div></div>';
+  }
+
+  
+  
+  // PROFESORES: Mostrar por facultad/departamento con profesores agrupados
+if (tipo === 'profesores') {
+  detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Asesorías por Facultad/Departamento</h3>';
+  
+  const facultadesOrdenadas = Object.entries(stats.facultadDepartamento)
+    .sort((a, b) => b[1] - a[1]);
+  
+  if (facultadesOrdenadas.length > 0) {
+    facultadesOrdenadas.forEach(([facultad, cantidad]) => {
+      const nombreCompleto = obtenerNombreFacultad(facultad);
+      const porcentaje = ((cantidad / stats.total) * 100).toFixed(1);
+      detalles += `<div class="list-item"><span>${nombreCompleto}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+  } else {
+    detalles += '<p style="text-align: center; color: #666;">No hay datos por facultad</p>';
+  }
+  
+  detalles += '</div>';
+
+  // Cantidad de Asesorías por Profesor agrupados por Facultad/Departamento
+  detalles += `<div class="chart-container">
+    <h3 class="chart-title">Cantidad de Asesorías por Profesor</h3>`;
+
+  // Agrupar profesores por facultad/departamento
+  const profesoresPorFacultad = {};
+  
+  datosFiltrados.forEach(item => {
+    const facultad = item.facultad_departamento || 'Sin Facultad';
+    const profesor = item.instructor;
+    
+    if (!profesoresPorFacultad[facultad]) {
+      profesoresPorFacultad[facultad] = {};
+    }
+    
+    profesoresPorFacultad[facultad][profesor] = (profesoresPorFacultad[facultad][profesor] || 0) + 1;
+  });
+
+  const facultadesConProfesores = Object.keys(profesoresPorFacultad).sort();
+  
+  // Crear botones para cada facultad/departamento
+  if (facultadesConProfesores.length > 0) {
+    detalles += '<div class="botones-sedes">';
+    
+    facultadesConProfesores.forEach(facultad => {
+      const facultadId = facultad.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const nombreCompleto = obtenerNombreFacultad(facultad);
+      const facultadCorta = nombreCompleto.replace('Facultad de ', '').replace('Departamento de ', '');
+      detalles += `
+        <button class="btn btn-secondary btn-sede" onclick="toggleProfesoresFacultad('${facultadId}')">
+          ${facultadCorta}
+        </button>`;
+    });
+    
+    detalles += '</div>';
+
+    // Crear secciones ocultas para cada facultad con sus profesores
+    facultadesConProfesores.forEach(facultad => {
+      const facultadId = facultad.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const profesores = profesoresPorFacultad[facultad];
+      const profesoresOrdenados = Object.entries(profesores).sort((a, b) => b[1] - a[1]);
+      
+      const nombreCompletoTitulo = obtenerNombreFacultad(facultad);
+      detalles += `
+        <div id="profesores${facultadId}" class="horario-info hidden">
+          <h4 class="horario-titulo">${nombreCompletoTitulo}</h4>`;
+      
+      if (profesoresOrdenados.length > 0) {
+        profesoresOrdenados.forEach(([profesor, cantidad]) => {
+          const promedio = promediosPorInstructor[profesor] || 'N/A';
+          detalles += `<div class="list-item">
+            <span>${profesor}</span>
+            <strong>${cantidad} asesorías<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
+          </div>`;
+        });
+      } else {
+        detalles += '<p style="text-align: center; color: #666;">No hay profesores en esta facultad</p>';
+      }
+      
+      detalles += '</div>';
+    });
+  } else {
+    detalles += '<p style="text-align: center; color: #666;">No hay datos de profesores disponibles</p>';
+  }
+  
+  detalles += '</div>';
+}
+
+  document.getElementById('detallesStats').innerHTML = detalles;
+}
+
+
+// ===================================
+// DESCARGAR DATOS
+// ===================================
+async function descargarDatos() {
+  const desde = document.getElementById('fechaDesde').value;
+  const hasta = document.getElementById('fechaHasta').value;
+
+  if (!desde || !hasta) {
+    alert('Por favor seleccione ambas fechas');
+    return;
+  }
+
+  if (new Date(desde) > new Date(hasta)) {
+    alert('La fecha inicial no puede ser mayor que la fecha final');
+    return;
+  }
+
+  const btnDescarga = event.target;
+  const textoOriginal = btnDescarga.textContent;
+  btnDescarga.disabled = true;
+  btnDescarga.textContent = '⏳ Preparando descarga...';
+
+  try {
+    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
+    // Convertir fechas de input a ISO en hora de Colombia
+    const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
+    const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
+    let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    const data = await response.json();
+    const datosTutores = data.filter(item => item.tipo_instructor === 'Tutor');
+    
+    if (datosTutores.length === 0) {
+      alert('No hay registros de tutores en el rango de fechas seleccionado');
+      return;
+    }
+
+    generarExcelSimplificado(datosTutores, `PMA_Tutores_${desde}_a_${hasta}`);
+    alert(`${datosTutores.length} registros de tutores descargados exitosamente`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+  } finally {
+    btnDescarga.disabled = false;
+    btnDescarga.textContent = textoOriginal;
+  }
+}
+
+async function descargarTodo() {
+  if (!confirm('¿Descargar todos los registros?')) {
+    return;
+  }
+
+  const btnDescarga = event.target;
+  const textoOriginal = btnDescarga.textContent;
+  btnDescarga.disabled = true;
+  btnDescarga.textContent = '⏳ Preparando descarga completa...';
+
+  try {
+    // CARGAR TODOS LOS DATOS SOLO CUANDO SE VA A DESCARGAR
+    const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
+    
+    if (data.length === 0) {
+      alert('No hay registros para descargar');
+      return;
+    }
+
+    generarExcelCompleto(data, 'PMA_Completo');
+    alert(`${data.length} registros descargados exitosamente`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+  } finally {
+    btnDescarga.disabled = false;
+    btnDescarga.textContent = textoOriginal;
+  }
+}
+
+
+async function descargarDocentes() {
+  const desde = document.getElementById('fechaDesde').value;
+  const hasta = document.getElementById('fechaHasta').value;
+
+  if (!desde || !hasta) {
+    alert('Por favor seleccione ambas fechas');
+    return;
+  }
+
+  if (new Date(desde) > new Date(hasta)) {
+    alert('La fecha inicial no puede ser mayor que la fecha final');
+    return;
+  }
+
+  const btnDescarga = event.target;
+  const textoOriginal = btnDescarga.textContent;
+  btnDescarga.disabled = true;
+  btnDescarga.textContent = '⏳ Preparando descarga...';
+
+  try {
+    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
+    // Convertir fechas de input a ISO en hora de Colombia
+    const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
+    const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
+    let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    const data = await response.json();
+    const datosDocentes = data.filter(item => item.tipo_instructor === 'Profesor');
+    
+    if (datosDocentes.length === 0) {
+      alert('No hay registros de docentes en el rango de fechas seleccionado');
+      return;
+    }
+
+    generarExcelDocentes(datosDocentes, `PMA_Docentes_${desde}_a_${hasta}`);
+    alert(`${datosDocentes.length} registros de docentes descargados exitosamente`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+  } finally {
+    btnDescarga.disabled = false;
+    btnDescarga.textContent = textoOriginal;
+  }
+}
+
+// ===================================
+// DESCARGAR POR FACULTAD
+// ===================================
+async function descargarPorFacultad() {
+  const checkboxes = document.querySelectorAll('.facultad-checkbox:checked');
+  
+  if (checkboxes.length === 0) {
+    alert('Por favor seleccione al menos una facultad');
+    return;
+  }
+  
+  // Mapeo de códigos a nombres reales en la BD
+  const mapeoFacultades = {
+    'FCE': 'Ciencias Empresariales',
+    'FCSH': 'Ciencias Sociales y Humanas',
+    'FEDV': 'Educación a Distancia y Virtual',
+    'FI': 'Ingeniería'
+  };
+  
+  // Convertir códigos seleccionados a nombres reales de la BD
+  const codigosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+  const nombresFacultadesBD = codigosSeleccionados.map(codigo => mapeoFacultades[codigo]).filter(Boolean);
+  
+  if (nombresFacultadesBD.length === 0) {
+    alert('Error al mapear las facultades seleccionadas');
+    return;
+  }
+  
+  const btnDescarga = event.target;
+  const textoOriginal = btnDescarga.textContent;
+  btnDescarga.disabled = true;
+  btnDescarga.textContent = '⏳ Preparando descarga...';
+  
+  try {
+    // Cargar todos los datos
+    const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
+    
+    // Filtrar formularios por facultades seleccionadas (leyendo directamente desde formularios)
+    const datosFinales = data.filter(item => {
+      const facultad = item.facultad;
+      // Comparar con los nombres reales de la BD
+      return facultad && nombresFacultadesBD.includes(facultad);
+    });
+    
+    if (datosFinales.length === 0) {
+      alert('No hay registros para las facultades seleccionadas');
+      return;
+    }
+    
+    // Generar Excel con columnas específicas (todas desde formularios)
+    generarExcelPorFacultad(datosFinales, codigosSeleccionados);
+    alert(`${datosFinales.length} registros descargados exitosamente`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+    console.error(error);
+  } finally {
+    btnDescarga.disabled = false;
+    btnDescarga.textContent = textoOriginal;
+  }
+}
+
+function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
+  // Todas las columnas vienen directamente de la tabla FORMULARIOS
+  const datosExcel = datos.map(fila => {
+    // Convertir fecha UTC a hora de Colombia
+    const fechaColombia = convertirFechaAColombia(fila.fecha);
+    
+    // Convertir Date a número de serie de Excel
+    const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (86400000);
+    
+    return {
+      'Fecha': serialDate,
+      'Documento': parseInt(fila.documento),
+      'Nombres': fila.nombres || '',
+      'Apellidos': fila.apellidos || '',
+      'Semestre': fila.semestre || '',
+      'Facultad': fila.facultad || '',
+      'Programa': fila.programa || '',
+      'Grupo': fila.grupo || '',
+      'Asignatura': fila.asignatura || '',
+      'Tema': fila.tema || ''
+    };
+  });
+  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+  
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  
+  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
+  for (let row = 1; row <= range.e.r; row++) {
+    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 });
+    if (ws[fechaCell] && row > 0) {
+      ws[fechaCell].t = 'n';
+      ws[fechaCell].z = 'dd/mm/yyyy';
+    }
+  }
+  
+  // Aplicar formato a documento como número
+  for (let row = 1; row <= range.e.r; row++) {
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 1 });
+    if (ws[docCell] && row > 0) {
+      ws[docCell].t = 'n';
+      ws[docCell].z = '0';
+    }
+  }
+  
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+  
+  ws['!cols'] = [
+    { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 10 }, { wch: 35 }, { wch: 35 }, { wch: 12 }, { wch: 30 }, { wch: 30 }
+  ];
+  
+  const nombresFacultades = facultadesSeleccionadas.map(f => obtenerNombreFacultad(f)).join('_');
+  XLSX.utils.book_append_sheet(wb, ws, "Por Facultad");
+  
+  const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  XLSX.writeFile(wb, `PMA_PorFacultad_${nombresFacultades.replace(/\s+/g, '_')}_${fechaHoy}.xlsx`);
+}
+
+// ===================================
+// DESCARGAR POR GRUPO
+// ===================================
+let grupoSeleccionadoParaDescarga = null;
+let cantidadRegistrosEncontrados = 0;
+
+// Inicializar buscador de grupos cuando se carga el panel de admin
+function inicializarBuscadorGrupos() {
+  // No necesita inicialización especial, el botón buscar maneja todo
+}
+
+async function buscarGrupo() {
+  const buscadorGrupo = document.getElementById('buscadorGrupo');
+  const resultadoBusqueda = document.getElementById('resultadoBusquedaGrupo');
+  const grupoSeleccionado = document.getElementById('grupoSeleccionado');
+  const btnDescargar = document.getElementById('btnDescargarGrupo');
+  const btnBuscar = document.getElementById('btnBuscarGrupo');
+  
+  if (!buscadorGrupo || !resultadoBusqueda) return;
+  
+  const grupoBuscado = buscadorGrupo.value.trim().toUpperCase();
+  
+  if (!grupoBuscado) {
+    resultadoBusqueda.style.display = 'block';
+    resultadoBusqueda.style.background = '#fff3cd';
+    resultadoBusqueda.style.borderLeft = '4px solid #ffc107';
+    resultadoBusqueda.innerHTML = '<strong>Advertencia:</strong> Por favor ingrese un grupo para buscar.';
+    grupoSeleccionado.style.display = 'none';
+    btnDescargar.disabled = true;
+    grupoSeleccionadoParaDescarga = null;
+    return;
+  }
+  
+  // Deshabilitar botón mientras busca
+  btnBuscar.disabled = true;
+  btnBuscar.textContent = '⏳ Buscando...';
+  resultadoBusqueda.style.display = 'block';
+  resultadoBusqueda.style.background = '#e8f4fd';
+  resultadoBusqueda.style.borderLeft = '4px solid #1e3c72';
+  resultadoBusqueda.innerHTML = '<strong>Buscando...</strong> Por favor espere...';
+  grupoSeleccionado.style.display = 'none';
+  btnDescargar.disabled = true;
+  
+  try {
+    // Buscar en la tabla formularios, columna grupo
+    const data = await supabaseQuery('formularios');
+    
+    // Filtrar por el grupo buscado (comparación exacta en mayúsculas)
+    const registrosEncontrados = data.filter(item => {
+      const grupo = item.grupo ? item.grupo.trim().toUpperCase() : '';
+      return grupo === grupoBuscado;
+    });
+    
+    cantidadRegistrosEncontrados = registrosEncontrados.length;
+    
+    if (registrosEncontrados.length > 0) {
+      // Grupo encontrado - quitar mensaje y mostrar solo el grupo seleccionado
+      grupoSeleccionadoParaDescarga = grupoBuscado;
+      resultadoBusqueda.style.display = 'none';
+      resultadoBusqueda.innerHTML = '';
+      
+      document.getElementById('grupoSeleccionadoTexto').textContent = grupoBuscado;
+      grupoSeleccionado.style.display = 'block';
+      btnDescargar.disabled = false;
+    } else {
+      // Grupo no encontrado - mostrar solo mensaje simple sin emojis
+      grupoSeleccionadoParaDescarga = null;
+      resultadoBusqueda.style.background = '#f8d7da';
+      resultadoBusqueda.style.borderLeft = '4px solid #dc3545';
+      resultadoBusqueda.innerHTML = '<strong>Grupo no encontrado</strong>';
+      
+      grupoSeleccionado.style.display = 'none';
+      btnDescargar.disabled = true;
+    }
+  } catch (error) {
+    console.error('Error buscando grupo:', error);
+    resultadoBusqueda.style.background = '#f8d7da';
+    resultadoBusqueda.style.borderLeft = '4px solid #dc3545';
+    resultadoBusqueda.innerHTML = `<strong>Error:</strong> ${error.message}`;
+    
+    grupoSeleccionado.style.display = 'none';
+    btnDescargar.disabled = true;
+    grupoSeleccionadoParaDescarga = null;
+  } finally {
+    btnBuscar.disabled = false;
+    btnBuscar.textContent = 'Buscar';
+  }
+}
+
+function limpiarSeleccionGrupo() {
+  grupoSeleccionadoParaDescarga = null;
+  cantidadRegistrosEncontrados = 0;
+  document.getElementById('buscadorGrupo').value = '';
+  document.getElementById('resultadoBusquedaGrupo').style.display = 'none';
+  document.getElementById('grupoSeleccionado').style.display = 'none';
+  document.getElementById('btnDescargarGrupo').disabled = true;
+}
+
+async function descargarPorGrupo() {
+  if (!grupoSeleccionadoParaDescarga) {
+    alert('Por favor busque y seleccione un grupo primero');
+    return;
+  }
+  
+  const btnDescarga = document.getElementById('btnDescargarGrupo');
+  const textoOriginal = btnDescarga.textContent;
+  btnDescarga.disabled = true;
+  btnDescarga.textContent = '⏳ Preparando descarga...';
+  
+  try {
+    // Cargar todos los datos
+    const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
+    
+    // Filtrar formularios por grupo seleccionado (comparación exacta en mayúsculas)
+    const datosFinales = data.filter(item => {
+      const grupo = item.grupo ? item.grupo.trim().toUpperCase() : '';
+      return grupo === grupoSeleccionadoParaDescarga;
+    });
+    
+    if (datosFinales.length === 0) {
+      alert('No hay registros para el grupo seleccionado. Por favor busque nuevamente.');
+      limpiarSeleccionGrupo();
+      return;
+    }
+    
+    // Generar Excel con columnas específicas
+    generarExcelPorGrupo(datosFinales, grupoSeleccionadoParaDescarga);
+    alert(`${datosFinales.length} registros descargados exitosamente`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+    console.error(error);
+  } finally {
+    btnDescarga.disabled = false;
+    btnDescarga.textContent = textoOriginal;
+  }
+}
+
+function generarExcelPorGrupo(datos, grupo) {
+  // Columnas: documento, apellidos y nombres (juntos), programa, grupo, asignatura, tema
+  const datosExcel = datos.map(fila => {
+    // Combinar apellidos y nombres
+    const apellidos = fila.apellidos || '';
+    const nombres = fila.nombres || '';
+    const apellidosYNombres = `${apellidos} ${nombres}`.trim();
+    
+    return {
+      'Documento': parseInt(fila.documento) || '',
+      'Apellidos y Nombres': apellidosYNombres,
+      'Programa': fila.programa || '',
+      'Grupo': fila.grupo || '',
+      'Asignatura': fila.asignatura || '',
+      'Tema': fila.tema || ''
+    };
+  });
+  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+  
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  
+  // Aplicar formato a documento como número
+  for (let row = 1; row <= range.e.r; row++) {
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 0 });
+    if (ws[docCell] && row > 0) {
+      ws[docCell].t = 'n';
+      ws[docCell].z = '0';
+    }
+  }
+  
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+  
+  ws['!cols'] = [
+    { wch: 12 },  // Documento
+    { wch: 40 },  // Apellidos y Nombres
+    { wch: 35 },  // Programa
+    { wch: 12 },  // Grupo
+    { wch: 30 },  // Asignatura
+    { wch: 30 }   // Tema
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, ws, "Por Grupo");
+  
+  const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  const nombreGrupo = grupo.replace(/\s+/g, '_');
+  XLSX.writeFile(wb, `PMA_PorGrupo_${nombreGrupo}_${fechaHoy}.xlsx`);
+}
+
+
+function generarExcelSimplificado(datos, nombreArchivo) {
+  const datosExcel = datos.map(fila => {
+    // Convertir fecha UTC a hora de Colombia
+    const fechaColombia = convertirFechaAColombia(fila.fecha);
+    
+    const horas = String(fechaColombia.getHours()).padStart(2, '0');
+    const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
+    const horaFormateada = `${horas}:${minutos}`;
+    
+    // Convertir Date a número de serie de Excel
+    const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (86400000);
+    return {
+      'Fecha': serialDate,
+      'Hora': horaFormateada,
+      'Documento': parseInt(fila.documento),
+      'Nombres': fila.nombres,
+      'Apellidos': fila.apellidos,
+      'Programa': fila.programa,
+      'Instructor': fila.instructor,
+      'Asignatura': fila.asignatura,
+      'Tema': fila.tema
+    };
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  
+  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
+  for (let row = 1; row <= range.e.r; row++) {
+    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
+    if (ws[fechaCell] && row > 0) {
+      ws[fechaCell].t = 'n'; // Tipo numérico (Excel maneja fechas como números)
+      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
+    }
+  }
+  
+  // Aplicar formato a documento como número
+  for (let row = 1; row <= range.e.r; row++) {
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
+    if (ws[docCell] && row > 0) {
+      ws[docCell].t = 'n'; // Tipo numérico
+      ws[docCell].z = '0'; // Formato sin decimales
+    }
+  }
+
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
+  ws['!cols'] = [
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 35 }, { wch: 25 }, { wch: 30 }, { wch: 30 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Tutores");
+
+    const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
+}
+
+function generarExcelCompleto(datos, nombreArchivo) {
+  const datosExcel = datos.map(fila => {
+    // Convertir fecha UTC a hora de Colombia
+    const fechaColombia = convertirFechaAColombia(fila.fecha);
+    
+    const horas = String(fechaColombia.getHours()).padStart(2, '0');
+    const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
+    const horaFormateada = `${horas}:${minutos}`;
+    
+    // Convertir Date a número de serie de Excel
+    const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (86400000);
+    
+    return {
+      'Fecha': serialDate,
+      'Hora': horaFormateada,
+      'Documento': parseInt(fila.documento),
+      'Nombres': fila.nombres,
+      'Apellidos': fila.apellidos,
+      'Facultad': fila.facultad,
+      'Programa': fila.programa,
+      'Semestre': fila.semestre,
+      'Grupo': fila.grupo,
+      'Tipo Acompañamiento': fila.tipo_acompanamiento || 'Tutoría',
+      'Título Curso': fila.titulo_curso || '',
+      'Sede Estudiante': fila.sede_estudiante || '',
+      'Sede Tutoría': fila.sede_tutoria,
+      'Tipo Instructor': fila.tipo_instructor,
+      'Facultad/Departamento': fila.facultad_departamento || '',
+      'Instructor': fila.instructor,
+      'Asignatura': fila.asignatura,
+      'Tema': fila.tema,
+      'Motivo Consulta': fila.motivo_consulta || '',
+      'Calificación': fila.calificacion,
+      'Dudas Resueltas': fila.dudas_resueltas || '',
+      'Dominio del Tema': fila.dominio_tema || '',
+      'Ambiente': fila.ambiente || '',
+      'Recomienda PMA': fila.recomienda_pma || '',
+      'Sugerencias': fila.sugerencias || ''
+    };
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  
+  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
+  for (let row = 1; row <= range.e.r; row++) {
+    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
+    if (ws[fechaCell] && row > 0) {
+      ws[fechaCell].t = 'n'; // Tipo numérico (Excel maneja fechas como números)
+      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
+    }
+  }
+  
+  // Aplicar formato a documento como número
+  for (let row = 1; row <= range.e.r; row++) {
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
+    if (ws[docCell] && row > 0) {
+      ws[docCell].t = 'n'; // Tipo numérico
+      ws[docCell].z = '0'; // Formato sin decimales
+    }
+  }
+
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
+ws['!cols'] = [
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 35 }, { wch: 35 }, { wch: 10 }, { wch: 10 }, { wch: 20 },
+    { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 },
+    { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 12 },
+    { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 40 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Registros Completos");
+
+    const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
+}
+
+
+
+function generarExcelDocentes(datos, nombreArchivo) {
+  const datosExcel = datos.map(fila => {
+    // Convertir fecha UTC a hora de Colombia
+    const fechaColombia = convertirFechaAColombia(fila.fecha);
+    
+    const horas = String(fechaColombia.getHours()).padStart(2, '0');
+    const minutos = String(fechaColombia.getMinutes()).padStart(2, '0');
+    const horaFormateada = `${horas}:${minutos}`;
+    
+    // Convertir Date a número de serie de Excel
+    const serialDate = (fechaColombia - new Date(1899, 11, 30)) / (86400000);
+    
+    return {
+      'Fecha': serialDate,
+      'Hora': horaFormateada,
+      'Documento': parseInt(fila.documento),
+      'Nombres': fila.nombres,
+      'Apellidos': fila.apellidos,
+      'Programa': fila.programa,
+      'Facultad/Departamento': fila.facultad_departamento || '',
+      'Instructor': fila.instructor,
+      'Asignatura': fila.asignatura,
+      'Tema': fila.tema
+    };
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  
+  // Aplicar formato de fecha DD/MM/YYYY a la columna Fecha
+  for (let row = 1; row <= range.e.r; row++) {
+    const fechaCell = XLSX.utils.encode_cell({ r: row, c: 0 }); // Columna Fecha
+    if (ws[fechaCell] && row > 0) {
+      ws[fechaCell].t = 'n'; // Tipo numérico (Excel maneja fechas como números)
+      ws[fechaCell].z = 'dd/mm/yyyy'; // Formato día/mes/año
+    }
+  }
+  
+  // Aplicar formato a documento como número
+  for (let row = 1; row <= range.e.r; row++) {
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 2 }); // Columna Documento
+    if (ws[docCell] && row > 0) {
+      ws[docCell].t = 'n'; // Tipo numérico
+      ws[docCell].z = '0'; // Formato sin decimales
+    }
+  }
+
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
+  ws['!cols'] = [
+    { wch: 12 }, // Fecha
+    { wch: 8 },  // Hora
+    { wch: 12 }, // Documento
+    { wch: 20 }, // Nombres
+    { wch: 20 }, // Apellidos
+    { wch: 35 }, // Programa
+    { wch: 20 }, // Facultad/Departamento
+    { wch: 25 }, // Instructor
+    { wch: 30 }, // Asignatura
+    { wch: 30 }  // Tema
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Docentes");
+
+    const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
+}
+
+
+
+function cerrarSesionAdmin() {
+  volverInicio();
+}
+
+// ===================================
+// ACTUALIZAR INDICADOR DE PROGRESO
+// ===================================
+function actualizarProgreso(paso) {
+  document.querySelectorAll('.progress-step').forEach(step => {
+    step.classList.remove('active');
+  });
+  
+  for (let i = 1; i < paso; i++) {
+    document.getElementById(`step${i}`).classList.add('completed');
+  }
+  
+  document.getElementById(`step${paso}`).classList.add('active');
+}
+
+// ===================================
+// TOGGLE INSTRUCTORES POR SEDE EN ADMIN
+// ===================================
+function toggleInstructoresSede(sede) {
+  document.getElementById('instructoresNorteAdmin').classList.add('hidden');
+  document.getElementById('instructoresSurAdmin').classList.add('hidden');
+  
+  if (sede === 'norte') {
+    document.getElementById('instructoresNorteAdmin').classList.toggle('hidden');
+  } else if (sede === 'sur') {
+    document.getElementById('instructoresSurAdmin').classList.toggle('hidden');
+  }
+}
+
+// ===================================
+// TOGGLE PROFESORES POR FACULTAD EN ADMIN
+// ===================================
+function toggleProfesoresFacultad(facultadId) {
+  // Ocultar todas las secciones de profesores
+  const todasLasSecciones = document.querySelectorAll('[id^="profesores"]');
+  todasLasSecciones.forEach(seccion => {
+    if (seccion.id.startsWith('profesores')) {
+      seccion.classList.add('hidden');
+    }
+  });
+  
+  // Mostrar/ocultar la sección clickeada
+  const seccionActual = document.getElementById('profesores' + facultadId);
+  if (seccionActual) {
+    seccionActual.classList.toggle('hidden');
+  }
+}
+
+
+
+// ===================================
+// FUNCIÓN AUXILIAR PARA NOMBRES DE FACULTAD
+// ===================================
+function obtenerNombreFacultad(codigo) {
+  const nombres = {
+    'DCB': 'Departamento de Ciencias Básicas',
+    'FCE': 'Facultad de Ciencias Empresariales',
+    'FCSH': 'Facultad de Ciencias Sociales y Humanas',
+    'FEDV': 'Facultad de Educación a Distancia y Virtual',
+    'FI': 'Facultad de Ingeniería'
+  };
+  return nombres[codigo] || codigo;
+}
+
+// ===================================
+// INICIALIZACIÓN
+// ===================================
+window.onload = function() {
+  console.log('Sistema PMA con Supabase iniciado');
+  console.log('Los datos se cargarán solo cuando sean necesarios.');
+  
+  // Agregar event listener al botón Continuar
+  document.getElementById('btnContinuar').addEventListener('click', mostrarConfirmacion);
+};
+
+// ===================================
+// MOSTRAR/OCULTAR CONTRASEÑA
+// ===================================
+function togglePassword() {
+  const input = document.getElementById('adminContrasena');
+  const icon = document.getElementById('iconPassword');
+  
+  if (input.type === 'password') {
+    input.type = 'text';
+    // Ojo abierto (visible)
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+  } else {
+    input.type = 'password';
+    // Ojo cerrado (oculto)
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+  }
+}
+
+// ===================================
+// MOSTRAR/OCULTAR USUARIO
+// ===================================
+function toggleUsername() {
+  const input = document.getElementById('adminDocumento');
+  const icon = document.getElementById('iconUsername');
+  
+  if (input.type === 'password') {
+    input.type = 'text';
+    // Ojo abierto (visible)
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+  } else {
+    input.type = 'password';
+    // Ojo cerrado (oculto)
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+  }
+}
+
+
+// ===================================
+// GRÁFICAS
+// ===================================
+function actualizarGrafica() {
+  const periodo = document.getElementById('filtroGraficaPeriodo').value;
+  const tipoInstructor = document.getElementById('filtroGraficaTipo').value;
+  
+  const data = window.datosFormulariosGlobal;
+  if (!data || data.length === 0) return;
+  
+  // Filtrar por tipo de instructor si no es "todos"
+  let datosFiltrados = data;
+  if (tipoInstructor !== 'todos') {
+    datosFiltrados = data.filter(item => item.tipo_instructor === tipoInstructor);
+  }
+  
+  if (datosFiltrados.length === 0) {
+    // Si no hay datos filtrados, mostrar gráfico vacío
+    if (graficoTutorias) {
+      graficoTutorias.destroy();
+    }
+    const ctx = document.getElementById('graficaTutorias').getContext('2d');
+    graficoTutorias = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Sin datos'],
+        datasets: [{
+          label: 'Cantidad de tutorías',
+          data: [0],
+          backgroundColor: 'rgba(30, 60, 114, 0.7)',
+          borderColor: 'rgba(30, 60, 114, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+    return;
+  }
+  
+  let labels = [];
+  let valores = [];
+  
+  if (periodo === 'semanal') {
+    // Agrupar por semanas (Lunes a Domingo) - Hora Colombia
+    
+    // Encontrar la fecha más antigua y más reciente (convertidas a Colombia)
+    const fechas = datosFiltrados.map(item => {
+      return convertirFechaAColombia(item.fecha);
+    });
+    const fechaMin = new Date(Math.min(...fechas));
+    const fechaMax = new Date(Math.max(...fechas));
+    
+    // Función para obtener el lunes de una fecha
+    function obtenerLunes(fecha) {
+      const dia = fecha.getDay(); // 0=Dom, 1=Lun, 2=Mar...
+      // Si es domingo (0), retroceder 6 días. Si es otro día, retroceder (día - 1)
+      const diff = dia === 0 ? -6 : 1 - dia;
+      const lunes = new Date(fecha);
+      lunes.setDate(fecha.getDate() + diff);
+      lunes.setHours(0, 0, 0, 0);
+      return lunes;
+    }
+    
+    // Obtener el lunes de la primera semana
+    let lunesActual = obtenerLunes(fechaMin);
+    
+    // Iterar por cada semana hasta cubrir todas las fechas
+    const semanas = {};
+    
+    while (lunesActual <= fechaMax) {
+      const domingo = new Date(lunesActual);
+      domingo.setDate(domingo.getDate() + 6);
+      domingo.setHours(23, 59, 59, 999);
+      
+      // Formatear las fechas para el label (SIN AÑO)
+      const diaL = String(lunesActual.getDate()).padStart(2, '0');
+      const mesL = String(lunesActual.getMonth() + 1).padStart(2, '0');
+      
+      const diaD = String(domingo.getDate()).padStart(2, '0');
+      const mesD = String(domingo.getMonth() + 1).padStart(2, '0');
+      
+      const label = `${diaL}/${mesL} - ${diaD}/${mesD}`;
+      
+      // Contar registros en esta semana (convertidos a hora Colombia)
+      const cantidad = datosFiltrados.filter(item => {
+        const fechaItem = convertirFechaAColombia(item.fecha);
+        return fechaItem >= lunesActual && fechaItem <= domingo;
+      }).length;
+      
+      semanas[label] = cantidad;
+      
+      // Avanzar a la siguiente semana (siguiente lunes)
+      lunesActual = new Date(lunesActual);
+      lunesActual.setDate(lunesActual.getDate() + 7);
+    }
+    
+    labels = Object.keys(semanas);
+    valores = Object.values(semanas);
+    
+  } else if (periodo === 'mensual') {
+    // Agrupar por meses completos
+    
+    const meses = {};
+    const nombresMesesCortos = [
+      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+    ];
+    
+            datosFiltrados.forEach(item => {
+      const fecha = convertirFechaAColombia(item.fecha);
+      const mes = fecha.getMonth();
+      const año = fecha.getFullYear();
+      const claveMes = `${año}-${String(mes + 1).padStart(2, '0')}`; // Para ordenar
+      const labelMes = `${nombresMesesCortos[mes]} ${año}`;
+      
+      if (!meses[claveMes]) {
+        meses[claveMes] = {
+          label: labelMes,
+          cantidad: 0
+        };
+      }
+      
+      meses[claveMes].cantidad++;
+    });
+    
+    // Ordenar por fecha (año-mes)
+    const clavesMesesOrdenadas = Object.keys(meses).sort();
+    
+    labels = clavesMesesOrdenadas.map(clave => meses[clave].label);
+    valores = clavesMesesOrdenadas.map(clave => meses[clave].cantidad);
+  }
+  
+  // Destruir gráfico anterior si existe
+  if (graficoTutorias) {
+    graficoTutorias.destroy();
+  }
+  
+  // Crear nuevo gráfico
+  const ctx = document.getElementById('graficaTutorias').getContext('2d');
+  graficoTutorias = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Cantidad de tutorías',
+        data: valores,
+        backgroundColor: 'rgba(30, 60, 114, 0.7)',
+        borderColor: 'rgba(30, 60, 114, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.parsed.y + ' tutoría' + (context.parsed.y !== 1 ? 's' : '');
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        },
+        x: {
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45
+          }
+        }
+      }
+    }
+  });
+}
+
+
+// ===================================
+// MANEJO DEL BOTÓN DE RETROCESO (BACK BUTTON)
+// ===================================
+
+// Variable para rastrear la pantalla actual
+let pantallaActual = 'pantallaInicio';
+let historialNavegacion = ['pantallaInicio'];
+
+// Actualizar el historial cuando cambia la pantalla
+function actualizarHistorialNavegacion(nuevaPantalla) {
+  pantallaActual = nuevaPantalla;
+  
+  // Agregar al historial del navegador
+  const estadoActual = {
+    pantalla: nuevaPantalla,
+    timestamp: Date.now()
+  };
+  
+  window.history.pushState(estadoActual, '', window.location.href);
+}
+
+// Modificar la función mostrarPantalla existente
+const mostrarPantallaOriginal = mostrarPantalla;
+mostrarPantalla = function(id) {
+  mostrarPantallaOriginal(id);
+  actualizarHistorialNavegacion(id);
+};
+
+// Manejador del evento popstate (botón de retroceso)
+window.addEventListener('popstate', function(event) {
+  event.preventDefault();
+  
+  // Si no hay estado, estamos en la página inicial
+  if (!event.state) {
+    if (pantallaActual !== 'pantallaInicio') {
+      manejarRetroceso();
+    }
+    return;
+  }
+  
+  manejarRetroceso();
+});
+
+// Función principal que maneja la lógica de retroceso
+function manejarRetroceso() {
+  
+  // REGLA 1: Si estoy en "Llenar Formulario" → Volver a "Bienvenido"
+  if (pantallaActual === 'pantallaLogin') {
+    volverInicio();
+    return;
+  }
+  
+  // REGLA 2: Si estoy en "Registro de Asistencia" → Mostrar confirmación
+  if (pantallaActual === 'pantallaFormulario') {
+    // Prevenir el retroceso real del navegador
+    window.history.pushState({ pantalla: pantallaActual }, '', window.location.href);
+    
+    confirmarCancelacion();
+    return;
+  }
+  
+  // REGLA 3: Si estoy en "Registro de Estudiante" → Mostrar confirmación
+  if (pantallaActual === 'pantallaRegistro') {
+    // Prevenir el retroceso real del navegador
+    window.history.pushState({ pantalla: pantallaActual }, '', window.location.href);
+    
+    confirmarCancelacion();
+    return;
+  }
+  
+  // REGLA 4: Si estoy en "Acceso de Administrador" → Volver a "Bienvenido"
+  if (pantallaActual === 'pantallaAdminLogin') {
+    volverInicio();
+    return;
+  }
+  
+  // REGLA 5: Si estoy en "Panel de Administración" → Volver a "Acceso de Administrador"
+  if (pantallaActual === 'pantallaAdmin') {
+    mostrarLoginAdmin();
+    return;
+  }
+  
+  // Por defecto, volver al inicio
+  volverInicio();
+}
+
+// Inicializar el estado del historial al cargar la página
+window.addEventListener('load', function() {
+  // Establecer el estado inicial
+  const estadoInicial = {
+    pantalla: 'pantallaInicio',
+    timestamp: Date.now()
+  };
+  
+  window.history.replaceState(estadoInicial, '', window.location.href);
+  pantallaActual = 'pantallaInicio';
+});
+
+// Prevenir que el navegador restaure el scroll al usar el botón de retroceso
+if ('scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual';
+}
+
+// ===================================
+// FUNCIONES DE PAGINACIÓN
+// ===================================
+function validarPagina1() {
+  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
+  const sedeTutoria = document.getElementById('sedeTutoria').value;
+  const tipoInstructor = document.getElementById('tipoInstructor').value;
+  const instructor = document.getElementById('instructor').value;
+  const asignatura = document.getElementById('asignatura').value;
+  const motivoConsulta = document.getElementById('motivoConsulta').value;
+
+  // Validar campos básicos
+  if (!tipoAcompanamiento || !sedeTutoria || !tipoInstructor || !instructor || !asignatura || !motivoConsulta) {
+    return { valido: false, mensaje: 'Por favor complete todos los campos obligatorios de esta sección' };
+  }
+
+  // Validar título del curso si es necesario
+  if (tipoAcompanamiento === 'Curso y/o capacitación') {
+    const tituloCurso = document.getElementById('tituloCurso').value.trim();
+    if (!tituloCurso) {
+      return { valido: false, mensaje: 'Por favor ingrese el título del curso/capacitación' };
+    }
+  }
+
+  // Validar facultad/departamento si es profesor
+  if (tipoInstructor === 'Profesor') {
+    const facultadDepartamento = document.getElementById('facultadDepartamento').value;
+    if (!facultadDepartamento) {
+      return { valido: false, mensaje: 'Por favor seleccione una facultad/departamento' };
+    }
+  }
+
+  // Validar asignatura personalizada si es necesaria
+  if (asignatura === 'Otra') {
+    const otraAsignatura = document.getElementById('otraAsignatura').value.trim();
+    if (!otraAsignatura) {
+      return { valido: false, mensaje: 'Por favor especifique la asignatura' };
+    }
+  }
+
+  // Validar tema
+  const selectTema = document.getElementById('tema');
+  const inputTema = document.getElementById('otroTema');
+  
+  if (selectTema.style.display === 'none') {
+    // Si el select está oculto, validar el input
+    if (!inputTema.value.trim()) {
+      return { valido: false, mensaje: 'Por favor ingrese el tema de la tutoría' };
+    }
+  } else {
+    // Si el select está visible
+    const tema = selectTema.value;
+    if (!tema) {
+      return { valido: false, mensaje: 'Por favor seleccione un tema' };
+    }
+    
+    if (tema === 'Otro') {
+      if (!inputTema.value.trim()) {
+        return { valido: false, mensaje: 'Por favor especifique el tema' };
+      }
+    }
+  }
+
+  return { valido: true };
+}
+
+function avanzarPagina() {
+  if (paginaFormularioActual === 1) {
+    // Validar página 1 antes de avanzar
+    const validacion = validarPagina1();
+    
+    if (!validacion.valido) {
+      mostrarMensaje('mensajeFormulario', validacion.mensaje, 'error');
+      return;
+    }
+    
+  
+    document.getElementById('paginaFormulario1').classList.add('hidden');
+    document.getElementById('paginaFormulario2').classList.remove('hidden');
+    document.getElementById('btnEnviar').classList.remove('hidden');
+    document.getElementById('mensajeFormulario').innerHTML = '';
+    
+    paginaFormularioActual = 2;
+    
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    actualizarProgreso(4);
+  }
+}
+
+function retrocederPagina() {
+  if (paginaFormularioActual === 2) {
+    // Ocultar página 2, mostrar página 1
+    document.getElementById('paginaFormulario2').classList.add('hidden');
+    document.getElementById('paginaFormulario1').classList.remove('hidden');
+    document.getElementById('btnEnviar').classList.add('hidden');
+    document.getElementById('mensajeFormulario').innerHTML = '';
+    
+    paginaFormularioActual = 1;
+
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    actualizarProgreso(3);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const labels = document.querySelectorAll('label');
+  
+  labels.forEach(label => {
+    if (label.textContent.includes('*')) {
+      label.innerHTML = label.innerHTML.replace(/\*/g, '<span style="color: #dc3545; font-weight: bold; font-size: 16px;">*</span>');
+    }
+  });
+});
