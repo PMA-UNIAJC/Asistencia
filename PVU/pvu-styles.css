@@ -367,7 +367,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #0a1628 0%, #1a2f5a 20%, #2a4d8f 50%, #1a2f5a 80%, #0a1628 100%);
-  background-attachment: fixed;
 }
 
 /* Fondo fijo con múltiples capas de texturas */
@@ -412,7 +411,6 @@ body::before {
     calc(100% + 200px) -300px,
     -300px calc(100% + 300px),
     calc(100% + 300px) calc(100% + 300px);
-  background-attachment: fixed;
 }
 
 
@@ -555,7 +553,7 @@ body {
    FORMULARIOS
    =================================== */
 .form-group {
-  margin-bottom: 35px;
+  margin-bottom: 45px;
 }
 
 /* Asterisco rojo para campos obligatorios */
@@ -584,6 +582,7 @@ textarea {
   border: 1.5px solid #d0d7de;
   border-radius: 6px;
   font-size: 14px;
+  font-weight: normal;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
   font-family: inherit;
   background: #ffffff;
@@ -984,7 +983,7 @@ textarea {
   }
 
   .form-group {
-    margin-bottom: 25px;
+    margin-bottom: 35px;
   }
 
   label {
@@ -998,7 +997,7 @@ textarea {
   select,
   textarea {
     padding: 11px 12px;
-    font-size: 16px !important;
+    font-size: 14px !important;
     border-radius: 5px;
   }
 
@@ -1018,7 +1017,7 @@ textarea {
 
   .email-input,
   .email-domain {
-    font-size: 13px !important;
+    font-size: 12px !important;
   }
 
   .email-domain {
@@ -1056,7 +1055,7 @@ textarea {
   }
   
   .form-group {
-    margin-bottom: 22px;
+    margin-bottom: 32px;
   }
 
   .email-container {
@@ -1069,7 +1068,7 @@ textarea {
 
   .email-input,
   .email-domain {
-    font-size: 13px !important;
+    font-size: 12px !important;
   }
 
   .email-domain {
@@ -1097,7 +1096,7 @@ textarea {
   }
 
   .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
   }
 
   label {
@@ -1112,7 +1111,7 @@ textarea {
   select,
   textarea {
     padding: 10px;
-    font-size: 16px !important;
+    font-size: 14px !important;
     border-radius: 5px;
   }
   
@@ -1152,7 +1151,7 @@ textarea {
 
   .email-input,
   .email-domain {
-    font-size: 12px !important;
+    font-size: 11px !important;
     padding: 8px 10px;
   }
 
@@ -1238,7 +1237,7 @@ textarea {
   }
   
   .form-group {
-    margin-bottom: 18px;
+    margin-bottom: 28px;
   }
   
   label {
@@ -1261,7 +1260,7 @@ textarea {
 
   .email-input,
   .email-domain {
-    font-size: 11px !important;
+    font-size: 10px !important;
     padding: 7px 8px;
   }
 
@@ -1270,7 +1269,7 @@ textarea {
   }
 
   .otro-dominio-container input {
-    font-size: 11px !important;
+    font-size: 10px !important;
     padding: 7px 8px;
   }
 }
