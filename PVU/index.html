@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PMA - Asistencia a Tutorías</title>
+  <title>Formulario PVU</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="pvu-styles.css">
 </head>
 <body>
 
@@ -21,772 +20,221 @@
       </div>
     </div>
     <div class="welcome-footer">
-      <div class="welcome-footer-info-left">
-        <p class="welcome-footer-text">PBX. 665 2828 &nbsp; Ext.3701 - 3702</p>
-        <a href="mailto:pma@admon.uniajc.edu.co" class="welcome-footer-link">pma@admon.uniajc.edu.co</a>
-        <p class="welcome-footer-credit">By: Becario Admin. David Franco V.</p>
-      </div>
-      <div class="welcome-footer-logo-right">
-        <img 
-          src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png"
-          alt="Logo PMA"
-          class="welcome-footer-logo"
-        >
-      </div>
+      <p>VIGILADA MEN</p>
     </div>
   </div>
   
   <div class="welcome-right">
     <div class="welcome-content">
-      <h1 class="welcome-title-main">Formulario De Asistencia <br> a Tutorías - PMA</h1>
-      <p class="texto-bienvenida welcome-texto-bienvenida">Seleccione una opción para continuar con el registro de su asistencia a tutorías del Programa de Mejoramiento Académico.</p>
-      <button class="btn welcome-btn-primary" onclick="mostrarLogin()">Formulario</button>
-      <button class="btn btn-secondary welcome-btn-secondary" onclick="mostrarRegistro()">Registrarse</button>
-      
-      <p class="registro-unico">El registro se realiza una única vez</p>
-
-      <div class="horarios-wrapper">
-        <button class="btn btn-secondary" onclick="mostrarModalHorarios()" id="btnHorarios">
-          <svg class="icon-inline" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Horarios y Lugar de Atención
-        </button>
+      <h1 class="welcome-title">Formulario de Asistencia a<br>Preparación para la Vida Universitaria</h1>
+      <p class="welcome-subtitle">Formulario PVU</p>
+      <div class="welcome-description">
+        <p>Este formulario tiene como objetivo recopilar información sobre tu experiencia de aprendizaje y nivel de satisfacción con las actividades académicas realizadas.</p>
+        <p>Tu opinión es muy importante para nosotros y nos ayuda a mejorar continuamente nuestros procesos educativos.</p>
       </div>
-
-      <div class="admin-link">
-        <a href="#" onclick="mostrarLoginAdmin(); return false;">Acceder como Administrador</a>
-      </div>
+      <button class="welcome-btn" onclick="mostrarFormulario()">Empezar ahora</button>
     </div>
   </div>
 </div>
 
 <!-- Contenido del Formulario (oculto inicialmente) -->
 <div id="contenidoFormulario" class="hidden">
+  <div class="header-container">
+    <h1 class="header-title">
+      FORMULARIO PVU
+    </h1>
+  </div>
+
   <div class="container">
-
-    <!-- PANTALLA DE REGISTRO -->
-    <div id="pantallaRegistro" class="hidden">
-      <h2 class="section-title">Registro de Estudiante</h2>
-      
-      <div class="alert-box">
-        <strong>Importante:</strong>
-        Es fundamental que complete correctamente todos sus datos personales y académicos. Esta información será utilizada para verificar su asistencia a las tutorías y generar reportes oficiales. Asegúrese de que los datos coincidan exactamente con su registro institucional.
-      </div>
-
-      <div id="mensajeRegistro"></div>
-      
-      <!-- PASO 1: VERIFICAR DOCUMENTO -->
-      <div id="pasoDocumento">
-        <form id="formVerificarDocumento" onsubmit="verificarDocumento(event)" autocomplete="off">
-          <div class="form-group">
-            <label>Documento de Identidad *</label>
-                        <input type="tel" id="regDocumento" required pattern="[0-9]*" inputmode="numeric" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '')" autocomplete="off">
-          </div>
-          <button type="submit" class="btn">Continuar</button>
-          <button type="button" class="btn btn-secondary" onclick="confirmarCancelacion()">Cancelar</button>
-        </form>
-      </div>
-
-      <!-- PASO 2: FORMULARIO COMPLETO (oculto inicialmente) -->
-      <form id="formRegistro" onsubmit="registrarEstudiante(event)" class="hidden" autocomplete="off">
-       
-        <div class="form-group">
-          <label>Documento de Identidad *</label>
-          <input type="text" id="regDocumentoMostrar" readonly class="documento-readonly">
-        </div>
-        
-        <div class="form-group">
-          <label>Primer Nombre *</label>
-          <input type="text" id="regPrimerNombre" required class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" autocomplete="off">
-        </div>
-        <div class="form-group">
-          <label>Segundo Nombre (Si Aplica)</label>
-          <input type="text" id="regSegundoNombre" class="uppercase-input" placeholder="En caso de no aplicar, no llenar este espacio" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" autocomplete="off">
-        </div>
-        <div class="form-group">
-          <label>Primer Apellido *</label>
-          <input type="text" id="regPrimerApellido" required class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" autocomplete="off">
-        </div>
-        <div class="form-group">
-          <label>Segundo Apellido *</label>
-          <input type="text" id="regSegundoApellido" required class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" autocomplete="off">
-        </div>
-        <div class="form-group">
-          <label>Facultad *</label>
-          <select id="regFacultad" required onchange="cargarProgramas()">
-            <option value="">Seleccione una facultad</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Programa Académico *</label>
-          <select id="regPrograma" required disabled>
-            <option value="">Primero seleccione una facultad</option>
-          </select>
-        </div>
-        
-<div class="form-group">
-  <label>Sede donde estudia *</label>
-  <select id="regSede" required>
-    <option value="">Seleccione una sede</option>
-    <option value="Norte">Norte</option>
-    <option value="Sur">Sur</option>
-    <option value="Virtual">Virtual</option>
-  </select>
-</div>
-
-<div class="form-group">
-  <label>Semestre actual *</label>
-  <select id="regSemestre" required>
-    <option value="">Seleccione el semestre</option>
-    <option value="1">1</option>
-    <option value="2">2</option>
-    <option value="3">3</option>
-    <option value="4">4</option>
-    <option value="5">5</option>
-    <option value="6">6</option>
-    <option value="7">7</option>
-    <option value="8">8</option>
-    <option value="9">9</option>
-    <option value="10">10</option>
-    <option value="11">11</option>
-    <option value="12">12</option>
-  </select>
-</div>
-
-<div class="form-group">
-  <label>Grupo Académico *</label>
-  <input type="text" id="regGrupo" required class="uppercase-input" placeholder="Ej: B1303A, 2303A" oninput="this.value = this.value.replace(/[^A-Za-z0-9-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="on" name="grupo">
-</div>
-
-        <div id="confirmacionDatos" class="hidden">
-          <div class="confirmation-box">
-            <h3>Confirme sus datos antes de registrarse</h3>
-            <div id="datosConfirmacion"></div>
-          </div>
-          <div class="alert-box alert-box-margin">
-            <strong>Revise cuidadosamente:</strong>
-            Si sus datos no están correctos, no podremos verificar su asistencia a las tutorías. Una vez registrado, acerquese a la oficina del PMA para cualquier corrección.
-          </div>
-        </div>
-
-        <button type="button" class="btn" id="btnContinuar">Continuar</button>
-        <button type="submit" class="btn hidden" id="btnConfirmarRegistro">Confirmar y Registrarme</button>
-        <button type="button" class="btn btn-secondary" onclick="confirmarCancelacion()">Cancelar</button>
-      </form>
-    </div>
-
-    <!-- PANTALLA DE LOGIN -->
-    <div id="pantallaLogin" class="hidden">
-      <h2 class="section-title">Llenar Formulario</h2>
-      <p class="texto-login">Ingrese su documento de identidad para acceder al formulario de registro de asistencia.</p>
-      <div id="mensajeLogin"></div>
-      <form id="formLogin" onsubmit="iniciarSesion(event)">
-        <div class="form-group">
-          <label>Documento de Identidad</label>
-                    <input type="tel" id="loginDocumento" required pattern="[0-9]*" inputmode="numeric" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '')" autocomplete="on" name="documento">
-        </div>
-        <button type="submit" class="btn">Continuar</button>
-        <button type="button" class="btn btn-secondary" onclick="volverInicio()">Volver</button>
-      </form>
-    </div>
-
-<!-- PANTALLA DE ACTUALIZACIÓN DE DATOS -->
-    <div id="pantallaActualizacion" class="hidden">
-      <h2 class="section-title">Actualizar Información</h2>
-      
-      <div class="user-greeting">
-        <p id="nombreEstudianteActualizacion"></p>
-      </div>
-      
-      <div class="alert-box">
-        <strong>ACTUALIZA TUS DATOS</strong>
-        Por favor actualiza tu Semestre y Grupo académico antes de continuar. <br>
-        Recuerda que esta información será utilizada para verificar su asistencia a las tutorías y generar reportes oficiales.
-      </div>
-      
-      <div id="mensajeActualizacion"></div>
-      
-      <form id="formActualizacion" onsubmit="actualizarDatosEstudiante(event)">
-        <div class="form-group">
-          <label>Semestre actual *</label>
-          <select id="actualizarSemestre" required>
-            <option value="">Seleccione el semestre</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-            <option value="11">11</option>
-            <option value="12">12</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Grupo Académico *</label>
-          <input type="text" id="actualizarGrupo" required class="uppercase-input" placeholder="Ej: B1303A, 2303A" oninput="this.value = this.value.replace(/[^A-Za-z0-9-]/g, '')" onblur="limpiarEspacios(this)">
-        </div>
-        
-        <button type="submit" class="btn">Actualizar y Continuar</button>
-        <button type="button" class="btn btn-secondary" onclick="volverInicio()">Cancelar</button>
-      </form>
-      
-      <div class="alert-box alert-box-note">
-        <strong>Nota:</strong>
-        Solo necesitas actualizar el semestre y grupo académico para continuar. <br> 
-      </div>
-    </div>
+  <div id="pantallaFormulario">
+    <h2 class="section-title">Formulario de Encuesta</h2>
     
+    <div id="mensajeFormulario"></div>
     
-    <!-- FORMULARIO DE TUTORÍA -->
-    <div id="pantallaFormulario" class="hidden">
-  <h2 class="section-title">Registro de Asistencia</h2>
-  
-  <div class="user-greeting">
-    <p id="nombreUsuario"></p>
-  </div>
-  
-  <div class="progress-indicator">
-    <div class="progress-step active" id="step1">
-      <div class="progress-circle">1</div>
-    </div>
-    <div class="progress-step" id="step2">
-      <div class="progress-circle">2</div>
-    </div>
-    <div class="progress-step" id="step3">
-      <div class="progress-circle">3</div>
-    </div>
-    <div class="progress-step" id="step4">
-      <div class="progress-circle">4</div>
-    </div>
-  </div>
-
-      <div id="mensajeFormulario"></div>
-      <form id="formTutoria" onsubmit="guardarFormulario(event)">
-        
-        <!-- PÁGINA 1 DEL FORMULARIO -->
-<div id="paginaFormulario1" class="pagina-formulario">
-  <div class="form-group">
-    <label>Tipo de acompañamiento académico *</label>
-    <select id="tipoAcompanamiento" required onchange="toggleTituloCurso()">
-      <option value="">Seleccione una opción</option>
-      <option value="Tutoría">Tutoría</option>
-      <option value="Curso y/o capacitación">Curso y/o capacitación</option>
-    </select>
-  </div>
-
-  <div class="form-group hidden" id="grupoTituloCurso">
-    <label>Título del curso/capacitación *</label>
-    <input type="text" id="tituloCurso" class="uppercase-input" placeholder="Ingrese el título del curso" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
-  </div>
-
-  <div class="form-group">
-    <label>Sede *</label>
-    <select id="sedeTutoria" required onchange="cargarInstructores()">
-      <option value="">Seleccione una sede</option>
-      <option value="Norte">Norte</option>
-      <option value="Sur">Sur</option>
-      <option value="Virtual">Virtual</option>
-    </select>
-  </div>
-
-  <div class="form-group">
-    <label>¿Quién impartió la tutoría? *</label>
-    <select id="tipoInstructor" required onchange="cargarInstructores()">
-      <option value="">Seleccione una opción</option>
-      <option value="Tutor">Tutor</option>
-      <option value="Profesor">Profesor</option>
-    </select>
-  </div>
-
-  <div class="form-group hidden" id="grupoFacultadDepartamento">
-    <label>Facultad/Departamento *</label>
-    <select id="facultadDepartamento" onchange="cargarProfesoresPorFacultad()">
-      <option value="">Seleccione una facultad/departamento</option>
-      <option value="DCB">Departamento de Ciencias Básicas</option>
-      <option value="FCE">Facultad de Ciencias Empresariales</option>
-      <option value="FCSH">Facultad de Ciencias Sociales y Humanas</option>
-      <option value="FEDV">Facultad de Educación a Distancia y Virtual</option>
-      <option value="FI">Facultad de Ingeniería</option>
-    </select>
-  </div>
-
-  <div class="form-group hidden" id="grupoInstructor">
-    <label id="labelInstructor">Instructor *</label>
-    <select id="instructor" required onchange="cargarMaterias()">
-      <option value="">Seleccione un instructor</option>
-    </select>
-  </div>
-
-  <div class="form-group hidden" id="grupoMateria">
-    <label>Asignatura *</label>
-    <select id="asignatura" required onchange="cargarTemas()">
-      <option value="">Seleccione una asignatura</option>
-    </select>
-    <div id="otraAsignaturaContainer" class="otro-tema hidden">
-      <input type="text" id="otraAsignatura" placeholder="Especifique la asignatura" class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
-    </div>
-  </div>
-
-  <div class="form-group hidden" id="grupoTema">
-    <label>Tema de la tutoría *</label>
-    <select id="tema" required onchange="toggleOtroTema()">
-      <option value="">Seleccione un tema</option>
-    </select>
-    <div id="otroTemaContainer" class="otro-tema hidden">
-      <input type="text" id="otroTema" placeholder="Especifique el tema" class="uppercase-input" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off">
-    </div>
-  </div>
-
-  <div class="form-group hidden" id="grupoMotivo">
-    <label>Motivo de consulta *</label>
-    <select id="motivoConsulta" required>
-      <option value="">Seleccione un motivo</option>
-      <option value="Refuerzo y preparación">Refuerzo y preparación</option>
-      <option value="Inquietud e inseguridad">Inquietud e inseguridad</option>
-      <option value="No entiende el tema">No entiende el tema</option>
-      <option value="Remite el docente">Remite el docente</option>
-      <option value="Remite el Programa de Atención Integral (PAI)">Remite el Programa de Atención Integral (PAI)</option>
-      <option value="Calificaciones bajas">Calificaciones bajas</option>
-      <option value="Todas las anteriores">Todas las anteriores</option>
-    </select>
-  </div>
-
-  <!-- Botones de navegación página 1 -->
-  <div class="navegacion-formulario">
-    <button type="button" class="btn-flecha btn-flecha-derecha" onclick="avanzarPagina()" title="Siguiente">
-      Siguiente
-    </button>
-  </div>
-</div>
-
-<!-- PÁGINA 2 DEL FORMULARIO -->
-
-<div id="paginaFormulario2" class="pagina-formulario hidden">
-     <br>   
-<h2 class="evaluacion-titulo">
-  Ayúdanos a Mejorar
-</h2>
-
-    <p class="texto-calificacion">
-    Evalúe la calidad de la tutoría recibida<br>
-    1 = Deficiente<br>
-    5 = Excelente
-  </p>
-        
-<br><br>
-
-<div class="form-group" id="grupoCalificacion">
-  <label>Calificación de la tutoría *</label>
-  <div class="rating" id="ratingCalificacion">
-    <input type="radio" name="calificacion" id="cal1" value="1">
-    <label for="cal1">1</label>
-    <input type="radio" name="calificacion" id="cal2" value="2">
-    <label for="cal2">2</label>
-    <input type="radio" name="calificacion" id="cal3" value="3">
-    <label for="cal3">3</label>
-    <input type="radio" name="calificacion" id="cal4" value="4">
-    <label for="cal4">4</label>
-    <input type="radio" name="calificacion" id="cal5" value="5">
-    <label for="cal5">5</label>
-  </div>
-</div>
-  
-<div class="form-group" id="grupoDudasResueltas">
-  <label>¿Se resolvieron tus dudas? *</label>
-  <div class="rating" id="ratingDudasResueltas">
-    <input type="radio" name="dudas_resueltas" id="dudas1" value="1">
-    <label for="dudas1">1</label>
-    <input type="radio" name="dudas_resueltas" id="dudas2" value="2">
-    <label for="dudas2">2</label>
-    <input type="radio" name="dudas_resueltas" id="dudas3" value="3">
-    <label for="dudas3">3</label>
-    <input type="radio" name="dudas_resueltas" id="dudas4" value="4">
-    <label for="dudas4">4</label>
-    <input type="radio" name="dudas_resueltas" id="dudas5" value="5">
-    <label for="dudas5">5</label>
-  </div>
-</div>
-
-<div class="form-group" id="grupoDominioTema">
-  <label>¿El tutor demostró dominio del tema? *</label>
-  <div class="rating" id="ratingDominioTema">
-    <input type="radio" name="dominio_tema" id="dominio1" value="1">
-    <label for="dominio1">1</label>
-    <input type="radio" name="dominio_tema" id="dominio2" value="2">
-    <label for="dominio2">2</label>
-    <input type="radio" name="dominio_tema" id="dominio3" value="3">
-    <label for="dominio3">3</label>
-    <input type="radio" name="dominio_tema" id="dominio4" value="4">
-    <label for="dominio4">4</label>
-    <input type="radio" name="dominio_tema" id="dominio5" value="5">
-    <label for="dominio5">5</label>
-  </div>
-</div>
-
-<div class="form-group" id="grupoAmbiente">
-  <label>¿Ambiente adecuado para concentrarte? *</label>
-  <div class="rating" id="ratingAmbiente">
-    <input type="radio" name="ambiente" id="ambiente1" value="1">
-    <label for="ambiente1">1</label>
-    <input type="radio" name="ambiente" id="ambiente2" value="2">
-    <label for="ambiente2">2</label>
-    <input type="radio" name="ambiente" id="ambiente3" value="3">
-    <label for="ambiente3">3</label>
-    <input type="radio" name="ambiente" id="ambiente4" value="4">
-    <label for="ambiente4">4</label>
-    <input type="radio" name="ambiente" id="ambiente5" value="5">
-    <label for="ambiente5">5</label>
-  </div>
-</div>
-
-<div class="form-group" id="grupoRecomiendaPma">
-  <label>¿Recomendarías el PMA? *</label>
-  <div class="rating" id="ratingRecomiendaPma">
-    <input type="radio" name="recomienda_pma" id="pma1" value="1">
-    <label for="pma1">1</label>
-    <input type="radio" name="recomienda_pma" id="pma2" value="2">
-    <label for="pma2">2</label>
-    <input type="radio" name="recomienda_pma" id="pma3" value="3">
-    <label for="pma3">3</label>
-    <input type="radio" name="recomienda_pma" id="pma4" value="4">
-    <label for="pma4">4</label>
-    <input type="radio" name="recomienda_pma" id="pma5" value="5">
-    <label for="pma5">5</label>
-  </div>
-</div>
-
-<div class="form-group" id="grupoSugerencias">
-    <label>Sugerencias o Comentarios (Opcional)</label>
-    <textarea id="sugerencias" class="uppercase-input" placeholder="Escriba aquí sus sugerencias, comentarios o recomendaciones" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,.\-]/g, '')" onblur="limpiarEspacios(this)" autocomplete="off"></textarea>
-  </div>
-
-  <!-- Botones de navegación página 2 -->
-  <div class="navegacion-formulario">
-    <button type="button" class="btn-flecha btn-flecha-izquierda" onclick="retrocederPagina()" title="Anterior">
-      Anterior
-    </button>
-  </div>
-</div>
-        <button type="submit" class="btn hidden" id="btnEnviar">Enviar Formulario</button>
-        <button type="button" class="btn btn-secondary" id="btnCancelarFormulario">Cancelar</button>
-      </form>
-    </div>
-
-    <!-- PANEL DE ADMINISTRADOR - LOGIN -->
-<div id="pantallaAdminLogin" class="hidden">
-  <h2 class="section-title">Acceso de Administrador</h2>
-  <div id="mensajeAdminLogin"></div>
-  <form id="formAdminLogin" onsubmit="loginAdmin(event)">
-    <div class="form-group">
-      <label>Usuario</label>
-      <div class="admin-input-wrapper">
-        <input type="password" id="adminDocumento" required class="admin-input">
-        <button type="button" id="btnToggleUsername" onclick="toggleUsername()" class="admin-toggle-btn">
-          <svg id="iconUsername" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-        </button>
-      </div>
-    </div>
-    <div class="form-group">
-      <label><svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Contraseña</label>
-      <div class="admin-input-wrapper">
-        <input type="password" id="adminContrasena" required class="admin-input">
-        <button type="button" id="btnTogglePassword" onclick="togglePassword()" class="admin-toggle-btn">
-          <svg id="iconPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-        </button>
-      </div>
-    </div>
-    <button type="submit" class="btn">Ingresar</button>
-    <button type="button" class="btn btn-secondary" onclick="volverInicio()">Volver</button>
-  </form>
-</div>
-
-<!-- PANEL DE ADMINISTRADOR -->
-    <div id="pantallaAdmin" class="hidden">
-      <div class="admin-header">
-        <h2 class="section-title">Panel de Administración</h2>
-        <div class="admin-header-buttons">
-          <button class="btn-actualizar" id="btnActualizar" onclick="actualizarEstadisticas()" title="Actualizar estadísticas">
-            <svg id="iconActualizar" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-          </button>
-          <button class="btn-actualizar btn-forzar-actualizacion" id="btnForzarActualizacion" onclick="solicitarForzarActualizacion()" title="Forzar actualización de datos de estudiantes">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-          </button>
-        </div>
-      </div>
-      <p id="nombreAdmin" class="nombre-admin"></p>
+    <form id="formPVU" onsubmit="enviarFormulario(event)">
       
-      <div class="admin-tabs">
-        <button class="admin-tab active" onclick="cambiarTab(event, 'descargas')">Descargar Datos</button>
-        <button class="admin-tab" onclick="cambiarTab(event, 'estadisticas')">Estadísticas</button>
-        <button class="admin-tab" onclick="cambiarTab(event, 'graficas')">Gráficas</button>
+      <!-- NÚMERO DE DOCUMENTO -->
+      <div class="form-group">
+        <label>Número de documento de identidad <span class="required-asterisk">*</span></label>
+        <input 
+          type="tel" 
+          id="documento" 
+          required 
+          pattern="[0-9]*" 
+          inputmode="numeric" 
+          minlength="7" 
+          maxlength="12"
+          oninput="this.value = this.value.replace(/[^0-9]/g, ''); validarDocumento(this)"
+          onblur="validarDocumento(this)"
+          autocomplete="off">
+        <span class="error-message" id="errorDocumento"></span>
       </div>
 
-      <div id="tabEstadisticas" class="hidden">
-        <div class="stats-grid" id="statsGrid"></div>
-        <div id="detallesStats"></div>
+      <!-- NOMBRES COMPLETOS -->
+      <div class="form-group">
+        <label>Nombres completos <span class="required-asterisk">*</span></label>
+        <input 
+          type="text" 
+          id="nombres" 
+          required 
+          oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '')"
+          onblur="limpiarEspacios(this)"
+          autocomplete="off">
       </div>
 
-
-<div id="tabGraficas" class="hidden">
-        <div class="chart-container">
-          <h3 class="chart-title">Cantidad de Tutorías</h3>
-          
-          <div class="form-group">
-            <label>Período</label>
-            <select id="filtroGraficaPeriodo" onchange="actualizarGrafica()">
-              <option value="semanal">Por Semana (Lunes - Domingo)</option>
-              <option value="mensual">Por Mes</option>
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label>Tipo de Instructor</label>
-            <select id="filtroGraficaTipo" onchange="actualizarGrafica()">
-              <option value="todos">Todos</option>
-              <option value="Tutor">Tutores</option>
-              <option value="Profesor">Profesores</option>
-            </select>
-          </div>
-          
-          <canvas id="graficaTutorias" class="grafica-canvas"></canvas>
-        </div>
+      <!-- APELLIDOS COMPLETOS -->
+      <div class="form-group">
+        <label>Apellidos completos <span class="required-asterisk">*</span></label>
+        <input 
+          type="text" 
+          id="apellidos" 
+          required 
+          oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '')"
+          onblur="limpiarEspacios(this)"
+          autocomplete="off">
       </div>
 
-
-      <div id="tabDescargas">
-        <div class="chart-container">
-          <h3 class="chart-title">Descargar Reportes</h3>
-          <p class="texto-descargas">Descargue los registros de asistencia.</p>
-          
-          <div class="form-group">
-            <label>Fecha Desde</label>
-            <input type="date" id="fechaDesde">
-          </div>
-          <div class="form-group">
-            <label>Fecha Hasta</label>
-            <input type="date" id="fechaHasta">
-          </div>
-          <button class="btn" onclick="descargarDatos()">Descargar Tutores</button>
-          <button class="btn btn-secondary" onclick="descargarDocentes()">Descargar Docentes</button>
-          <button class="btn btn-secondary" onclick="descargarTodo()">Descargar Todos los Registros</button>
+      <!-- CORREO -->
+      <div class="form-group">
+        <label>Correo <span class="required-asterisk">*</span></label>
+        <div class="email-container">
+          <input 
+            type="text" 
+            id="correo" 
+            required 
+            autocomplete="off"
+            oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto()"
+            onblur="limpiarEspacios(this)"
+            class="email-input">
+          <span class="email-separator">@</span>
+          <select id="dominioCorreo" class="email-domain" required>
+            <option value="">Seleccione</option>
+            <option value="estudiante.uniajc.edu.co">estudiante.uniajc.edu.co</option>
+            <option value="gmail.com">gmail.com</option>
+            <option value="hotmail.com">hotmail.com</option>
+            <option value="outlook.com">outlook.com</option>
+            <option value="yahoo.com">yahoo.com</option>
+            <option value="otro">Otro</option>
+          </select>
         </div>
-        
-        <div class="chart-container chart-container-spacing">
-          <h3 class="chart-title">Descargar por Facultad</h3>
-          <p class="texto-descargas">Descargue registros filtrados por facultad con columnas específicas.</p>
-          
-          <div class="form-group">
-            <label>Seleccione las facultades a descargar *</label>
-            <div class="facultad-checkbox-container">
-              <label class="facultad-checkbox-label">
-                <input type="checkbox" class="facultad-checkbox facultad-checkbox-input" value="FCE">
-                <span>Facultad de Ciencias Empresariales</span>
-              </label>
-              <label class="facultad-checkbox-label">
-                <input type="checkbox" class="facultad-checkbox facultad-checkbox-input" value="FCSH">
-                <span>Facultad de Ciencias Sociales y Humanas</span>
-              </label>
-              <label class="facultad-checkbox-label">
-                <input type="checkbox" class="facultad-checkbox facultad-checkbox-input" value="FEDV">
-                <span>Facultad de Educación a Distancia y Virtual</span>
-              </label>
-              <label class="facultad-checkbox-label">
-                <input type="checkbox" class="facultad-checkbox facultad-checkbox-input" value="FI">
-                <span>Facultad de Ingeniería</span>
-              </label>
-            </div>
-          </div>
-          
-          <button class="btn btn-descargar-facultad" onclick="descargarPorFacultad()">Descargar Registros por Facultad</button>
+        <div class="otro-dominio-container hidden" id="otroDominioContainer">
+          <input 
+            type="text" 
+            id="otroDominio" 
+            oninput="this.value = this.value.replace(/[^a-z0-9.-]/g, ''); this.value = this.value.toLowerCase(); actualizarCorreoCompleto()"
+            onblur="limpiarEspacios(this)"
+            autocomplete="off">
         </div>
-        
-        <div class="chart-container chart-container-spacing">
-          <h3 class="chart-title">Descargar por Grupo</h3>
-          <p class="texto-descargas">Descargue registros filtrados por grupo académico con columnas específicas.</p>
-          
-          <div class="form-group">
-            <label>Buscar Grupo *</label>
-            <div class="buscador-grupo-container">
-              <input type="text" id="buscadorGrupo" placeholder="Ingrese el grupo a buscar..." autocomplete="off" class="buscador-grupo-input" onkeypress="if(event.key === 'Enter') buscarGrupo()">
-              <button class="btn btn-buscar-grupo" onclick="buscarGrupo()" id="btnBuscarGrupo">Buscar</button>
-            </div>
-            <div id="resultadoBusquedaGrupo" class="resultado-busqueda-grupo">
-            </div>
-            <div id="grupoSeleccionado" class="grupo-seleccionado">
-              <strong>Grupo encontrado:</strong> <span id="grupoSeleccionadoTexto"></span>
-              <button type="button" onclick="limpiarSeleccionGrupo()" class="btn-limpiar-grupo">Limpiar</button>
-            </div>
-          </div>
-          
-          <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo()" id="btnDescargarGrupo" disabled>Descargar Registros por Grupo</button>
-        </div>
+        <input type="hidden" id="correoCompleto">
       </div>
 
-      <button type="button" class="btn btn-secondary btn-cerrar-admin" onclick="cerrarSesionAdmin()">Cerrar Sesión</button>
-    </div>
+      <!-- PROGRAMA ACADÉMICO -->
+      <div class="form-group">
+        <label>Programa académico al cual se inscribió <span class="required-asterisk">*</span></label>
+        <select id="programa" required>
+          <option value="">Seleccione un programa</option>
+          <option value="FCE - Administración de Empresas">FCE - Administración de Empresas</option>
+          <option value="FCE - Contaduría Pública">FCE - Contaduría Pública</option>
+          <option value="FCE - Tecnología en Contabilidad Sistematizada">FCE - Tecnología en Contabilidad Sistematizada</option>
+          <option value="FCE - Tecnología en Gestión Empresarial">FCE - Tecnología en Gestión Empresarial</option>
+          <option value="FCSH - Comunicación Social">FCSH - Comunicación Social</option>
+          <option value="FCSH - Diseño Visual">FCSH - Diseño Visual</option>
+          <option value="FCSH - Trabajo Social">FCSH - Trabajo Social</option>
+          <option value="FEDV - Administración en Salud">FEDV - Administración en Salud</option>
+          <option value="FEDV - Administración en Salud y Seguridad en el Trabajo">FEDV - Administración en Salud y Seguridad en el Trabajo</option>
+          <option value="FEDV - Licenciatura en Ciencias del Deporte y la Educación Física">FEDV - Licenciatura en Ciencias del Deporte y la Educación Física</option>
+          <option value="FEDV - Licenciatura en Educación Infantil">FEDV - Licenciatura en Educación Infantil</option>
+          <option value="FI - Ingeniería Electrónica">FI - Ingeniería Electrónica</option>
+          <option value="FI - Ingeniería En Sistemas">FI - Ingeniería En Sistemas</option>
+          <option value="FI - Ingeniería Industrial">FI - Ingeniería Industrial</option>
+          <option value="FI - Tecnología en Electrónica Industrial">FI - Tecnología en Electrónica Industrial</option>
+          <option value="FI - Tecnología en Producción Industrial">FI - Tecnología en Producción Industrial</option>
+          <option value="FI - Tecnología en Sistemas de Información">FI - Tecnología en Sistemas de Información</option>
+        </select>
+      </div>
+
+      <!-- SEDE -->
+      <div class="form-group">
+        <label>Sede <span class="required-asterisk">*</span></label>
+        <select id="sede" required>
+          <option value="">Seleccione una sede</option>
+          <option value="Norte">Norte</option>
+          <option value="Sur">Sur</option>
+        </select>
+      </div>
+
+      <!-- JORNADA -->
+      <div class="form-group">
+        <label>Jornada <span class="required-asterisk">*</span></label>
+        <select id="jornada" required>
+          <option value="">Seleccione una jornada</option>
+          <option value="Diurna">Diurna</option>
+          <option value="Nocturna">Nocturna</option>
+        </select>
+      </div>
+
+      <!-- NIVEL DE SATISFACCIÓN -->
+      <div class="form-group">
+        <label>Indique su nivel de satisfacción con la actividad realizada <span class="required-asterisk">*</span></label>
+        <div class="rating" id="ratingContainer">
+          <input type="radio" name="satisfaccion" id="sat1" value="1">
+          <label for="sat1">1</label>
+          <input type="radio" name="satisfaccion" id="sat2" value="2">
+          <label for="sat2">2</label>
+          <input type="radio" name="satisfaccion" id="sat3" value="3">
+          <label for="sat3">3</label>
+          <input type="radio" name="satisfaccion" id="sat4" value="4">
+          <label for="sat4">4</label>
+          <input type="radio" name="satisfaccion" id="sat5" value="5">
+          <label for="sat5">5</label>
+        </div>
+        <p class="rating-description">1 = Muy insatisfecho | 5 = Muy satisfecho</p>
+      </div>
+
+      <!-- COMENTARIO -->
+      <div class="form-group">
+        <label>Déjanos un comentario de sugerencia, felicitación, petición o reclamo sobre la experiencia de aprendizaje realizada <span class="required-asterisk">*</span></label>
+        <textarea 
+          id="comentario" 
+          required 
+          oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,.\-]/g, '')"
+          onblur="limpiarEspacios(this)"
+          rows="4"></textarea>
+      </div>
+
+      <!-- BOTONES -->
+      <button type="submit" class="btn" id="btnEnviar">Enviar Formulario</button>
+      <button type="button" class="btn btn-cancelar" id="btnCancelar" onclick="mostrarConfirmacionCancelar()">Cancelar</button>
+    </form>
   </div>
+</div>
+</div>
 
-  <!-- Logo fuera del contenedor -->
-  <div class="logo-footer">
-    <img id="logoUniversidad" src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png" alt="Logo UNIAJC">
-    <img 
-      src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png"
-      alt="Logo PMA"
-      class="logo-footer-pma"
-    >
+<!-- Modal de éxito -->
+<div id="modalExito" class="modal-overlay hidden">
+  <div class="modal-success">
+    <div class="success-icon">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <h2>¡Formulario Enviado!</h2>
+    <p>Gracias por completar el formulario</p>
+    <p class="small-text">Redirigiendo...</p>
   </div>
 </div>
 
-  <!-- Modal de éxito de registro -->
-  <div id="modalExitoRegistro" class="modal-overlay hidden">
-    <div class="modal-success">
-      <div class="success-icon">
-        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      </div>
-      <h2>¡Registro Exitoso!</h2>
-      <p>Bienvenido al Programa de Mejoramiento Académico (PMA)</p>
-      <p class="small-text">Redirigiendo a la página principal...</p>
+<!-- Modal de confirmación para cancelar -->
+<div id="modalCancelar" class="modal-overlay hidden">
+  <div class="modal-confirm">
+    <h2>¿Seguro que quieres cancelar?</h2>
+    <p>Se perderán todos los datos ingresados en el formulario</p>
+    <div class="modal-buttons">
+      <button class="btn btn-confirm-si" onclick="confirmarCancelar()">Sí</button>
+      <button class="btn btn-confirm-no" onclick="cerrarModalCancelar()">No</button>
     </div>
   </div>
+</div>
 
-  <!-- Modal de éxito de formulario -->
-  <div id="modalExitoFormulario" class="modal-overlay hidden">
-    <div class="modal-success">
-      <div class="success-icon">
-        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      </div>
-      <h2>¡Formulario Enviado!</h2>
-      <p>Gracias por su participación en el PMA</p>
-      <p class="small-text">Redirigiendo a la página principal...</p>
-    </div>
-  </div>
-
-  <!-- Modal de confirmación de cancelación -->
-  <div id="modalConfirmacion" class="modal-overlay hidden">
-    <div class="modal-confirmacion">
-      <h2 id="tituloConfirmacion">¿Estás seguro?</h2>
-      <p id="mensajeConfirmacion">Esta acción no se puede deshacer.</p>
-      <div class="modal-buttons">
-        <button class="btn" id="btnConfirmarModal">Sí, estoy seguro</button>
-        <button class="btn btn-secondary" id="btnCancelarModal">No, volver</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal de Horarios -->
-  <div id="modalHorarios" class="modal-overlay hidden">
-    <div class="modal-horarios">
-      <div class="modal-horarios-header">
-        <h2>Horarios y Lugar de Atención</h2>
-        <button class="modal-close-btn" onclick="cerrarModalHorarios()" aria-label="Cerrar">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="modal-horarios-content">
-        <!-- Botones de sedes -->
-        <div class="botones-sedes">
-          <button class="btn btn-secondary btn-sede" onclick="mostrarHorarioEnModal('norte')">
-            Sede Norte
-          </button>
-          <button class="btn btn-secondary btn-sede" onclick="mostrarHorarioEnModal('sur')">
-            Sede Sur
-          </button>
-          <button class="btn btn-secondary btn-sede" onclick="mostrarHorarioEnModal('virtual')">
-            Virtual
-          </button>
-        </div>
-
-        <!-- Horario Sede Norte -->
-        <div id="horarioNorteModal" class="horario-info-modal hidden">
-          <h4 class="horario-titulo">Sede Norte</h4>
-          
-          <div class="horario-bloque">
-            <strong class="horario-dia">De Lunes a Viernes</strong>
-            <p class="horario-detalle">
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> 10:15 AM - 12:00 PM<br>
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> 2:15 PM - 6:15 PM<br>
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Salones del Bloque D
-            </p>
-          </div>
-
-          <div class="horario-bloque">
-            <strong class="horario-dia">Sábados</strong>
-            <p class="horario-detalle">
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> 1:00 PM - 4:00 PM<br>
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Salones del Bloque D
-            </p>
-          </div>
-
-          <div class="horario-bloque">
-            <strong class="horario-dia">Otros horarios</strong>
-            <p class="horario-detalle">
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Agendar con mínimo 3 dias de anticipación al correo:<br>
-              <a href="mailto:pma@admon.uniajc.edu.co" class="correo-link">pma@admon.uniajc.edu.co</a><br>
-            </p>
-          </div>
-
-          <a href="https://view.genially.com/5e70f57de5755877709ee3a8/presentation-plantilla-pma" 
-             target="_blank" 
-             class="enlace-horario-virtual enlace-horario-virtual-center">
-            Ver más información
-          </a>
-        </div>
-
-        <!-- Horario Sede Sur -->
-        <div id="horarioSurModal" class="horario-info-modal hidden">
-          <h4 class="horario-titulo">Sede Sur</h4>
-          
-          <div class="horario-bloque">
-            <strong class="horario-dia">De Lunes a Viernes</strong>
-            <p class="horario-detalle">
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> 10:15 AM - 12:00 PM<br>
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> 2:15 PM - 6:15 PM<br>
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Salones
-            </p>
-          </div>
-
-          <div class="horario-bloque">
-            <strong class="horario-dia">Otros horarios</strong>
-            <p class="horario-detalle">
-              <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Agendar con mínimo 3 dias de anticipación al correo:<br>
-              <a href="mailto:pma@admon.uniajc.edu.co" class="correo-link">pma@admon.uniajc.edu.co</a><br>
-            </p>
-          </div>
-
-          <a href="https://view.genially.com/5e70f57de5755877709ee3a8/presentation-plantilla-pma" 
-             target="_blank" 
-             class="enlace-horario-virtual enlace-horario-virtual-center">
-            Ver más información
-          </a>
-        </div>
-
-        <!-- Horario Virtual -->
-        <div id="horarioVirtualModal" class="horario-info-modal hidden">
-          <h4 class="horario-titulo">Modalidad Virtual</h4>
-          
-          <div class="horario-bloque">
-            <strong class="horario-dia">De Lunes a Sábado</strong>
-            <p class="horario-detalle">
-              <a href="https://view.genially.com/5e70f57de5755877709ee3a8/presentation-plantilla-pma" target="_blank" class="enlace-horario-virtual">
-                Ver Horario Virtual
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="script.js"></script>
+<script src="pvu-script.js"></script>
 </body>
-
-
 </html>
+
