@@ -479,11 +479,11 @@
 <div id="pantallaAdminLogin" class="hidden">
   <h2 class="section-title">Acceso de Administrador</h2>
   <div id="mensajeAdminLogin"></div>
-  <form id="formAdminLogin" onsubmit="loginAdmin(event)">
+  <form id="formAdminLogin" onsubmit="loginAdmin(event)" autocomplete="off">
     <div class="form-group">
       <label>Usuario</label>
       <div class="admin-input-wrapper">
-        <input type="password" id="adminDocumento" required class="admin-input">
+        <input type="password" id="adminDocumento" name="username" autocomplete="username" required class="admin-input">
         <button type="button" id="btnToggleUsername" onclick="toggleUsername()" class="admin-toggle-btn">
           <svg id="iconUsername" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
         </button>
@@ -492,7 +492,7 @@
     <div class="form-group">
       <label><svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Contraseña</label>
       <div class="admin-input-wrapper">
-        <input type="password" id="adminContrasena" required class="admin-input">
+        <input type="password" id="adminContrasena" name="password" autocomplete="current-password" required class="admin-input">
         <button type="button" id="btnTogglePassword" onclick="togglePassword()" class="admin-toggle-btn">
           <svg id="iconPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
         </button>
