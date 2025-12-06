@@ -3771,6 +3771,7 @@ function avanzarPagina() {
       return;
     }
     
+  
     document.getElementById('paginaFormulario1').classList.add('hidden');
     document.getElementById('paginaFormulario2').classList.remove('hidden');
     document.getElementById('btnEnviar').classList.remove('hidden');
