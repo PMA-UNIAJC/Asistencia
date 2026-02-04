@@ -627,22 +627,48 @@
       
       <!-- CONTENIDO PVU -->
       <div id="contenidoPVU" class="hidden">
-        <div class="chart-container">
-          <h3 class="chart-title">Descargar Reportes PVU</h3>
-          <p class="texto-descargas">Descargue los registros de asistencia del programa Preparación para la Vida Universitaria.</p>
-          <button class="btn" onclick="descargarPVU()" id="btnDescargarPVU">Descargar</button>
+        <!-- SUBMENÚ PVU: Descargar Datos, Estadísticas -->
+        <div class="admin-tabs admin-tabs-secundario">
+          <button class="admin-tab active" onclick="cambiarTabPVU(event, 'descargas')">Descargar Datos</button>
+          <button class="admin-tab" onclick="cambiarTabPVU(event, 'estadisticas')">Estadísticas</button>
+        </div>
+
+        <div id="tabEstadisticasPVU" class="hidden">
+          <div class="stats-grid" id="statsGridPVU"></div>
+          <div id="detallesStatsPVU"></div>
+        </div>
+
+        <div id="tabDescargasPVU">
+          <div class="chart-container">
+            <h3 class="chart-title">Descargar Reportes PVU</h3>
+            <p class="texto-descargas">Descargue los registros de asistencia del programa Preparación para la Vida Universitaria.</p>
+            <button class="btn" onclick="descargarPVU()" id="btnDescargarPVU">Descargar</button>
+          </div>
         </div>
       </div>
       <!-- FIN CONTENIDO PVU -->
       
       <!-- CONTENIDO AAA -->
       <div id="contenidoAAA" class="hidden">
-        <div class="chart-container">
-          <h3 class="chart-title">Descargar Reportes AAA</h3>
-          <p class="texto-descargas">Descargue los registros del programa Activación y Acompañamiento Académico.</p>
-          <button class="btn" onclick="descargarAAAIndividual()" id="btnDescargarAAAIndividual">Individual</button>
-          <button class="btn btn-secondary" onclick="descargarAAAGrupal()" id="btnDescargarAAAGrupal">Grupal</button>
-          <button class="btn btn-secondary" onclick="descargarAAATodo()" id="btnDescargarAAATodo">Todos los Registros</button>
+        <!-- SUBMENÚ AAA: Descargar Datos, Estadísticas -->
+        <div class="admin-tabs admin-tabs-secundario">
+          <button class="admin-tab active" onclick="cambiarTabAAA(event, 'descargas')">Descargar Datos</button>
+          <button class="admin-tab" onclick="cambiarTabAAA(event, 'estadisticas')">Estadísticas</button>
+        </div>
+
+        <div id="tabEstadisticasAAA" class="hidden">
+          <div class="stats-grid" id="statsGridAAA"></div>
+          <div id="detallesStatsAAA"></div>
+        </div>
+
+        <div id="tabDescargasAAA">
+          <div class="chart-container">
+            <h3 class="chart-title">Descargar Reportes AAA</h3>
+            <p class="texto-descargas">Descargue los registros del programa Activación y Acompañamiento Académico.</p>
+            <button class="btn" onclick="descargarAAAIndividual()" id="btnDescargarAAAIndividual">Individual</button>
+            <button class="btn btn-secondary" onclick="descargarAAAGrupal()" id="btnDescargarAAAGrupal">Grupal</button>
+            <button class="btn btn-secondary" onclick="descargarAAATodo()" id="btnDescargarAAATodo">Todos los Registros</button>
+          </div>
         </div>
       </div>
       <!-- FIN CONTENIDO AAA -->
@@ -651,7 +677,7 @@
     </div>
   </div>
 
-  <!-- Logo fuera del contenedor -->
+  
   <div class="logo-footer">
     <img id="logoUniversidad" src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png" alt="Logo UNIAJC">
     <img 
