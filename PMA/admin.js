@@ -1,5 +1,5 @@
 // ===================================
-// MEMOIZACIÓN DE ESTADÍSTICAS
+// ESTADÍSTICAS
 // ===================================
 const cacheEstadisticas = {
   general: null,
@@ -107,8 +107,24 @@ function cambiarTabPrincipal(event, seccion) {
     }
   } else if (seccion === 'pvu') {
     document.getElementById('contenidoPVU').classList.remove('hidden');
+    // Al mostrar PVU, activar la primera pestaña (Descargar Datos) por defecto
+    const primerTabPVU = document.querySelector('#contenidoPVU .admin-tabs-secundario .admin-tab');
+    if (primerTabPVU) {
+      document.querySelectorAll('#contenidoPVU .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
+      primerTabPVU.classList.add('active');
+      document.getElementById('tabEstadisticasPVU').classList.add('hidden');
+      document.getElementById('tabDescargasPVU').classList.remove('hidden');
+    }
   } else if (seccion === 'aaa') {
     document.getElementById('contenidoAAA').classList.remove('hidden');
+    // Al mostrar AAA, activar la primera pestaña (Descargar Datos) por defecto
+    const primerTabAAA = document.querySelector('#contenidoAAA .admin-tabs-secundario .admin-tab');
+    if (primerTabAAA) {
+      document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
+      primerTabAAA.classList.add('active');
+      document.getElementById('tabEstadisticasAAA').classList.add('hidden');
+      document.getElementById('tabDescargasAAA').classList.remove('hidden');
+    }
   }
 }
 
@@ -297,7 +313,25 @@ async function actualizarEstadisticas() {
     invalidarCacheFormularios();
     invalidarCacheEstadisticas();
     
-    await cargarEstadisticas();
+    // Determinar qué sección está activa y actualizar las estadísticas correspondientes
+    const contenidoPMA = document.getElementById('contenidoPMA');
+    const contenidoPVU = document.getElementById('contenidoPVU');
+    const contenidoAAA = document.getElementById('contenidoAAA');
+    
+    if (!contenidoPMA.classList.contains('hidden')) {
+      // PMA está activo
+      await cargarEstadisticas();
+    } else if (!contenidoPVU.classList.contains('hidden')) {
+      // PVU está activo
+      // Invalidar caché de PVU
+      window.datosPVUGlobal = null;
+      await cargarEstadisticasPVU();
+    } else if (!contenidoAAA.classList.contains('hidden')) {
+      // AAA está activo
+      // Invalidar caché de AAA
+      window.datosAAAGlobal = null;
+      await cargarEstadisticasAAA();
+    }
     
     // Cambiar a check (éxito)
     iconActualizar.style.animation = 'none';
@@ -2215,4 +2249,226 @@ function actualizarGrafica() {
       }
     }
   });
+}
+
+// ===================================
+// CAMBIAR TAB PVU (Descargar Datos, Estadísticas)
+// ===================================
+async function cambiarTabPVU(event, tab) {
+  document.querySelectorAll('#contenidoPVU .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  document.getElementById('tabEstadisticasPVU').classList.add('hidden');
+  document.getElementById('tabDescargasPVU').classList.add('hidden');
+  
+  if (tab === 'descargas') {
+    document.getElementById('tabDescargasPVU').classList.remove('hidden');
+  } else if (tab === 'estadisticas') {
+    document.getElementById('tabEstadisticasPVU').classList.remove('hidden');
+    
+    // Cargar estadísticas de PVU
+    if (!window.datosPVUGlobal) {
+      await cargarEstadisticasPVU();
+    } else {
+      mostrarEstadisticasPVU();
+    }
+  }
+}
+
+// ===================================
+// CAMBIAR TAB AAA (Descargar Datos, Estadísticas)
+// ===================================
+async function cambiarTabAAA(event, tab) {
+  document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  document.getElementById('tabEstadisticasAAA').classList.add('hidden');
+  document.getElementById('tabDescargasAAA').classList.add('hidden');
+  
+  if (tab === 'descargas') {
+    document.getElementById('tabDescargasAAA').classList.remove('hidden');
+  } else if (tab === 'estadisticas') {
+    document.getElementById('tabEstadisticasAAA').classList.remove('hidden');
+    
+    // Cargar estadísticas de AAA
+    if (!window.datosAAAGlobal) {
+      await cargarEstadisticasAAA();
+    } else {
+      mostrarEstadisticasAAA();
+    }
+  }
+}
+
+// ===================================
+// CARGAR ESTADÍSTICAS PVU
+// ===================================
+async function cargarEstadisticasPVU() {
+  const statsGridPVU = document.getElementById('statsGridPVU');
+  const detallesStatsPVU = document.getElementById('detallesStatsPVU');
+  
+  // Mostrar loader mientras carga
+  if (statsGridPVU) {
+    statsGridPVU.textContent = '';
+    const loader = document.createElement('div');
+    loader.className = 'loader';
+    statsGridPVU.appendChild(loader);
+  }
+  if (detallesStatsPVU) {
+    detallesStatsPVU.textContent = '';
+  }
+  
+  try {
+    // Cargar datos de la tabla pvu
+    const data = await supabaseQuery('pvu', { order: 'fecha.asc' });
+    
+    if (data.length === 0) {
+      if (statsGridPVU) {
+        statsGridPVU.textContent = '';
+        const p = document.createElement('p');
+        p.style.textAlign = 'center';
+        p.style.color = '#666';
+        p.textContent = 'No hay datos disponibles aún.';
+        statsGridPVU.appendChild(p);
+      }
+      return;
+    }
+    
+    // Guardar datos globalmente
+    window.datosPVUGlobal = data;
+    
+    // Mostrar estadísticas
+    mostrarEstadisticasPVU();
+    
+  } catch (error) {
+    console.error('Error cargando estadísticas PVU:', error);
+    if (statsGridPVU) {
+      statsGridPVU.textContent = '';
+      const p = document.createElement('p');
+      p.style.textAlign = 'center';
+      p.style.color = '#dc3545';
+      p.textContent = 'Error al cargar estadísticas. Por favor intenta de nuevo.';
+      statsGridPVU.appendChild(p);
+    }
+  }
+}
+
+// ===================================
+// MOSTRAR ESTADÍSTICAS PVU
+// ===================================
+function mostrarEstadisticasPVU() {
+  const data = window.datosPVUGlobal;
+  const statsGridPVU = document.getElementById('statsGridPVU');
+  const detallesStatsPVU = document.getElementById('detallesStatsPVU');
+  
+  if (!data || data.length === 0) {
+    if (statsGridPVU) {
+      statsGridPVU.innerHTML = '<p style="text-align: center; color: #666;">No hay datos disponibles aún.</p>';
+    }
+    return;
+  }
+  
+  const totalRegistros = data.length;
+  
+  // Crear HTML con la tarjeta de Total de Registros
+  if (statsGridPVU) {
+    statsGridPVU.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>${totalRegistros}</h3>
+          <p>Total de Registros</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  if (detallesStatsPVU) {
+    detallesStatsPVU.textContent = '';
+  }
+}
+
+// ===================================
+// CARGAR ESTADÍSTICAS AAA
+// ===================================
+async function cargarEstadisticasAAA() {
+  const statsGridAAA = document.getElementById('statsGridAAA');
+  const detallesStatsAAA = document.getElementById('detallesStatsAAA');
+  
+  // Mostrar loader mientras carga
+  if (statsGridAAA) {
+    statsGridAAA.textContent = '';
+    const loader = document.createElement('div');
+    loader.className = 'loader';
+    statsGridAAA.appendChild(loader);
+  }
+  if (detallesStatsAAA) {
+    detallesStatsAAA.textContent = '';
+  }
+  
+  try {
+    // Cargar datos de la tabla acompanamiento
+    const data = await supabaseQuery('acompanamiento', { order: 'fecha_hora.asc' });
+    
+    if (data.length === 0) {
+      if (statsGridAAA) {
+        statsGridAAA.textContent = '';
+        const p = document.createElement('p');
+        p.style.textAlign = 'center';
+        p.style.color = '#666';
+        p.textContent = 'No hay datos disponibles aún.';
+        statsGridAAA.appendChild(p);
+      }
+      return;
+    }
+    
+    // Guardar datos globalmente
+    window.datosAAAGlobal = data;
+    
+    // Mostrar estadísticas
+    mostrarEstadisticasAAA();
+    
+  } catch (error) {
+    console.error('Error cargando estadísticas AAA:', error);
+    if (statsGridAAA) {
+      statsGridAAA.textContent = '';
+      const p = document.createElement('p');
+      p.style.textAlign = 'center';
+      p.style.color = '#dc3545';
+      p.textContent = 'Error al cargar estadísticas. Por favor intenta de nuevo.';
+      statsGridAAA.appendChild(p);
+    }
+  }
+}
+
+// ===================================
+// MOSTRAR ESTADÍSTICAS AAA
+// ===================================
+function mostrarEstadisticasAAA() {
+  const data = window.datosAAAGlobal;
+  const statsGridAAA = document.getElementById('statsGridAAA');
+  const detallesStatsAAA = document.getElementById('detallesStatsAAA');
+  
+  if (!data || data.length === 0) {
+    if (statsGridAAA) {
+      statsGridAAA.innerHTML = '<p style="text-align: center; color: #666;">No hay datos disponibles aún.</p>';
+    }
+    return;
+  }
+  
+  const totalRegistros = data.length;
+  
+  // Crear HTML con la tarjeta de Total de Registros
+  if (statsGridAAA) {
+    statsGridAAA.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>${totalRegistros}</h3>
+          <p>Total de Registros</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  if (detallesStatsAAA) {
+    detallesStatsAAA.textContent = '';
+  }
 }
