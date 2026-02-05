@@ -1,12 +1,18 @@
-// ===================================
-// MEMOIZACIÓN DE ESTADÍSTICAS
-// ===================================
 const cacheEstadisticas = {
   general: null,
   tutores: null,
   profesores: null
 };
 
+
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
 
 function invalidarCacheEstadisticas() {
   cacheEstadisticas.general = null;
@@ -42,46 +48,60 @@ async function precargarDatosEstadisticas() {
 function mostrarLoginAdmin() {
   mostrarContenidoFormulario();
   setTimeout(() => {
-    mostrarPantalla('pantallaAdminLogin');
-    // Usar caché DOM y textContent en lugar de innerHTML
+    verificarSesionAdmin(); 
     if (elementosDOM.mensajeAdminLogin) {
       elementosDOM.mensajeAdminLogin.textContent = '';
     }
   }, 550);
 }
 
-// ===================================
-// ADMINISTRADOR
-// ===================================
+
+// ADMIN
 async function loginAdmin(event) {
   event.preventDefault();
   mostrarCargando('mensajeAdminLogin');
 
-  const documento = document.getElementById('adminDocumento').value;
-  const contrasena = document.getElementById('adminContrasena').value;
+
+  const email = document.getElementById('adminDocumento').value;
+  const password = document.getElementById('adminContrasena').value;
 
   try {
-    const data = await supabaseQuery('administradores', {
-      eq: { field: 'documento', value: documento }
+    // AUTENTICACIÓN CON SUPABASE AUTH
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
     });
 
-    // Verificar que el documento existe Y que la contraseña coincida
-    if (data.length === 0 || data[0].contra !== contrasena) {
+    if (error) {
       mostrarMensaje('mensajeAdminLogin', 'Acceso denegado.', 'error');
+      console.error('Error de autenticación:', error.message);
       return;
     }
 
-    document.getElementById('nombreAdmin').textContent = 'Administrador: ' + data[0].nombre;
+    // Usuario autenticado correctamente
+    const user = data.user;
+
+    const { data: adminData, error: adminError } = await supabaseClient
+      .from('admin_usuarios')
+      .select('documento')
+      .eq('user_id', user.id)
+      .single();
+
+    if (adminError || !adminData) {
+      mostrarMensaje('mensajeAdminLogin', 'Usuario sin permisos de administrador.', 'error');
+      // Cerrar sesión si no es admin
+      await supabaseClient.auth.signOut();
+      return;
+    }
+
     mostrarPantalla('pantallaAdmin');
-    // Ya NO cargamos estadísticas aquí, se cargan cuando el admin hace clic
+
   } catch (error) {
     mostrarMensaje('mensajeAdminLogin', 'Error de conexión: ' + error.message, 'error');
+    console.error('Error en login:', error);
   }
 }
 
-// ===================================
-// CAMBIAR TAB PRINCIPAL (PMA, PVU, AAA)
-// ===================================
 function cambiarTabPrincipal(event, seccion) {
   // Remover active de tabs principales
   document.querySelectorAll('.admin-tabs-principal .admin-tab').forEach(t => t.classList.remove('active'));
@@ -203,12 +223,7 @@ async function cambiarTab(event, tab) {
   }
 }
 
-// ===================================
-// ACTUALIZAR ESTADÍSTICAS
-// ===================================
-// ===================================
-// FORZAR ACTUALIZACIÓN DE DATOS DE ESTUDIANTES
-// ===================================
+
 function solicitarForzarActualizacion() {
   mostrarModalConfirmacion(
     '¿Forzar Actualización de Datos?',
@@ -223,11 +238,7 @@ async function forzarActualizacionEstudiantes() {
   btnForzar.style.opacity = '0.6';
   
   try {
-    // Poner fecha_actualizacion = null para TODOS los estudiantes
-    // Esto forzará a que deban actualizar semestre y grupo
-    
-    // Intentar actualizar TODOS los estudiantes en Supabase usando un filtro que incluya todos
-    // Usamos un filtro que siempre es verdadero: documento=neq.'' (documento no igual a cadena vacía)
+ 
     const url = `${SUPABASE_URL}/rest/v1/estudiantes?documento=neq.`;
     
     const response = await fetch(url, {
@@ -364,8 +375,7 @@ async function actualizarEstadisticas() {
 
 
 async function cargarEstadisticas() {
-  // Mostrar loader mientras carga
-  // Usar caché DOM y manipulación directa
+
   if (elementosDOM.statsGrid) {
     elementosDOM.statsGrid.textContent = '';
     const loader = document.createElement('div');
@@ -416,9 +426,7 @@ async function cargarEstadisticas() {
       elementosDOM.detallesStats.textContent = '';
     }
 
-    // Guardar datos globalmente para uso posterior
-    // Solo invalidar caché de estadísticas si los datos realmente cambiaron
-    // (comparar cantidad de registros como indicador simple)
+ 
     const datosAnteriores = window.datosFormulariosGlobal;
     const datosCambiaron = !datosAnteriores || datosAnteriores.length !== data.length;
     
@@ -669,9 +677,7 @@ if (tipo === 'general') {
     </div>
   `;
   
-  // ===== NUEVAS LISTAS DE TOP 5 =====
-  
-  // Top 5 Materias
+ 
   const materiasCuenta = {};
   datosFiltrados.forEach(item => {
     const materia = item.asignatura || 'Sin especificar';
@@ -704,8 +710,7 @@ if (tipo === 'general') {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
   
-  // Lista de Facultades (todas, ordenadas de mayor a menor)
-  // Leer directamente desde la tabla de formularios
+
   const facultadesCuenta = {};
   
   // Contar tutorías por facultad directamente desde formularios
@@ -841,8 +846,7 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
       tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
     });
 
-    // Agrupar tutores por SEDE DE ORIGEN (tabla donde están registrados)
-    // Si un tutor está en ambas tablas, aparece en ambas sedes con el mismo total
+
     const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
     
     // Verificar si los datos están cargados
@@ -919,7 +923,6 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
 
   
   
-  // PROFESORES: Mostrar por facultad/departamento con profesores agrupados
 if (tipo === 'profesores') {
   detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Asesorías por Facultad/Departamento</h3>';
   
@@ -1025,9 +1028,8 @@ if (tipo === 'profesores') {
 }
 
 
-// ===================================
-// DESCARGAR DATOS
-// ===================================
+
+// DESCARGAR
 async function descargarDatos() {
   const desde = document.getElementById('fechaDesde').value;
   const hasta = document.getElementById('fechaHasta').value;
@@ -1045,11 +1047,9 @@ async function descargarDatos() {
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
-    // Convertir fechas de input a ISO en hora de Colombia
     const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
     const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
     let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
@@ -1087,7 +1087,7 @@ async function descargarTodo() {
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga completa...';
+  btnDescarga.textContent = 'Preparando descarga completa...';
 
   try {
     // CARGAR TODOS LOS DATOS SOLO CUANDO SE VA A DESCARGAR
@@ -1126,11 +1126,10 @@ async function descargarDocentes() {
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
-    // Convertir fechas de input a ISO en hora de Colombia
+  
     const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
     const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
     let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
@@ -1160,9 +1159,8 @@ async function descargarDocentes() {
   }
 }
 
-// ===================================
+
 // DESCARGAR POR FACULTAD
-// ===================================
 async function descargarPorFacultad() {
   const checkboxes = document.querySelectorAll('.facultad-checkbox:checked');
   
@@ -1191,7 +1189,7 @@ async function descargarPorFacultad() {
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
   
   try {
     // OPTIMIZACIÓN: Filtrar en el servidor usando filtro "in" para múltiples facultades
@@ -1258,9 +1256,8 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
   XLSX.writeFile(wb, `PMA_PorFacultad_${nombresFacultades.replace(/\s+/g, '_')}_${fechaHoy}.xlsx`);
 }
 
-// ===================================
+
 // DESCARGAR POR GRUPO
-// ===================================
 let grupoSeleccionadoParaDescarga = null;
 let cantidadRegistrosEncontrados = 0;
 
@@ -1293,7 +1290,7 @@ async function buscarGrupo() {
   
   // Deshabilitar botón mientras busca
   btnBuscar.disabled = true;
-  btnBuscar.textContent = '⏳ Buscando...';
+  btnBuscar.textContent = 'Buscando...';
   resultadoBusqueda.style.display = 'block';
   resultadoBusqueda.style.background = '#e8f4fd';
   resultadoBusqueda.style.borderLeft = '4px solid #1e3c72';
@@ -1376,7 +1373,7 @@ async function descargarPorGrupo() {
   const btnDescarga = document.getElementById('btnDescargarGrupo');
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
   
   try {
     // OPTIMIZACIÓN: Filtrar en el servidor usando ilike para búsqueda case-insensitive
@@ -1606,14 +1603,58 @@ function generarExcelDocentes(datos, nombreArchivo) {
 
 
 
-function cerrarSesionAdmin() {
-  location.reload();
+
+// CERRAR SESIÓN ADMIN
+async function cerrarSesionAdmin() {
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+      console.error('Error cerrando sesión:', error);
+    }
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error);
+  } finally {
+    // Recargar página para volver al login
+    location.reload();
+  }
 }
 
 
-// ===================================
-// TOGGLE INSTRUCTORES POR SEDE EN ADMIN
-// ===================================
+// VERIFICAR SESIÓN
+async function verificarSesionAdmin() {
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (session) {
+      // Usuario ya tiene sesión activa
+      console.log('Sesión activa detectada');
+
+      // Verificar que sea admin
+      const { data: adminData } = await supabaseClient
+        .from('admin_usuarios')
+        .select('documento')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (adminData) {
+        mostrarPantalla('pantallaAdmin');
+        return;
+      } else {
+        // Usuario autenticado pero no es admin
+        await supabaseClient.auth.signOut();
+      }
+    }
+
+    // No hay sesión o no es admin: mostrar login
+    mostrarPantalla('pantallaAdminLogin');
+
+  } catch (error) {
+    console.error('Error verificando sesión:', error);
+    mostrarPantalla('pantallaAdminLogin');
+  }
+} 
+
+
 function toggleInstructoresSede(sede) {
   document.getElementById('instructoresNorteAdmin').classList.add('hidden');
   document.getElementById('instructoresSurAdmin').classList.add('hidden');
@@ -1625,9 +1666,7 @@ function toggleInstructoresSede(sede) {
   }
 }
 
-// ===================================
-// TOGGLE PROFESORES POR FACULTAD EN ADMIN
-// ===================================
+
 function toggleProfesoresFacultad(facultadId) {
   // Ocultar todas las secciones de profesores
   const todasLasSecciones = document.querySelectorAll('[id^="profesores"]');
@@ -1646,9 +1685,7 @@ function toggleProfesoresFacultad(facultadId) {
 
 
 
-// ===================================
-// FUNCIÓN AUXILIAR PARA NOMBRES DE FACULTAD
-// ===================================
+
 function obtenerNombreFacultad(codigo) {
   const nombres = {
     'DCB': 'Departamento de Ciencias Básicas',
@@ -1660,9 +1697,7 @@ function obtenerNombreFacultad(codigo) {
   return nombres[codigo] || codigo;
 }
 
-// ===================================
-// MOSTRAR/OCULTAR CONTRASEÑA
-// ===================================
+
 function togglePassword() {
   const input = document.getElementById('adminContrasena');
   const icon = document.getElementById('iconPassword');
@@ -1678,9 +1713,7 @@ function togglePassword() {
   }
 }
 
-// ===================================
-// MOSTRAR/OCULTAR USUARIO
-// ===================================
+
 function toggleUsername() {
   const input = document.getElementById('adminDocumento');
   const icon = document.getElementById('iconUsername');
@@ -1697,17 +1730,12 @@ function toggleUsername() {
 }
 
 
-// ===================================
 // GRÁFICAS
-// ===================================
-// ===================================
-// DESCARGAR AAA (Acompañamiento Académico)
-// ===================================
 async function descargarAAAIndividual() {
   const btnDescarga = document.getElementById('btnDescargarAAAIndividual');
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
 
   try {
     // Cargar datos filtrados por tipo Individual
@@ -1736,7 +1764,7 @@ async function descargarAAAGrupal() {
   const btnDescarga = document.getElementById('btnDescargarAAAGrupal');
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
 
   try {
     // Cargar datos filtrados por tipo Grupal
@@ -1765,7 +1793,7 @@ async function descargarAAATodo() {
   const btnDescarga = document.getElementById('btnDescargarAAATodo');
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
 
   try {
     // Cargar todos los datos de la tabla acompanamiento
@@ -1976,14 +2004,12 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
 
-// ===================================
-// DESCARGAR PVU
-// ===================================
+
 async function descargarPVU() {
   const btnDescarga = document.getElementById('btnDescargarPVU');
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = '⏳ Preparando descarga...';
+  btnDescarga.textContent = 'Preparando descarga...';
 
   try {
     // Cargar todos los datos de la tabla PVU
@@ -2251,9 +2277,8 @@ function actualizarGrafica() {
   });
 }
 
-// ===================================
-// CAMBIAR TAB PVU (Descargar Datos, Estadísticas)
-// ===================================
+
+// CAMBIAR TAB
 async function cambiarTabPVU(event, tab) {
   document.querySelectorAll('#contenidoPVU .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
@@ -2275,9 +2300,7 @@ async function cambiarTabPVU(event, tab) {
   }
 }
 
-// ===================================
-// CAMBIAR TAB AAA (Descargar Datos, Estadísticas)
-// ===================================
+// CAMBIAR TAB
 async function cambiarTabAAA(event, tab) {
   document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
@@ -2299,9 +2322,8 @@ async function cambiarTabAAA(event, tab) {
   }
 }
 
-// ===================================
-// CARGAR ESTADÍSTICAS PVU
-// ===================================
+
+// ESTADÍSTICAS
 async function cargarEstadisticasPVU() {
   const statsGridPVU = document.getElementById('statsGridPVU');
   const detallesStatsPVU = document.getElementById('detallesStatsPVU');
@@ -2352,9 +2374,7 @@ async function cargarEstadisticasPVU() {
   }
 }
 
-// ===================================
-// MOSTRAR ESTADÍSTICAS PVU
-// ===================================
+// MOSTRAR ESTADÍSTICAS
 function mostrarEstadisticasPVU() {
   const data = window.datosPVUGlobal;
   const statsGridPVU = document.getElementById('statsGridPVU');
@@ -2386,9 +2406,8 @@ function mostrarEstadisticasPVU() {
   }
 }
 
-// ===================================
-// CARGAR ESTADÍSTICAS AAA
-// ===================================
+
+// CARGAR ESTADÍSTICAS
 async function cargarEstadisticasAAA() {
   const statsGridAAA = document.getElementById('statsGridAAA');
   const detallesStatsAAA = document.getElementById('detallesStatsAAA');
@@ -2439,9 +2458,8 @@ async function cargarEstadisticasAAA() {
   }
 }
 
-// ===================================
-// MOSTRAR ESTADÍSTICAS AAA
-// ===================================
+
+// MOSTRAR ESTADÍSTICAS
 function mostrarEstadisticasAAA() {
   const data = window.datosAAAGlobal;
   const statsGridAAA = document.getElementById('statsGridAAA');
