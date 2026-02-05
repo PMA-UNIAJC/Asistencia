@@ -25,13 +25,12 @@
             <label>Email</label>
             <div class="admin-input-wrapper">
               <input 
-                type="email" 
+                type="password" 
                 id="adminDocumento" 
                 name="username" 
                 autocomplete="email" 
                 required 
                 class="admin-input"
-                placeholder="admin@uniajc.edu.co"
               >
               <button type="button" id="btnToggleUsername" onclick="toggleUsername()" class="admin-toggle-btn">
                 <svg id="iconUsername" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
@@ -251,16 +250,12 @@
     </div>
   </div>
 
- 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="script.js"></script>
   
-  <!-- ✅ NUEVO: Cargar autenticación segura ANTES de admin.js -->
-  <script src="auth_supabase_seguro.js"></script>
   <script src="admin.js"></script>
   
-  <!-- ✅ NUEVO: Verificar sesión al cargar la página -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       verificarSesionAdmin();
