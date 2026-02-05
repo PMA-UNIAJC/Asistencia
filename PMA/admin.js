@@ -1,12 +1,9 @@
-// ===================================
 // ESTADÍSTICAS
-// ===================================
 const cacheEstadisticas = {
   general: null,
   tutores: null,
   profesores: null
 };
-
 
 function invalidarCacheEstadisticas() {
   cacheEstadisticas.general = null;
@@ -16,7 +13,6 @@ function invalidarCacheEstadisticas() {
 }
 
 async function precargarDatosEstadisticas() {
-  // Para estadísticas necesitamos tutores y profesores
   if (datosCache.tutoresNorte.length > 0 && datosCache.profesores.length > 0) return; // Ya cargados
   
   try {
@@ -50,9 +46,7 @@ function mostrarLoginAdmin() {
   }, 550);
 }
 
-// ===================================
-// ADMINISTRADOR
-// ===================================
+// AD
 async function loginAdmin(event) {
   event.preventDefault();
   mostrarCargando('mensajeAdminLogin');
@@ -65,7 +59,6 @@ async function loginAdmin(event) {
       eq: { field: 'documento', value: documento }
     });
 
-    // Verificar que el documento existe Y que la contraseña coincida
     if (data.length === 0 || data[0].contra !== contrasena) {
       mostrarMensaje('mensajeAdminLogin', 'Acceso denegado.', 'error');
       return;
@@ -73,31 +66,24 @@ async function loginAdmin(event) {
 
     document.getElementById('nombreAdmin').textContent = 'Administrador: ' + data[0].nombre;
     mostrarPantalla('pantallaAdmin');
-    // Ya NO cargamos estadísticas aquí, se cargan cuando el admin hace clic
   } catch (error) {
     mostrarMensaje('mensajeAdminLogin', 'Error de conexión: ' + error.message, 'error');
   }
 }
-
-// ===================================
-// CAMBIAR TAB PRINCIPAL (PMA, PVU, AAA)
-// ===================================
+//TAB
 function cambiarTabPrincipal(event, seccion) {
-  // Remover active de tabs principales
   document.querySelectorAll('.admin-tabs-principal .admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
   
-  // Ocultar todos los contenidos principales
   document.getElementById('contenidoPMA').classList.add('hidden');
   document.getElementById('contenidoPVU').classList.add('hidden');
   document.getElementById('contenidoAAA').classList.add('hidden');
   
   if (seccion === 'pma') {
     document.getElementById('contenidoPMA').classList.remove('hidden');
-    // Al mostrar PMA, activar la primera pestaña (Descargar Datos) por defecto
     const primerTabPMA = document.querySelector('.admin-tabs-secundario .admin-tab');
     if (primerTabPMA) {
-      // Simular click en Descargar Datos
+
       document.querySelectorAll('.admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
       primerTabPMA.classList.add('active');
       document.getElementById('tabEstadisticas').classList.add('hidden');
@@ -107,7 +93,6 @@ function cambiarTabPrincipal(event, seccion) {
     }
   } else if (seccion === 'pvu') {
     document.getElementById('contenidoPVU').classList.remove('hidden');
-    // Al mostrar PVU, activar la primera pestaña (Descargar Datos) por defecto
     const primerTabPVU = document.querySelector('#contenidoPVU .admin-tabs-secundario .admin-tab');
     if (primerTabPVU) {
       document.querySelectorAll('#contenidoPVU .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
@@ -117,7 +102,6 @@ function cambiarTabPrincipal(event, seccion) {
     }
   } else if (seccion === 'aaa') {
     document.getElementById('contenidoAAA').classList.remove('hidden');
-    // Al mostrar AAA, activar la primera pestaña (Descargar Datos) por defecto
     const primerTabAAA = document.querySelector('#contenidoAAA .admin-tabs-secundario .admin-tab');
     if (primerTabAAA) {
       document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
@@ -138,7 +122,6 @@ async function cambiarTab(event, tab) {
   
   if (tab === 'descargas') {
     document.getElementById('tabDescargas').classList.remove('hidden');
-    // Inicializar buscador de grupos cuando se muestra la pestaña de descargas
     setTimeout(() => inicializarBuscadorGrupos(), 100);
   } else if (tab === 'estadisticas') {
     document.getElementById('tabEstadisticas').classList.remove('hidden');
@@ -165,8 +148,7 @@ async function cambiarTab(event, tab) {
         return;
       }
     }
-    
-    // Cargar estadísticas si no existen
+
     if (!window.datosFormulariosGlobal) {
       await cargarEstadisticas();
     }
@@ -174,14 +156,12 @@ async function cambiarTab(event, tab) {
   } else if (tab === 'graficas') {
     document.getElementById('tabGraficas').classList.remove('hidden');
     
-    // CARGAR DATOS PARA GRÁFICAS (solo necesita formularios)
     if (!window.datosFormulariosGlobal) {
       const container = document.querySelector('#tabGraficas .chart-container');
       const contenidoOriginal = container.innerHTML;
       container.innerHTML = '<div class="loader"></div>';
       
       try {
-        // Usar caché de formularios en lugar de consulta directa
         const data = await obtenerFormulariosCache();
         window.datosFormulariosGlobal = data;
         container.innerHTML = contenidoOriginal;
@@ -190,8 +170,7 @@ async function cambiarTab(event, tab) {
         return;
       }
     }
-    
-    // Crear/actualizar gráfica
+
     if (!graficoTutorias) {
       actualizarGrafica();
     }
@@ -203,12 +182,7 @@ async function cambiarTab(event, tab) {
   }
 }
 
-// ===================================
-// ACTUALIZAR ESTADÍSTICAS
-// ===================================
-// ===================================
-// FORZAR ACTUALIZACIÓN DE DATOS DE ESTUDIANTES
-// ===================================
+ACTUALIZACIÓN DE DATOS
 function solicitarForzarActualizacion() {
   mostrarModalConfirmacion(
     '¿Forzar Actualización de Datos?',
@@ -223,11 +197,6 @@ async function forzarActualizacionEstudiantes() {
   btnForzar.style.opacity = '0.6';
   
   try {
-    // Poner fecha_actualizacion = null para TODOS los estudiantes
-    // Esto forzará a que deban actualizar semestre y grupo
-    
-    // Intentar actualizar TODOS los estudiantes en Supabase usando un filtro que incluya todos
-    // Usamos un filtro que siempre es verdadero: documento=neq.'' (documento no igual a cadena vacía)
     const url = `${SUPABASE_URL}/rest/v1/estudiantes?documento=neq.`;
     
     const response = await fetch(url, {
@@ -244,7 +213,6 @@ async function forzarActualizacionEstudiantes() {
     });
     
     if (!response.ok) {
-      // Si falla, intentar obtener todos los estudiantes y actualizarlos uno por uno
       console.log('PATCH masivo falló, intentando actualización individual...');
       
       const estudiantes = await supabaseQuery('estudiantes');
@@ -300,16 +268,13 @@ async function forzarActualizacionEstudiantes() {
 async function actualizarEstadisticas() {
   const btnActualizar = document.getElementById('btnActualizar');
   const iconActualizar = document.getElementById('iconActualizar');
-  
-  // Deshabilitar botón mientras carga
+ 
   btnActualizar.disabled = true;
   btnActualizar.style.opacity = '0.6';
-  
-  // Agregar animación de rotación
+
   iconActualizar.style.animation = 'spin 1s linear infinite';
   
   try {
-    // Invalidar cachés antes de actualizar
     invalidarCacheFormularios();
     invalidarCacheEstadisticas();
     
@@ -319,26 +284,19 @@ async function actualizarEstadisticas() {
     const contenidoAAA = document.getElementById('contenidoAAA');
     
     if (!contenidoPMA.classList.contains('hidden')) {
-      // PMA está activo
       await cargarEstadisticas();
     } else if (!contenidoPVU.classList.contains('hidden')) {
-      // PVU está activo
-      // Invalidar caché de PVU
       window.datosPVUGlobal = null;
       await cargarEstadisticasPVU();
     } else if (!contenidoAAA.classList.contains('hidden')) {
-      // AAA está activo
-      // Invalidar caché de AAA
       window.datosAAAGlobal = null;
       await cargarEstadisticasAAA();
     }
     
-    // Cambiar a check (éxito)
     iconActualizar.style.animation = 'none';
     iconActualizar.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
     iconActualizar.style.color = '#28a745';
     
-    // Volver al icono original después de 1.5 segundos
     setTimeout(() => {
       iconActualizar.innerHTML = '<polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>';
       iconActualizar.style.color = 'currentColor';
@@ -347,7 +305,6 @@ async function actualizarEstadisticas() {
   } catch (error) {
     console.error('Error actualizando estadísticas:', error);
     
-    // Mostrar X en caso de error
     iconActualizar.style.animation = 'none';
     iconActualizar.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>';
     iconActualizar.style.color = '#dc3545';
@@ -361,7 +318,6 @@ async function actualizarEstadisticas() {
     btnActualizar.style.opacity = '1';
   }
 }
-
 
 async function cargarEstadisticas() {
   // Mostrar loader mientras carga
@@ -392,7 +348,6 @@ async function cargarEstadisticas() {
       return;
     }
 
-    // Crear HTML con estructura correcta
     const contenidoHTML = `
       <div class="estadisticas-menu-wrapper">
         <button class="btn btn-sede activo" onclick="mostrarEstadisticas('general', this)">
@@ -416,15 +371,11 @@ async function cargarEstadisticas() {
       elementosDOM.detallesStats.textContent = '';
     }
 
-    // Guardar datos globalmente para uso posterior
-    // Solo invalidar caché de estadísticas si los datos realmente cambiaron
-    // (comparar cantidad de registros como indicador simple)
     const datosAnteriores = window.datosFormulariosGlobal;
     const datosCambiaron = !datosAnteriores || datosAnteriores.length !== data.length;
     
     window.datosFormulariosGlobal = data;
     
-    // Solo invalidar caché de estadísticas si los datos cambiaron
     if (datosCambiaron) {
       console.log('Datos de formularios cambiaron, invalidando caché de estadísticas');
       invalidarCacheEstadisticas();
@@ -432,7 +383,6 @@ async function cargarEstadisticas() {
       console.log('Datos de formularios sin cambios, manteniendo caché de estadísticas');
     }
 
-    // Mostrar estadísticas generales por defecto
     mostrarEstadisticas('general');
 
   } catch (error) {
@@ -477,8 +427,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     const btnGeneral = document.querySelector('.estadisticas-menu-wrapper .btn-sede');
     if (btnGeneral) btnGeneral.classList.add('activo');
   }
-  
-  // MEMOIZACIÓN: Verificar si ya tenemos los resultados calculados en caché
+
   if (cacheEstadisticas[tipo]) {
     console.log(`Usando estadísticas en caché para: ${tipo}`);
     const cache = cacheEstadisticas[tipo];
@@ -546,7 +495,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     stats.calificacionesPorInstructor[instructor].cantidad += 1;
 
     stats.sumaCalificacionesTotal += promedioTutoria;
-    stats.sumaCalificacionesPMA += promedioPMA;  // Acumular para General
+    stats.sumaCalificacionesPMA += promedioPMA;
 
     // Para profesores: contar por facultad/departamento
     if (tipo === 'profesores' && item.facultad_departamento) {
@@ -563,7 +512,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     promediosPorInstructor[instructor] = (info.suma / info.cantidad).toFixed(2);
   });
 
-  // Encontrar el MEJOR instructor: mayor calificación, y si hay empate, el que tiene más tutorías
   let mejorInstructor = null;
   
   Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
@@ -580,7 +528,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     } else {
       const promedioMejor = parseFloat(mejorInstructor.promedio);
       
-      // Si el promedio es mayor, gana
       if (promedio > promedioMejor) {
         mejorInstructor = { 
           nombre: instructor, 
@@ -588,7 +535,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
           cantidad: info.cantidad
         };
       } 
-      // Si hay empate en calificación, gana el que tiene más tutorías
+  
       else if (promedio === promedioMejor && info.cantidad > mejorInstructor.cantidad) {
         mejorInstructor = { 
           nombre: instructor, 
@@ -599,7 +546,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     }
   });
 
-  // Encontrar el MENOR instructor: menor calificación, y si hay empate, el que tiene más tutorías
   let peorInstructor = null;
   
   Object.keys(stats.calificacionesPorInstructor).forEach(instructor => {
@@ -607,7 +553,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     const promedio = parseFloat((info.suma / info.cantidad).toFixed(2));
     
     if (!peorInstructor) {
-      // Primera iteración: inicializar
       peorInstructor = { 
         nombre: instructor, 
         promedio: promedio.toFixed(2),
@@ -616,7 +561,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     } else {
       const promedioPeor = parseFloat(peorInstructor.promedio);
       
-      // Si el promedio es menor, gana
       if (promedio < promedioPeor) {
         peorInstructor = { 
           nombre: instructor, 
@@ -624,7 +568,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
           cantidad: info.cantidad
         };
       } 
-      // Si hay empate en calificación, gana el que tiene más tutorías
+        
       else if (promedio === promedioPeor && info.cantidad > peorInstructor.cantidad) {
         peorInstructor = { 
           nombre: instructor, 
@@ -635,7 +579,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     }
   });
   
-  // Si no hay instructores, usar valores por defecto
   if (!mejorInstructor) {
     mejorInstructor = { nombre: 'N/A', promedio: '0.00', cantidad: 0 };
   }
@@ -645,9 +588,8 @@ function mostrarEstadisticas(tipo, botonClickeado) {
 
   const grid = document.getElementById('contenidoEstadisticas');
   
-// GENERAL
+
 if (tipo === 'general') {
-  // Calcular estudiantes únicos (beneficiados)
   const estudiantesUnicos = new Set(datosFiltrados.map(item => item.documento));
   const cantidadBeneficiados = estudiantesUnicos.size;
   
@@ -669,9 +611,7 @@ if (tipo === 'general') {
     </div>
   `;
   
-  // ===== NUEVAS LISTAS DE TOP 5 =====
-  
-  // Top 5 Materias
+
   const materiasCuenta = {};
   datosFiltrados.forEach(item => {
     const materia = item.asignatura || 'Sin especificar';
@@ -682,7 +622,6 @@ if (tipo === 'general') {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
   
-  // Top 5 Semestres
   const semestresCuenta = {};
   datosFiltrados.forEach(item => {
     const semestre = item.semestre || 'Sin especificar';
@@ -692,8 +631,7 @@ if (tipo === 'general') {
   const top5Semestres = Object.entries(semestresCuenta)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  
-  // Top 5 Programas
+
   const programasCuenta = {};
   datosFiltrados.forEach(item => {
     const programa = item.programa || 'Sin especificar';
@@ -704,32 +642,25 @@ if (tipo === 'general') {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
   
-  // Lista de Facultades (todas, ordenadas de mayor a menor)
-  // Leer directamente desde la tabla de formularios
   const facultadesCuenta = {};
   
-  // Contar tutorías por facultad directamente desde formularios
   datosFiltrados.forEach(item => {
     const facultad = item.facultad || 'Sin especificar';
     facultadesCuenta[facultad] = (facultadesCuenta[facultad] || 0) + 1;
   });
   
-  // Ordenar facultades de mayor a menor
   const todasFacultades = Object.entries(facultadesCuenta)
     .sort((a, b) => b[1] - a[1]);
   
-  // Contar motivos de consulta
   const motivosCuenta = {};
   datosFiltrados.forEach(item => {
     const motivo = item.motivo_consulta || 'Sin especificar';
     motivosCuenta[motivo] = (motivosCuenta[motivo] || 0) + 1;
   });
   
-  // Ordenar motivos de consulta de mayor a menor
   const todosMotivos = Object.entries(motivosCuenta)
     .sort((a, b) => b[1] - a[1]);
   
-  // Generar HTML de las listas (incluyendo facultades y motivos de consulta)
   generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacultades, todosMotivos, stats.total);
   
   return;
@@ -751,7 +682,6 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
   }
   detallesHTML += '</div>';
   
-  // Lista 2: Top 5 Semestres
   detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Semestres con Más Tutorías</h3>';
   if (top5Semestres.length > 0) {
     top5Semestres.forEach(([semestre, cantidad]) => {
@@ -764,7 +694,6 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
   }
   detallesHTML += '</div>';
   
-  // Lista de Facultades (antes de Top 5 Programas)
   if (todasFacultades.length > 0) {
     detallesHTML += '<div class="chart-container"><h3 class="chart-title">Facultades con Más Tutorías</h3>';
     todasFacultades.forEach(([facultad, cantidad]) => {
@@ -774,7 +703,6 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
     detallesHTML += '</div>';
   }
   
-  // Lista 3: Top 5 Programas
   detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Programas con Más Tutorías</h3>';
   if (top5Programas.length > 0) {
     top5Programas.forEach(([programa, cantidad]) => {
@@ -785,8 +713,7 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
     detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
   }
   detallesHTML += '</div>';
-  
-  // Lista de Motivos de Consulta (todas, ordenadas de mayor a menor)
+
   if (todosMotivos && todosMotivos.length > 0) {
     detallesHTML += '<div class="chart-container"><h3 class="chart-title">Motivos de Consulta</h3>';
     todosMotivos.forEach(([motivo, cantidad]) => {
@@ -799,7 +726,6 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
   document.getElementById('detallesStats').innerHTML = detallesHTML;
 }
 
-  // TUTORES y PROFESORES: Cards completos
   const tituloTipo = tipo === 'tutores' ? 'Tutorías' : 'Asesorías con Profesores';
 
   grid.innerHTML = `
@@ -825,7 +751,6 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
 
   let detalles = '';
 
-// TUTORES: Mostrar por sede
   if (tipo === 'tutores') {
     detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Sede</h3>';
     Object.entries(stats.sedesTutorias).forEach(([sede, cantidad]) => {
@@ -841,20 +766,15 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
       tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
     });
 
-    // Agrupar tutores por SEDE DE ORIGEN (tabla donde están registrados)
-    // Si un tutor está en ambas tablas, aparece en ambas sedes con el mismo total
     const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
     
-    // Verificar si los datos están cargados
     if (datosCache.tutoresNorte.length > 0 && datosCache.tutoresSur.length > 0) {
       Object.keys(tutoriasPorInstructor).forEach(instructor => {
         const cantidadTotal = tutoriasPorInstructor[instructor];
-        
-        // Verificar en qué tabla de ORIGEN está el tutor
+
         const esTutorNorte = datosCache.tutoresNorte.some(t => t.nombre === instructor);
         const esTutorSur = datosCache.tutoresSur.some(t => t.nombre === instructor);
-        
-        // Agregar a las sedes de origen con el TOTAL de tutorías
+
         if (esTutorNorte) {
           tutoresPorSedeOrigen.Norte[instructor] = cantidadTotal;
         }
@@ -917,9 +837,6 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
     detalles += '</div></div>';
   }
 
-  
-  
-  // PROFESORES: Mostrar por facultad/departamento con profesores agrupados
 if (tipo === 'profesores') {
   detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Asesorías por Facultad/Departamento</h3>';
   
@@ -938,11 +855,9 @@ if (tipo === 'profesores') {
   
   detalles += '</div>';
 
-  // Cantidad de Asesorías por Profesor agrupados por Facultad/Departamento
   detalles += `<div class="chart-container">
     <h3 class="chart-title">Cantidad de Asesorías por Profesor</h3>`;
 
-  // Agrupar profesores por facultad/departamento
   const profesoresPorFacultad = {};
   
   datosFiltrados.forEach(item => {
@@ -958,7 +873,6 @@ if (tipo === 'profesores') {
 
   const facultadesConProfesores = Object.keys(profesoresPorFacultad).sort();
   
-  // Crear botones para cada facultad/departamento
   if (facultadesConProfesores.length > 0) {
     detalles += '<div class="botones-sedes">';
     
@@ -974,7 +888,6 @@ if (tipo === 'profesores') {
     
     detalles += '</div>';
 
-    // Crear secciones ocultas para cada facultad con sus profesores
     facultadesConProfesores.forEach(facultad => {
       const facultadId = facultad.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
       const profesores = profesoresPorFacultad[facultad];
@@ -1008,7 +921,6 @@ if (tipo === 'profesores') {
 
   document.getElementById('detallesStats').innerHTML = detalles;
   
-  // MEMOIZACIÓN: Guardar resultados calculados en caché para reutilización
   cacheEstadisticas[tipo] = {
     stats,
     promedioCalificacion,
@@ -1024,10 +936,7 @@ if (tipo === 'profesores') {
   console.log(`Estadísticas de ${tipo} guardadas en caché`);
 }
 
-
-// ===================================
 // DESCARGAR DATOS
-// ===================================
 async function descargarDatos() {
   const desde = document.getElementById('fechaDesde').value;
   const hasta = document.getElementById('fechaHasta').value;
@@ -1048,8 +957,6 @@ async function descargarDatos() {
   btnDescarga.textContent = '⏳ Preparando descarga...';
 
   try {
-    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
-    // Convertir fechas de input a ISO en hora de Colombia
     const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
     const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
     let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
@@ -1090,7 +997,6 @@ async function descargarTodo() {
   btnDescarga.textContent = '⏳ Preparando descarga completa...';
 
   try {
-    // CARGAR TODOS LOS DATOS SOLO CUANDO SE VA A DESCARGAR
     const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
     
     if (data.length === 0) {
@@ -1107,7 +1013,6 @@ async function descargarTodo() {
     btnDescarga.textContent = textoOriginal;
   }
 }
-
 
 async function descargarDocentes() {
   const desde = document.getElementById('fechaDesde').value;
@@ -1129,8 +1034,6 @@ async function descargarDocentes() {
   btnDescarga.textContent = '⏳ Preparando descarga...';
 
   try {
-    // CARGAR DATOS SOLO CUANDO SE VA A DESCARGAR
-    // Convertir fechas de input a ISO en hora de Colombia
     const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
     const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
     let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
@@ -1160,9 +1063,7 @@ async function descargarDocentes() {
   }
 }
 
-// ===================================
 // DESCARGAR POR FACULTAD
-// ===================================
 async function descargarPorFacultad() {
   const checkboxes = document.querySelectorAll('.facultad-checkbox:checked');
   
@@ -1194,8 +1095,6 @@ async function descargarPorFacultad() {
   btnDescarga.textContent = '⏳ Preparando descarga...';
   
   try {
-    // OPTIMIZACIÓN: Filtrar en el servidor usando filtro "in" para múltiples facultades
-    // Esto evita cargar todos los formularios y filtra directamente en Supabase
     const datosFinales = await supabaseQuery('formularios', {
       in: { field: 'facultad', values: nombresFacultadesBD },
       order: 'fecha.asc'
@@ -1219,9 +1118,7 @@ async function descargarPorFacultad() {
 }
 
 function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
-  // Todas las columnas vienen directamente de la tabla FORMULARIOS
   const datosExcel = datos.map(fila => {
-    // Convertir fecha UTC a hora de Colombia
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
     
@@ -1258,9 +1155,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
   XLSX.writeFile(wb, `PMA_PorFacultad_${nombresFacultades.replace(/\s+/g, '_')}_${fechaHoy}.xlsx`);
 }
 
-// ===================================
 // DESCARGAR POR GRUPO
-// ===================================
 let grupoSeleccionadoParaDescarga = null;
 let cantidadRegistrosEncontrados = 0;
 
@@ -1291,7 +1186,6 @@ async function buscarGrupo() {
     return;
   }
   
-  // Deshabilitar botón mientras busca
   btnBuscar.disabled = true;
   btnBuscar.textContent = '⏳ Buscando...';
   resultadoBusqueda.style.display = 'block';
@@ -1302,9 +1196,6 @@ async function buscarGrupo() {
   btnDescargar.disabled = true;
   
   try {
-    // BUSCAR CON FILTRO EN EL SERVIDOR (filtrado antes de traer datos)
-    // Construir URL directamente para usar upper() en la consulta (case-insensitive exact match)
-    // Esto filtra en el servidor antes de traer los datos
     const grupoBuscadoEncoded = encodeURIComponent(grupoBuscado);
     const url = `${SUPABASE_URL}/rest/v1/formularios?grupo=ilike.${grupoBuscadoEncoded}`;
     
@@ -1334,7 +1225,6 @@ async function buscarGrupo() {
       grupoSeleccionado.style.display = 'block';
       btnDescargar.disabled = false;
     } else {
-      // Grupo no encontrado - mostrar solo mensaje simple sin emojis
       grupoSeleccionadoParaDescarga = null;
       resultadoBusqueda.style.background = '#f8d7da';
       resultadoBusqueda.style.borderLeft = '4px solid #dc3545';
@@ -1379,8 +1269,6 @@ async function descargarPorGrupo() {
   btnDescarga.textContent = '⏳ Preparando descarga...';
   
   try {
-    // OPTIMIZACIÓN: Filtrar en el servidor usando ilike para búsqueda case-insensitive
-    // Esto evita cargar todos los formularios y filtra directamente en Supabase
     const data = await supabaseQuery('formularios', {
       ilike: { field: 'grupo', value: grupoSeleccionadoParaDescarga },
       order: 'fecha.asc'
@@ -1459,7 +1347,6 @@ function generarExcelPorGrupo(datos, grupo) {
   const nombreGrupo = grupo.replace(/\s+/g, '_');
   XLSX.writeFile(wb, `PMA_PorGrupo_${nombreGrupo}_${fechaHoy}.xlsx`);
 }
-
 
 function generarExcelSimplificado(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
@@ -1555,8 +1442,6 @@ ws['!cols'] = [
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
 
-
-
 function generarExcelDocentes(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
     // Convertir fecha UTC a hora de Colombia
@@ -1604,16 +1489,11 @@ function generarExcelDocentes(datos, nombreArchivo) {
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
 
-
-
 function cerrarSesionAdmin() {
   location.reload();
 }
 
 
-// ===================================
-// TOGGLE INSTRUCTORES POR SEDE EN ADMIN
-// ===================================
 function toggleInstructoresSede(sede) {
   document.getElementById('instructoresNorteAdmin').classList.add('hidden');
   document.getElementById('instructoresSurAdmin').classList.add('hidden');
@@ -1625,9 +1505,7 @@ function toggleInstructoresSede(sede) {
   }
 }
 
-// ===================================
-// TOGGLE PROFESORES POR FACULTAD EN ADMIN
-// ===================================
+
 function toggleProfesoresFacultad(facultadId) {
   // Ocultar todas las secciones de profesores
   const todasLasSecciones = document.querySelectorAll('[id^="profesores"]');
@@ -1645,10 +1523,6 @@ function toggleProfesoresFacultad(facultadId) {
 }
 
 
-
-// ===================================
-// FUNCIÓN AUXILIAR PARA NOMBRES DE FACULTAD
-// ===================================
 function obtenerNombreFacultad(codigo) {
   const nombres = {
     'DCB': 'Departamento de Ciencias Básicas',
@@ -1660,9 +1534,7 @@ function obtenerNombreFacultad(codigo) {
   return nombres[codigo] || codigo;
 }
 
-// ===================================
-// MOSTRAR/OCULTAR CONTRASEÑA
-// ===================================
+
 function togglePassword() {
   const input = document.getElementById('adminContrasena');
   const icon = document.getElementById('iconPassword');
@@ -1678,9 +1550,7 @@ function togglePassword() {
   }
 }
 
-// ===================================
-// MOSTRAR/OCULTAR USUARIO
-// ===================================
+
 function toggleUsername() {
   const input = document.getElementById('adminDocumento');
   const icon = document.getElementById('iconUsername');
@@ -1696,13 +1566,9 @@ function toggleUsername() {
   }
 }
 
-
-// ===================================
 // GRÁFICAS
-// ===================================
-// ===================================
-// DESCARGAR AAA (Acompañamiento Académico)
-// ===================================
+
+
 async function descargarAAAIndividual() {
   const btnDescarga = document.getElementById('btnDescargarAAAIndividual');
   const textoOriginal = btnDescarga.textContent;
@@ -1850,7 +1716,6 @@ function generarExcelAAAIndividual(datos, nombreArchivo) {
 
 function generarExcelAAAGrupal(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
-    // Convertir fecha UTC a hora de Colombia
     const fechaColombia = convertirFechaAColombia(fila.fecha_hora);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
@@ -1976,9 +1841,7 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
 
-// ===================================
 // DESCARGAR PVU
-// ===================================
 async function descargarPVU() {
   const btnDescarga = document.getElementById('btnDescargarPVU');
   const textoOriginal = btnDescarga.textContent;
@@ -2110,9 +1973,6 @@ function actualizarGrafica() {
   let valores = [];
   
   if (periodo === 'semanal') {
-    // Agrupar por semanas (Lunes a Domingo) - Hora Colombia
-    
-    // Encontrar la fecha más antigua y más reciente (convertidas a Colombia)
     const fechas = datosFiltrados.map(item => {
       return convertirFechaAColombia(item.fecha);
     });
@@ -2130,10 +1990,8 @@ function actualizarGrafica() {
       return lunes;
     }
     
-    // Obtener el lunes de la primera semana
     let lunesActual = obtenerLunes(fechaMin);
     
-    // Iterar por cada semana hasta cubrir todas las fechas
     const semanas = {};
     
     while (lunesActual <= fechaMax) {
@@ -2141,7 +1999,6 @@ function actualizarGrafica() {
       domingo.setDate(domingo.getDate() + 6);
       domingo.setHours(23, 59, 59, 999);
       
-      // Formatear las fechas para el label (SIN AÑO)
       const diaL = String(lunesActual.getDate()).padStart(2, '0');
       const mesL = String(lunesActual.getMonth() + 1).padStart(2, '0');
       
@@ -2150,7 +2007,6 @@ function actualizarGrafica() {
       
       const label = `${diaL}/${mesL} - ${diaD}/${mesD}`;
       
-      // Contar registros en esta semana (convertidos a hora Colombia)
       const cantidad = datosFiltrados.filter(item => {
         const fechaItem = convertirFechaAColombia(item.fecha);
         return fechaItem >= lunesActual && fechaItem <= domingo;
@@ -2158,7 +2014,6 @@ function actualizarGrafica() {
       
       semanas[label] = cantidad;
       
-      // Avanzar a la siguiente semana (siguiente lunes)
       lunesActual = new Date(lunesActual);
       lunesActual.setDate(lunesActual.getDate() + 7);
     }
@@ -2167,7 +2022,6 @@ function actualizarGrafica() {
     valores = Object.values(semanas);
     
   } else if (periodo === 'mensual') {
-    // Agrupar por meses completos
     
     const meses = {};
     const nombresMesesCortos = [
@@ -2192,14 +2046,13 @@ function actualizarGrafica() {
       meses[claveMes].cantidad++;
     });
     
-    // Ordenar por fecha (año-mes)
     const clavesMesesOrdenadas = Object.keys(meses).sort();
     
     labels = clavesMesesOrdenadas.map(clave => meses[clave].label);
     valores = clavesMesesOrdenadas.map(clave => meses[clave].cantidad);
   }
   
-  // Destruir gráfico anterior si existe
+
   if (graficoTutorias) {
     graficoTutorias.destroy();
   }
@@ -2251,9 +2104,7 @@ function actualizarGrafica() {
   });
 }
 
-// ===================================
-// CAMBIAR TAB PVU (Descargar Datos, Estadísticas)
-// ===================================
+// CAMBIAR TAB
 async function cambiarTabPVU(event, tab) {
   document.querySelectorAll('#contenidoPVU .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
@@ -2275,9 +2126,6 @@ async function cambiarTabPVU(event, tab) {
   }
 }
 
-// ===================================
-// CAMBIAR TAB AAA (Descargar Datos, Estadísticas)
-// ===================================
 async function cambiarTabAAA(event, tab) {
   document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
@@ -2299,9 +2147,6 @@ async function cambiarTabAAA(event, tab) {
   }
 }
 
-// ===================================
-// CARGAR ESTADÍSTICAS PVU
-// ===================================
 async function cargarEstadisticasPVU() {
   const statsGridPVU = document.getElementById('statsGridPVU');
   const detallesStatsPVU = document.getElementById('detallesStatsPVU');
@@ -2352,9 +2197,6 @@ async function cargarEstadisticasPVU() {
   }
 }
 
-// ===================================
-// MOSTRAR ESTADÍSTICAS PVU
-// ===================================
 function mostrarEstadisticasPVU() {
   const data = window.datosPVUGlobal;
   const statsGridPVU = document.getElementById('statsGridPVU');
@@ -2386,9 +2228,6 @@ function mostrarEstadisticasPVU() {
   }
 }
 
-// ===================================
-// CARGAR ESTADÍSTICAS AAA
-// ===================================
 async function cargarEstadisticasAAA() {
   const statsGridAAA = document.getElementById('statsGridAAA');
   const detallesStatsAAA = document.getElementById('detallesStatsAAA');
@@ -2439,9 +2278,6 @@ async function cargarEstadisticasAAA() {
   }
 }
 
-// ===================================
-// MOSTRAR ESTADÍSTICAS AAA
-// ===================================
 function mostrarEstadisticasAAA() {
   const data = window.datosAAAGlobal;
   const statsGridAAA = document.getElementById('statsGridAAA');
