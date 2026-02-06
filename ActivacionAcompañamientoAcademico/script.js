@@ -154,21 +154,22 @@ async function supabaseQuery(table, options = {}) {
   let authToken = SUPABASE_KEY; // Por defecto usar anon key
   
   try {
-    // Verificar si hay un usuario autenticado (para admin)
-    if (typeof supabaseClient !== 'undefined') {
+    // VERIFICAR SI EXISTE supabaseClient (solo en admin.js)
+    if (typeof supabaseClient !== 'undefined' && supabaseClient !== null) {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session && session.access_token) {
-        authToken = session.access_token; // Usar token del usuario autenticado
+        authToken = session.access_token;
+        console.log('✅ Usando token de admin autenticado');
       }
     }
   } catch (e) {
-    // Si falla, usar anon key
-    console.log('Usando anon key para consulta');
+    // Si falla, usar anon key (formulario público)
+    console.log('📝 Usando anon key para consulta pública');
   }
   
   const headers = {
     'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${authToken}`, // USAR TOKEN CORRECTO
+    'Authorization': `Bearer ${authToken}`,
     'Content-Type': 'application/json'
   };
   
