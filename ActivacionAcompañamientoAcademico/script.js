@@ -140,7 +140,6 @@ async function supabaseQuery(table, options = {}) {
   if (options.ilike) params.push(`${options.ilike.field}=ilike.${encodeURIComponent(options.ilike.value)}`);
   if (options.order) params.push(`order=${options.order}`);
   
-  // Soporte para filtro "in" (múltiples valores)
   if (options.in) {
     const { field, values } = options.in;
     const valoresEncoded = values.map(v => encodeURIComponent(v)).join(',');
@@ -151,9 +150,25 @@ async function supabaseQuery(table, options = {}) {
     url += `?${params.join('&')}`;
   }
   
+  // CAMBIO CRÍTICO: Intentar obtener el token del usuario autenticado
+  let authToken = SUPABASE_KEY; // Por defecto usar anon key
+  
+  try {
+    // Verificar si hay un usuario autenticado (para admin)
+    if (typeof supabaseClient !== 'undefined') {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session && session.access_token) {
+        authToken = session.access_token; // Usar token del usuario autenticado
+      }
+    }
+  } catch (e) {
+    // Si falla, usar anon key
+    console.log('Usando anon key para consulta');
+  }
+  
   const headers = {
     'apikey': SUPABASE_KEY,
-    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Authorization': `Bearer ${authToken}`, // USAR TOKEN CORRECTO
     'Content-Type': 'application/json'
   };
   
