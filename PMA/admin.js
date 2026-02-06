@@ -83,7 +83,7 @@ async function loginAdmin(event) {
 
     const { data: adminData, error: adminError } = await supabaseClient
       .from('admin_usuarios')
-      .select('documento')
+      .select('user_id')
       .eq('user_id', user.id)
       .single();
 
