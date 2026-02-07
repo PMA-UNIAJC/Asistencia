@@ -22,7 +22,6 @@ function invalidarCacheEstadisticas() {
 }
 
 async function precargarDatosEstadisticas() {
-  // Para estadísticas necesitamos tutores y profesores
   if (datosCache.tutoresNorte.length > 0 && datosCache.profesores.length > 0) return; // Ya cargados
   
   try {
@@ -127,7 +126,6 @@ function cambiarTabPrincipal(event, seccion) {
     }
   } else if (seccion === 'pvu') {
     document.getElementById('contenidoPVU').classList.remove('hidden');
-    // Al mostrar PVU, activar la primera pestaña (Descargar Datos) por defecto
     const primerTabPVU = document.querySelector('#contenidoPVU .admin-tabs-secundario .admin-tab');
     if (primerTabPVU) {
       document.querySelectorAll('#contenidoPVU .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
@@ -137,7 +135,6 @@ function cambiarTabPrincipal(event, seccion) {
     }
   } else if (seccion === 'aaa') {
     document.getElementById('contenidoAAA').classList.remove('hidden');
-    // Al mostrar AAA, activar la primera pestaña (Descargar Datos) por defecto
     const primerTabAAA = document.querySelector('#contenidoAAA .admin-tabs-secundario .admin-tab');
     if (primerTabAAA) {
       document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
@@ -158,7 +155,6 @@ async function cambiarTab(event, tab) {
   
   if (tab === 'descargas') {
     document.getElementById('tabDescargas').classList.remove('hidden');
-    // Inicializar buscador de grupos cuando se muestra la pestaña de descargas
     setTimeout(() => inicializarBuscadorGrupos(), 100);
   } else if (tab === 'estadisticas') {
     document.getElementById('tabEstadisticas').classList.remove('hidden');
@@ -186,7 +182,6 @@ async function cambiarTab(event, tab) {
       }
     }
     
-    // Cargar estadísticas si no existen
     if (!window.datosFormulariosGlobal) {
       await cargarEstadisticas();
     }
@@ -194,7 +189,6 @@ async function cambiarTab(event, tab) {
   } else if (tab === 'graficas') {
     document.getElementById('tabGraficas').classList.remove('hidden');
     
-    // CARGAR DATOS PARA GRÁFICAS (solo necesita formularios)
     if (!window.datosFormulariosGlobal) {
       const container = document.querySelector('#tabGraficas .chart-container');
       const contenidoOriginal = container.innerHTML;
@@ -211,7 +205,6 @@ async function cambiarTab(event, tab) {
       }
     }
     
-    // Crear/actualizar gráfica
     if (!graficoTutorias) {
       actualizarGrafica();
     }
@@ -324,7 +317,6 @@ async function actualizarEstadisticas() {
     invalidarCacheFormularios();
     invalidarCacheEstadisticas();
     
-    // Determinar qué sección está activa y actualizar las estadísticas correspondientes
     const contenidoPMA = document.getElementById('contenidoPMA');
     const contenidoPVU = document.getElementById('contenidoPVU');
     const contenidoAAA = document.getElementById('contenidoAAA');
@@ -333,23 +325,17 @@ async function actualizarEstadisticas() {
       // PMA está activo
       await cargarEstadisticas();
     } else if (!contenidoPVU.classList.contains('hidden')) {
-      // PVU está activo
-      // Invalidar caché de PVU
       window.datosPVUGlobal = null;
       await cargarEstadisticasPVU();
     } else if (!contenidoAAA.classList.contains('hidden')) {
-      // AAA está activo
-      // Invalidar caché de AAA
       window.datosAAAGlobal = null;
       await cargarEstadisticasAAA();
     }
-    
-    // Cambiar a check (éxito)
+
     iconActualizar.style.animation = 'none';
     iconActualizar.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
     iconActualizar.style.color = '#28a745';
     
-    // Volver al icono original después de 1.5 segundos
     setTimeout(() => {
       iconActualizar.innerHTML = '<polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>';
       iconActualizar.style.color = 'currentColor';
@@ -1652,7 +1638,7 @@ async function verificarSesionAdmin() {
     console.error('Error verificando sesión:', error);
     mostrarPantalla('pantallaAdminLogin');
   }
-}
+} 
 
 
 function toggleInstructoresSede(sede) {
@@ -1738,13 +1724,11 @@ async function descargarAAAIndividual() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    // Cargar datos filtrados por tipo Individual
-    const data = await supabaseQuery('acompanamiento', { 
-      eq: { field: 'tipo_acompanamiento', value: 'Individual' },
-      order: 'fecha_hora.asc' 
-    });
-    
-    if (data.length === 0) {
+    // Usar cliente autenticado (JWT) para que RLS permita SELECT a admin
+    const { data, error } = await supabaseClient.from('acompanamiento').select('*').eq('tipo_acompanamiento', 'Individual').order('fecha_hora', { ascending: true });
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
       alert('No hay registros de acompañamiento individual para descargar');
       return;
     }
@@ -1767,13 +1751,11 @@ async function descargarAAAGrupal() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    // Cargar datos filtrados por tipo Grupal
-    const data = await supabaseQuery('acompanamiento', { 
-      eq: { field: 'tipo_acompanamiento', value: 'Grupal' },
-      order: 'fecha_hora.asc' 
-    });
-    
-    if (data.length === 0) {
+    // Usar cliente autenticado (JWT) para que RLS permita SELECT a admin
+    const { data: data, error } = await supabaseClient.from('acompanamiento').select('*').eq('tipo_acompanamiento', 'Grupal').order('fecha_hora', { ascending: true });
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
       alert('No hay registros de acompañamiento grupal para descargar');
       return;
     }
@@ -1796,10 +1778,11 @@ async function descargarAAATodo() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    // Cargar todos los datos de la tabla acompanamiento
-    const data = await supabaseQuery('acompanamiento', { order: 'fecha_hora.asc' });
-    
-    if (data.length === 0) {
+    // Usar cliente autenticado (JWT) para que RLS permita SELECT a admin
+    const { data: data, error } = await supabaseClient.from('acompanamiento').select('*').order('fecha_hora', { ascending: true });
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
       alert('No hay registros de AAA para descargar');
       return;
     }
@@ -2424,10 +2407,11 @@ async function cargarEstadisticasAAA() {
   }
   
   try {
-    // Cargar datos de la tabla acompanamiento
-    const data = await supabaseQuery('acompanamiento', { order: 'fecha_hora.asc' });
-    
-    if (data.length === 0) {
+    // Usar cliente autenticado (JWT) para que RLS permita SELECT a admin
+    const { data: data, error } = await supabaseClient.from('acompanamiento').select('*').order('fecha_hora', { ascending: true });
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
       if (statsGridAAA) {
         statsGridAAA.textContent = '';
         const p = document.createElement('p');
