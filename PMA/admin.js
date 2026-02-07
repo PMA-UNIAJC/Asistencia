@@ -1632,7 +1632,7 @@ async function verificarSesionAdmin() {
       // Verificar que sea admin
       const { data: adminData } = await supabaseClient
         .from('admin_usuarios')
-        .select('documento')
+        .select('user_id')
         .eq('user_id', session.user.id)
         .single();
 
@@ -1652,7 +1652,7 @@ async function verificarSesionAdmin() {
     console.error('Error verificando sesión:', error);
     mostrarPantalla('pantallaAdminLogin');
   }
-} 
+}
 
 
 function toggleInstructoresSede(sede) {
