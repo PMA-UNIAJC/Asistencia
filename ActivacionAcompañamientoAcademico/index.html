@@ -86,6 +86,45 @@
             autocomplete="off">
         </div>
 
+<!-- NÚMERO DE CONTACTO DEL ESTUDIANTE -->
+<div class="form-group">
+  <label>Número de contacto del estudiante <span class="required-asterisk">*</span></label>
+  <input 
+    type="tel" 
+    id="contactoEstudiante" 
+    required 
+    pattern="[0-9]*" 
+    inputmode="numeric" 
+    minlength="10" 
+    maxlength="10"
+    oninput="this.value = this.value.replace(/[^0-9]/g, ''); validarContacto(this)"
+    onblur="validarContacto(this)"
+    autocomplete="off">
+</div>
+
+<!-- CORREO DEL ESTUDIANTE -->
+<div class="form-group">
+  <label>Correo del estudiante <span class="required-asterisk">*</span></label>
+  <div class="email-container">
+    <input 
+      type="text" 
+      id="correoEstudiante" 
+      required 
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correoEstudiante')"
+      onblur="limpiarEspacios(this)"
+      class="email-input">
+    <span class="email-separator">@</span>
+    <select id="dominioCorreoEstudiante" class="email-domain" required>
+      <!-- Opciones generadas dinámicamente -->
+    </select>
+  </div>
+  <input type="hidden" id="correoEstudianteCompleto">
+</div>
+
         <!-- GRUPO -->
         <div class="form-group">
           <label>Grupo al que pertenece el estudiante <span class="required-asterisk">*</span></label>
@@ -181,7 +220,7 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto()"
+              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correo')"              
               onblur="limpiarEspacios(this)"
               class="email-input">
             <span class="email-separator">@</span>
@@ -276,7 +315,7 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoVoceroCompleto()"
+              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correoVocero')"              
               onblur="limpiarEspacios(this)"
               class="email-input">
             <span class="email-separator">@</span>
@@ -370,7 +409,7 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoGrupalCompleto()"
+              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correoGrupal')"
               onblur="limpiarEspacios(this)"
               class="email-input">
             <span class="email-separator">@</span>
