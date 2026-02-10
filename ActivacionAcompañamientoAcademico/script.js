@@ -2,7 +2,6 @@
 const SUPABASE_URL = `https://hgppzklpukgslnrynvld.supabase.co`;
 const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs`;
 
-// Zona horaria de Colombia (Bogotá, UTC-5)
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 
 // Lista de asignaturas disponibles
@@ -245,55 +244,13 @@ function validarContacto(input) {
   }
 }
 
-// Función para actualizar correo completo
-function actualizarCorreoCompleto() {
-  const correoInput = document.getElementById('correo');
-  const dominioSelect = document.getElementById('dominioCorreo');
-  const correoCompleto = document.getElementById('correoCompleto');
+// Función genérica para actualizar correo completo
+function actualizarCorreoCompleto(prefijo) {
+  const correoInput = document.getElementById(prefijo);
+  const dominioSelect = document.getElementById(`dominio${prefijo.charAt(0).toUpperCase() + prefijo.slice(1)}`);
+  const correoCompleto = document.getElementById(`${prefijo}Completo`);
   
-  const correo = correoInput.value.trim().toLowerCase();
-  const dominio = dominioSelect.value.toLowerCase();
-  
-  if (correo && dominio && dominio !== '') {
-    correoCompleto.value = `${correo}@${dominio}`;
-    correoInput.setCustomValidity('');
-  } else {
-    correoCompleto.value = '';
-    if (correoInput.value.trim() && !dominio) {
-      correoInput.setCustomValidity('Seleccione un dominio de correo');
-    } else {
-      correoInput.setCustomValidity('');
-    }
-  }
-}
-
-// Función para actualizar correo del vocero completo
-function actualizarCorreoVoceroCompleto() {
-  const correoInput = document.getElementById('correoVocero');
-  const dominioSelect = document.getElementById('dominioCorreoVocero');
-  const correoCompleto = document.getElementById('correoVoceroCompleto');
-  
-  const correo = correoInput.value.trim().toLowerCase();
-  const dominio = dominioSelect.value.toLowerCase();
-  
-  if (correo && dominio && dominio !== '') {
-    correoCompleto.value = `${correo}@${dominio}`;
-    correoInput.setCustomValidity('');
-  } else {
-    correoCompleto.value = '';
-    if (correoInput.value.trim() && !dominio) {
-      correoInput.setCustomValidity('Seleccione un dominio de correo');
-    } else {
-      correoInput.setCustomValidity('');
-    }
-  }
-}
-
-// Función para actualizar correo grupal completo
-function actualizarCorreoGrupalCompleto() {
-  const correoInput = document.getElementById('correoGrupal');
-  const dominioSelect = document.getElementById('dominioCorreoGrupal');
-  const correoCompleto = document.getElementById('correoGrupalCompleto');
+  if (!correoInput || !dominioSelect || !correoCompleto) return;
   
   const correo = correoInput.value.trim().toLowerCase();
   const dominio = dominioSelect.value.toLowerCase();
@@ -845,7 +802,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   generarSelect('cargo', OPCIONES_CARGO, 'Seleccione un cargo');
   generarSelect('dependencia', OPCIONES_DEPENDENCIA, 'Seleccione una dependencia');
   generarSelectDominioCorreo('dominioCorreo');
-  
+  generarSelectDominioCorreo('dominioCorreoEstudiante');
+
   // Generar selects compartidos para Grupal
   generarSelect('sedeGrupal', OPCIONES_SEDE, 'Seleccione una sede');
   // Facultad se carga desde la BD
@@ -886,61 +844,37 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Generar checkboxes de asignaturas para Grupal
   generarAsignaturasCheckboxes('asignaturasContainerGrupal', 'asignaturaGrupal', manejarAsignaturasGrupal);
   
-  const dominioSelect = document.getElementById('dominioCorreo');
-  const correoInput = document.getElementById('correo');
-  const dominioVoceroSelect = document.getElementById('dominioCorreoVocero');
-  const correoVoceroInput = document.getElementById('correoVocero');
-  const dominioGrupalSelect = document.getElementById('dominioCorreoGrupal');
-  const correoGrupalInput = document.getElementById('correoGrupal');
+  // Event listeners para todos los correos usando la función genérica
+const correosConfig = [
+  { input: 'correo', dominio: 'dominioCorreo', completo: 'correoCompleto' },
+  { input: 'correoEstudiante', dominio: 'dominioCorreoEstudiante', completo: 'correoEstudianteCompleto' },
+  { input: 'correoVocero', dominio: 'dominioCorreoVocero', completo: 'correoVoceroCompleto' },
+  { input: 'correoGrupal', dominio: 'dominioCorreoGrupal', completo: 'correoGrupalCompleto' }
+];
+
+correosConfig.forEach(config => {
+  const dominioSelect = document.getElementById(config.dominio);
+  const correoInput = document.getElementById(config.input);
 
   if (dominioSelect) {
     dominioSelect.addEventListener('change', function() {
-      actualizarCorreoCompleto();
+      actualizarCorreoCompleto(config.input);
     });
   }
 
   if (correoInput) {
     correoInput.addEventListener('blur', function() {
-      actualizarCorreoCompleto();
-      const correoCompleto = document.getElementById('correoCompleto');
-      if (this.value.trim() && !correoCompleto.value) {
-        this.setCustomValidity('Seleccione un dominio de correo');
-      }
-    });
-  }
-
-  if (dominioVoceroSelect) {
-    dominioVoceroSelect.addEventListener('change', function() {
-      actualizarCorreoVoceroCompleto();
-    });
-  }
-
-  if (correoVoceroInput) {
-    correoVoceroInput.addEventListener('blur', function() {
-      actualizarCorreoVoceroCompleto();
-      const correoCompleto = document.getElementById('correoVoceroCompleto');
-      if (this.value.trim() && !correoCompleto.value) {
-        this.setCustomValidity('Seleccione un dominio de correo');
-      }
-    });
-  }
-
-  if (dominioGrupalSelect) {
-    dominioGrupalSelect.addEventListener('change', function() {
-      actualizarCorreoGrupalCompleto();
-    });
-  }
-
-  if (correoGrupalInput) {
-    correoGrupalInput.addEventListener('blur', function() {
-      actualizarCorreoGrupalCompleto();
-      const correoCompleto = document.getElementById('correoGrupalCompleto');
+      actualizarCorreoCompleto(config.input);
+      const correoCompleto = document.getElementById(config.completo);
       if (this.value.trim() && !correoCompleto.value) {
         this.setCustomValidity('Seleccione un dominio de correo');
       }
     });
   }
 });
+
+});
+
 
 // Variable para controlar los reintentos
 let intentosRestantes = 3;
@@ -968,11 +902,13 @@ function obtenerDatosFormulario() {
   
   if (tipoAcompanamiento === 'Individual') {
     // Campos de escritura (inputs de texto) - convertir a mayúsculas
-    const documento = document.getElementById('documento').value.trim().toUpperCase();
-    const nombresApellidos = document.getElementById('nombresApellidos').value.trim().toUpperCase();
-    const grupo = document.getElementById('grupo').value.trim().toUpperCase();
-    const nombreSolicitante = document.getElementById('nombreSolicitante').value.trim().toUpperCase();
-    const correoCompleto = document.getElementById('correoCompleto').value.trim().toLowerCase();
+const documento = document.getElementById('documento').value.trim().toUpperCase();
+const nombresApellidos = document.getElementById('nombresApellidos').value.trim().toUpperCase();
+const contactoEstudiante = document.getElementById('contactoEstudiante').value.trim();
+const correoEstudianteCompleto = document.getElementById('correoEstudianteCompleto').value.trim().toLowerCase();
+const grupo = document.getElementById('grupo').value.trim().toUpperCase();
+const nombreSolicitante = document.getElementById('nombreSolicitante').value.trim().toUpperCase();
+const correoCompleto = document.getElementById('correoCompleto').value.trim().toLowerCase();
     
     // Campos de opciones (selects) - mantener original
     const sede = document.getElementById('sede').value;
@@ -997,6 +933,8 @@ function obtenerDatosFormulario() {
       ...datos,
       documento,
       nombres_y_apellidos: nombresApellidos,
+      contacto: contactoEstudiante,
+      correo_estudiante: correoEstudianteCompleto,
       grupo,
       sede,
       facultad_estudiante: facultad,
@@ -1043,8 +981,8 @@ function obtenerDatosFormulario() {
       // No enviar documento en grupal (es opcional)
       nombres_y_apellidos: nombresApellidosVocero,
       grupo: grupoGrupal,
-      contacto_vocero: contactoVocero,
-      correo_vocero: correoVoceroCompleto,
+      contacto: contactoVocero,
+      correo_estudiante: correoVoceroCompleto,
       sede: sedeGrupal,
       facultad_estudiante: facultadGrupal,
       programa_estudiante: programaGrupal,
@@ -1139,6 +1077,27 @@ async function enviarFormulario(event) {
       return;
     }
     
+// Validar contacto del estudiante (10 números)
+  const contactoEstudianteInput = document.getElementById('contactoEstudiante');
+  validarContacto(contactoEstudianteInput);
+  if (!contactoEstudianteInput.validity.valid) {
+    contactoEstudianteInput.reportValidity();
+    scrollToError(contactoEstudianteInput);
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    return;
+  }
+  
+  // Validar correo del estudiante
+  const correoEstudianteCompleto = document.getElementById('correoEstudianteCompleto').value.trim();
+  if (!correoEstudianteCompleto || !correoEstudianteCompleto.includes('@')) {
+    mostrarMensaje('Por favor complete el correo del estudiante correctamente', 'error');
+    scrollToError(document.getElementById('correoEstudiante'));
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    return;
+  }
+
     // Validar asignaturas
     const asignaturas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked'));
     if (asignaturas.length === 0) {
@@ -1447,10 +1406,6 @@ function mostrarConfirmacionCancelar() {
 // Inicialización
 console.log('Formulario Acompañamiento Académico iniciado');
 
-// ===================================
-// REINICIO AUTOMÁTICO POR INACTIVIDAD
-// ===================================
-// Reinicia la página si el usuario estuvo fuera más de X minutos
 
 let tiempoSalida = null;
 const MINUTOS_PARA_REINICIAR = 3;
@@ -1470,4 +1425,3 @@ document.addEventListener('visibilitychange', function() {
     }
   }
 });
-
