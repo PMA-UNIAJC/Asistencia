@@ -9,7 +9,6 @@
 </head>
 <body class="welcome-active">
 
-<!-- Pantalla de Bienvenida -->
 <div id="pantallaBienvenida" class="welcome-screen">
   <div class="welcome-left">
     <div class="welcome-logo-section">
@@ -32,7 +31,6 @@
   </div>
 </div>
 
-<!-- Contenido del Formulario -->
 <div id="contenidoFormulario" class="hidden">
   <div class="container">
   <div id="pantallaFormulario">
@@ -42,7 +40,6 @@
     
     <form id="formAcompanamiento" onsubmit="enviarFormulario(event)">
       
-      <!-- TIPO DE ACOMPAÑAMIENTO -->
       <div class="form-group">
         <label>Tipo de acompañamiento <span class="required-asterisk">*</span></label>
         <select id="tipoAcompanamiento" required onchange="manejarTipoAcompanamiento()">
@@ -52,12 +49,10 @@
         </select>
       </div>
 
-      <!-- CAMPOS PARA INDIVIDUAL -->
       <div id="camposIndividual" class="hidden">
         
         <h3 class="section-subtitle">Datos del Estudiante</h3>
         
-        <!-- NÚMERO DE DOCUMENTO -->
         <div class="form-group">
           <label>Número de documento de identidad <span class="required-asterisk">*</span></label>
           <input 
@@ -74,7 +69,6 @@
           <span class="error-message" id="errorDocumento"></span>
         </div>
 
-        <!-- NOMBRES Y APELLIDOS -->
         <div class="form-group">
           <label>Nombres y apellidos del estudiante <span class="required-asterisk">*</span></label>
           <input 
@@ -86,7 +80,6 @@
             autocomplete="off">
         </div>
 
-<!-- NÚMERO DE CONTACTO DEL ESTUDIANTE -->
 <div class="form-group">
   <label>Número de contacto del estudiante <span class="required-asterisk">*</span></label>
   <input 
@@ -102,7 +95,6 @@
     autocomplete="off">
 </div>
 
-<!-- CORREO DEL ESTUDIANTE -->
 <div class="form-group">
   <label>Correo del estudiante <span class="required-asterisk">*</span></label>
   <div class="email-container">
@@ -125,7 +117,6 @@
   <input type="hidden" id="correoEstudianteCompleto">
 </div>
 
-        <!-- GRUPO -->
         <div class="form-group">
           <label>Grupo al que pertenece el estudiante <span class="required-asterisk">*</span></label>
           <input 
@@ -137,7 +128,6 @@
             autocomplete="off">
         </div>
 
-        <!-- SEDE ACADÉMICA -->
         <div class="form-group">
           <label>Sede académica de la solicitud <span class="required-asterisk">*</span></label>
           <select id="sede" required>
@@ -145,7 +135,6 @@
           </select>
         </div>
 
-        <!-- FACULTAD -->
         <div class="form-group">
           <label>Facultad a la cual pertenece el estudiante <span class="required-asterisk">*</span></label>
           <select id="facultad" required onchange="actualizarProgramas('facultad', 'programa')">
@@ -153,7 +142,6 @@
           </select>
         </div>
 
-        <!-- PROGRAMA ACADÉMICO -->
         <div class="form-group">
           <label>Programa académico al cual pertenece el estudiante <span class="required-asterisk">*</span></label>
           <select id="programa" required disabled>
@@ -161,7 +149,6 @@
           </select>
         </div>
 
-        <!-- SEMESTRE -->
         <div class="form-group">
           <label>Semestre <span class="required-asterisk">*</span></label>
           <select id="semestre" required>
@@ -169,7 +156,6 @@
           </select>
         </div>
 
-        <!-- ¿EL ESTUDIANTE ES CONSCIENTE? -->
         <div class="form-group">
           <label>¿El estudiante es consciente del acompañamiento académico? <span class="required-asterisk">*</span></label>
           <select id="estudianteConsciente" required>
@@ -180,7 +166,6 @@
 
         <h3 class="section-subtitle">Datos del Docente/Director</h3>
 
-        <!-- NOMBRE DEL PROFESOR/DIRECTOR/PROGRAMA -->
         <div class="form-group">
           <label>Nombre del profesor, director y/o programa que solicita <span class="required-asterisk">*</span></label>
           <input 
@@ -192,7 +177,6 @@
             autocomplete="off">
         </div>
 
-        <!-- CARGO -->
         <div class="form-group">
           <label>Cargo desempeñado en la institución <span class="required-asterisk">*</span></label>
           <select id="cargo" required>
@@ -200,7 +184,6 @@
           </select>
         </div>
 
-        <!-- DEPENDENCIA -->
         <div class="form-group">
           <label>Dependencia a la que pertenece el profesor, director, funcionario que solicita <span class="required-asterisk">*</span></label>
           <select id="dependencia" required>
@@ -208,9 +191,8 @@
           </select>
         </div>
 
-        <!-- CORREO INSTITUCIONAL -->
         <div class="form-group">
-          <label>Correo Institucional del profesor, director, funcionario que solicita <span class="required-asterisk">*</span></label>
+          <label>Correo Institucional del Profesor, Director, Funcionario que solicita <span class="required-asterisk">*</span></label>
           <div class="email-container">
             <input 
               type="text" 
@@ -220,8 +202,7 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correo')"              
-              onblur="limpiarEspacios(this)"
+              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correo')"              onblur="limpiarEspacios(this)"
               class="email-input">
             <span class="email-separator">@</span>
             <select id="dominioCorreo" class="email-domain" required>
@@ -231,7 +212,6 @@
           <input type="hidden" id="correoCompleto">
         </div>
 
-        <!-- ASIGNATURA -->
         <div class="form-group">
           <label>Asignatura del acompañamiento académico <span class="required-asterisk">*</span></label>
           <div class="checkbox-group" id="asignaturasContainer">
@@ -248,7 +228,6 @@
           </div>
         </div>
 
-        <!-- MOTIVOS -->
         <div class="form-group hidden" id="motivosContainer">
           <label>Motivos del acompañamiento académico <span class="required-asterisk">*</span></label>
           <div class="checkbox-group" id="motivosCheckboxes">
@@ -258,7 +237,6 @@
 
       </div>
 
-      <!-- CAMPOS PARA GRUPAL -->
       <div id="camposGrupal" class="hidden">
         
         <h3 class="section-subtitle">Datos del Grupo</h3>
@@ -275,7 +253,6 @@
             autocomplete="off">
         </div>
 
-        <!-- NOMBRES Y APELLIDOS DEL VOCERO -->
         <div class="form-group">
           <label>Nombres y apellidos del vocero del grupo <span class="required-asterisk">*</span></label>
           <input 
@@ -287,7 +264,6 @@
             autocomplete="off">
         </div>
 
-        <!-- NÚMERO DE CONTACTO DEL VOCERO -->
         <div class="form-group">
           <label>Número de contacto del vocero del grupo <span class="required-asterisk">*</span></label>
           <input 
@@ -303,7 +279,6 @@
             autocomplete="off">
         </div>
 
-        <!-- CORREO DEL VOCERO -->
         <div class="form-group">
           <label>Correo del vocero del grupo <span class="required-asterisk">*</span></label>
           <div class="email-container">
@@ -315,8 +290,7 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correoVocero')"              
-              onblur="limpiarEspacios(this)"
+              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correoVocero')"              onblur="limpiarEspacios(this)"
               class="email-input">
             <span class="email-separator">@</span>
             <select id="dominioCorreoVocero" class="email-domain" required>
@@ -326,7 +300,6 @@
           <input type="hidden" id="correoVoceroCompleto">
         </div>
 
-        <!-- SEDE ACADÉMICA -->
         <div class="form-group">
           <label>Sede académica de la solicitud <span class="required-asterisk">*</span></label>
           <select id="sedeGrupal" required>
@@ -334,7 +307,6 @@
           </select>
         </div>
 
-        <!-- FACULTAD -->
         <div class="form-group">
           <label>Facultad a la cual pertenece el grupo <span class="required-asterisk">*</span></label>
           <select id="facultadGrupal" required onchange="actualizarProgramas('facultadGrupal', 'programaGrupal')">
@@ -342,7 +314,6 @@
           </select>
         </div>
 
-        <!-- PROGRAMA ACADÉMICO -->
         <div class="form-group">
           <label>Programa académico al cual pertenece el grupo <span class="required-asterisk">*</span></label>
           <select id="programaGrupal" required disabled>
@@ -350,7 +321,6 @@
           </select>
         </div>
 
-        <!-- SEMESTRE -->
         <div class="form-group">
           <label>Semestre <span class="required-asterisk">*</span></label>
           <select id="semestreGrupal" required>
@@ -358,7 +328,6 @@
           </select>
         </div>
 
-        <!-- ¿EL GRUPO ES CONSCIENTE? -->
         <div class="form-group">
           <label>¿El grupo es consciente del acompañamiento académico? <span class="required-asterisk">*</span></label>
           <select id="grupoConsciente" required>
@@ -369,9 +338,8 @@
 
         <h3 class="section-subtitle">Datos del Docente/Director</h3>
 
-        <!-- NOMBRE DEL PROFESOR/DIRECTOR/PROGRAMA -->
         <div class="form-group">
-          <label>Nombre del profesor, director y/o programa que solicita <span class="required-asterisk">*</span></label>
+          <label>Nombre del Profesor, Director, Programa que solicita <span class="required-asterisk">*</span></label>
           <input 
             type="text" 
             id="nombreSolicitanteGrupal" 
@@ -381,7 +349,6 @@
             autocomplete="off">
         </div>
 
-        <!-- CARGO -->
         <div class="form-group">
           <label>Cargo desempeñado en la institución <span class="required-asterisk">*</span></label>
           <select id="cargoGrupal" required>
@@ -389,7 +356,6 @@
           </select>
         </div>
 
-        <!-- DEPENDENCIA -->
         <div class="form-group">
           <label>Dependencia a la que pertenece el profesor, director, funcionario que solicita <span class="required-asterisk">*</span></label>
           <select id="dependenciaGrupal" required>
@@ -397,9 +363,8 @@
           </select>
         </div>
 
-        <!-- CORREO INSTITUCIONAL -->
         <div class="form-group">
-          <label>Correo Institucional del profesor, director, funcionario que solicita <span class="required-asterisk">*</span></label>
+          <label>Correo Institucional del Profesor, Director, Funcionario que solicita<span class="required-asterisk">*</span></label>
           <div class="email-container">
             <input 
               type="text" 
@@ -409,8 +374,7 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correoGrupal')"
-              onblur="limpiarEspacios(this)"
+              oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto('correoGrupal')"              onblur="limpiarEspacios(this)"
               class="email-input">
             <span class="email-separator">@</span>
             <select id="dominioCorreoGrupal" class="email-domain" required>
@@ -420,7 +384,6 @@
           <input type="hidden" id="correoGrupalCompleto">
         </div>
 
-        <!-- ASIGNATURA -->
         <div class="form-group">
           <label>Asignatura del acompañamiento académico <span class="required-asterisk">*</span></label>
           <div class="checkbox-group" id="asignaturasContainerGrupal">
@@ -437,7 +400,6 @@
           </div>
         </div>
 
-        <!-- MOTIVOS -->
         <div class="form-group hidden" id="motivosContainerGrupal">
           <label>Motivos del acompañamiento académico <span class="required-asterisk">*</span></label>
           <div class="checkbox-group" id="motivosCheckboxesGrupal">
@@ -447,7 +409,6 @@
 
       </div>
 
-      <!-- BOTONES -->
       <button type="submit" class="btn" id="btnEnviar">Enviar Formulario</button>
       <button type="button" class="btn btn-secondary" id="btnCancelar" onclick="mostrarConfirmacionCancelar()">Cancelar</button>
     </form>
@@ -455,7 +416,6 @@
 </div>
 </div>
 
-<!-- Modal de éxito -->
 <div id="modalExito" class="modal-overlay hidden">
   <div class="modal-success">
     <div class="success-icon">
@@ -467,7 +427,6 @@
   </div>
 </div>
 
-<!-- Modal de confirmación de cancelación -->
 <div id="modalConfirmacion" class="modal-overlay hidden">
   <div class="modal-confirmacion">
     <h2 id="tituloConfirmacion">¿Seguro que deseas cancelar?</h2>
@@ -482,4 +441,3 @@
 <script src="script.js"></script>
 </body>
 </html>
-
