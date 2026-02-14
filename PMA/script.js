@@ -1,18 +1,12 @@
 const SUPABASE_URL = `https://hgppzklpukgslnrynvld.supabase.co`;
 const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs`;
 
-// Variables globales
 let datosEstudiante = null;
 let instructorActual = null;
 let formularioEnviandose = false;
 let graficoTutorias = null;
-// Variable para controlar la página actual del formulario
 let paginaFormularioActual = 1;
-
-// NUEVO: Variable para el estudiante que está actualizando
 let estudianteActualizando = null;
-
-// Cache de datos precargados
 const datosCache = {
   facultadesCarreras: [],
   tutoresNorte: [],
@@ -69,7 +63,6 @@ const elementosDOM = {
   regPrograma: null,
   regSede: null,
   regSemestre: null,
-  regGrupo: null,
   regDocumentoMostrar: null,
   // Inputs del formulario de login
   loginDocumento: null,
@@ -139,7 +132,6 @@ function inicializarCacheDOM() {
   elementosDOM.regPrograma = document.getElementById('regPrograma');
   elementosDOM.regSede = document.getElementById('regSede');
   elementosDOM.regSemestre = document.getElementById('regSemestre');
-  elementosDOM.regGrupo = document.getElementById('regGrupo');
   elementosDOM.regDocumentoMostrar = document.getElementById('regDocumentoMostrar');
   
   // Inputs del formulario de login
@@ -835,7 +827,6 @@ function mostrarConfirmacion() {
   
   const nombreCompleto = `${primerNombre} ${segundoNombre} ${primerApellido} ${segundoApellido}`.replace(/\s+/g, ' ');
   const semestre = (elementosDOM.regSemestre || document.getElementById('regSemestre'))?.value;
-  const grupo = (elementosDOM.regGrupo || document.getElementById('regGrupo'))?.value.toUpperCase();
 
   const html = `
     <div class="confirmation-item">
@@ -861,10 +852,6 @@ function mostrarConfirmacion() {
     <div class="confirmation-item">
       <div class="confirmation-label">Semestre:</div>
       <div class="confirmation-value">${semestre}</div>
-    </div>
-    <div class="confirmation-item">
-      <div class="confirmation-label">Grupo:</div>
-      <div class="confirmation-value">${grupo}</div>
     </div>
   `;
 
@@ -990,7 +977,6 @@ const datos = {
     programa: document.getElementById('regPrograma').value,
     sede: document.getElementById('regSede').value,
     semestre: parseInt(document.getElementById('regSemestre').value),
-    grupo: document.getElementById('regGrupo').value.toUpperCase(),
     fecha_actualizacion: obtenerFechaISOColombia()
   };
 
@@ -1097,8 +1083,7 @@ async function iniciarSesion(event) {
       facultad: estudiante.facultad,
       programa: estudiante.programa,
       sede: estudiante.sede || '',
-      semestre: estudiante.semestre,
-      grupo: estudiante.grupo
+      semestre: estudiante.semestre
     };
 
     formularioEnviandose = false;
@@ -1502,9 +1487,7 @@ function toggleOtroTema() {
   }
 }
 
-// Agregar listener para "¿Recomendarías el PMA?" - Solo esta pregunta completa el paso 4
 document.addEventListener('DOMContentLoaded', function() {
-  // Agregar listener para "¿Recomendarías el PMA?"
   const recomendacionesPma = document.querySelectorAll('input[name="recomienda_pma"]');
   recomendacionesPma.forEach(radio => {
     radio.addEventListener('change', function() {
@@ -1644,7 +1627,6 @@ async function guardarFormulario(event) {
     return;
   }
   
-  // Validar ¿Recomendarías el PMA?
   if (!recomendaPmaRadio) {
     const ratingContainer = document.getElementById('ratingRecomiendaPma');
     mostrarMensaje('mensajeFormulario', 'Por favor seleccione si recomendaría el PMA', 'error');
@@ -1760,7 +1742,7 @@ const datos = {
     facultad: datosEstudiante.facultad,
     programa: datosEstudiante.programa,
     semestre: datosEstudiante.semestre,
-    grupo: datosEstudiante.grupo,
+    grupo: document.getElementById('grupoAcademicoFormulario').value.toUpperCase().trim(),
     tipo_acompanamiento: tipoAcompanamiento,
     titulo_curso: tituloCurso,
     sede_estudiante: datosEstudiante.sede,
@@ -1822,26 +1804,16 @@ const datos = {
 
 function verificarActualizacionSemestral(estudiante) {
   // SOLO verificar si fecha_actualizacion es null (forzado desde ADMIN)
-  // Ya NO se calculan fechas automáticamente
-  
   if (!estudiante.fecha_actualizacion) {
-    console.log('Necesita actualizar: fecha_actualizacion es null (forzado por admin)');
     return true;
   }
-  
-  console.log('NO necesita actualizar - Ya tiene fecha_actualizacion:', estudiante.fecha_actualizacion);
   return false;
 }
 
 function mostrarFormularioActualizacion(estudiante) {
   mostrarPantalla('pantallaActualizacion');
   document.getElementById('mensajeActualizacion').innerHTML = '';
-  
-  // Pre-llenar con datos actuales (SOLO semestre y grupo)
   document.getElementById('actualizarSemestre').value = estudiante.semestre || '';
-  document.getElementById('actualizarGrupo').value = estudiante.grupo || '';
-  
-  // Mostrar nombre censurado
   const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
   const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
   const nombreCompleto = `${nombres} ${apellidos}`;
@@ -1857,10 +1829,9 @@ async function actualizarDatosEstudiante(event) {
   }
   
   const nuevoSemestre = parseInt(document.getElementById('actualizarSemestre').value);
-  const nuevoGrupo = document.getElementById('actualizarGrupo').value.toUpperCase().trim();
   
-  if (!nuevoSemestre || !nuevoGrupo) {
-    mostrarMensaje('mensajeActualizacion', 'Por favor complete todos los campos', 'error');
+  if (!nuevoSemestre) {
+    mostrarMensaje('mensajeActualizacion', 'Por favor selecciona el semestre actual', 'error');
     return;
   }
   
@@ -1883,7 +1854,6 @@ async function actualizarDatosEstudiante(event) {
       },
       body: JSON.stringify({
         semestre: nuevoSemestre,
-        grupo: nuevoGrupo,
         fecha_actualizacion: fechaColombiaISO
       })
     });
@@ -1908,8 +1878,7 @@ async function actualizarDatosEstudiante(event) {
       facultad: estudianteActualizando.facultad,
       programa: estudianteActualizando.programa,
       sede: estudianteActualizando.sede,
-      semestre: nuevoSemestre,
-      grupo: nuevoGrupo
+      semestre: nuevoSemestre
     };
     
     formularioEnviandose = false;
@@ -1987,14 +1956,11 @@ function actualizarHistorialNavegacion(nuevaPantalla) {
   window.history.pushState(estadoActual, '', window.location.href);
 }
 
-// Modificar la función mostrarPantalla existente
 const mostrarPantallaOriginal = mostrarPantalla;
 mostrarPantalla = function(id) {
   mostrarPantallaOriginal(id);
   actualizarHistorialNavegacion(id);
 };
-
-// Manejador del evento popstate (botón de retroceso)
 window.addEventListener('popstate', function(event) {
   event.preventDefault();
   
@@ -2063,6 +2029,7 @@ if ('scrollRestoration' in window.history) {
 // ===================================
 function validarPagina1() {
   const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
+  const grupoAcademico = document.getElementById('grupoAcademicoFormulario').value.trim();
   const sedeTutoria = document.getElementById('sedeTutoria').value;
   const tipoInstructor = document.getElementById('tipoInstructor').value;
   const instructor = document.getElementById('instructor').value;
@@ -2072,6 +2039,9 @@ function validarPagina1() {
   // Validar campos básicos con mensajes específicos
   if (!tipoAcompanamiento) {
     return { valido: false, mensaje: 'Por favor seleccione un tipo de acompañamiento' };
+  }
+  if (!grupoAcademico) {
+    return { valido: false, mensaje: 'Por favor ingrese su grupo académico' };
   }
   if (!sedeTutoria) {
     return { valido: false, mensaje: 'Por favor seleccione una sede' };

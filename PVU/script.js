@@ -176,6 +176,7 @@ function obtenerDatosFormulario() {
   const programa = document.getElementById('programa').value;
   const sede = document.getElementById('sede').value;
   const jornada = document.getElementById('jornada').value;
+  const fechaAsistencia = document.getElementById('fechaAsistencia').value;
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
   // Limpiar espacios en todos los campos antes de enviar
@@ -213,21 +214,23 @@ function obtenerDatosFormulario() {
   const programaMayus = programa.toUpperCase();
   const sedeMayus = sede.toUpperCase();
   const jornadaMayus = jornada.toUpperCase();
+  const fechaAsistenciaMayus = fechaAsistencia.toUpperCase();
   
   // Convertir correo a minúsculas
   correoFinal = correoFinal.toLowerCase();
 
-  return {
-    documento,
-    nombres,
-    apellidos,
-    correoFinal,
-    programaMayus,
-    sedeMayus,
-    jornadaMayus,
-    satisfaccion: parseInt(satisfaccion),
-    comentarioLimpio
-  };
+return {
+  documento,
+  nombres,
+  apellidos,
+  correoFinal,
+  programaMayus,
+  sedeMayus,
+  jornadaMayus,
+  fechaAsistenciaMayus,
+  satisfaccion: parseInt(satisfaccion),
+  comentarioLimpio
+};
 }
 
 // Función para intentar enviar con reintentos
@@ -244,6 +247,7 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
       programa: datos.programaMayus,
       sede: datos.sedeMayus,
       jornada: datos.jornadaMayus,
+      fecha_asistencia: datos.fechaAsistenciaMayus,
       satisfaccion: datos.satisfaccion,
       comentario: datos.comentarioLimpio,
       fecha: obtenerFechaColombia()

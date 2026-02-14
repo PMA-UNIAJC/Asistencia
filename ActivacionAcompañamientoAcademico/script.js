@@ -1407,6 +1407,10 @@ function mostrarConfirmacionCancelar() {
 // Inicialización
 console.log('Formulario Acompañamiento Académico iniciado');
 
+// ===================================
+// REINICIO AUTOMÁTICO POR INACTIVIDAD
+// ===================================
+// Reinicia la página si el usuario estuvo fuera más de X minutos
 
 let tiempoSalida = null;
 const MINUTOS_PARA_REINICIAR = 3;
