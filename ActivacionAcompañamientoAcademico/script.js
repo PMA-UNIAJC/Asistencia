@@ -2,6 +2,7 @@
 const SUPABASE_URL = `https://hgppzklpukgslnrynvld.supabase.co`;
 const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs`;
 
+// Zona horaria de Colombia (Bogotá, UTC-5)
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 
 // Lista de asignaturas disponibles
