@@ -177,6 +177,7 @@ function obtenerDatosFormulario() {
   const sede = document.getElementById('sede').value;
   const jornada = document.getElementById('jornada').value;
   const fechaAsistencia = document.getElementById('fechaAsistencia').value;
+  const horarioAsistencia = document.getElementById('horarioAsistencia').value;
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
   // Limpiar espacios en todos los campos antes de enviar
@@ -228,6 +229,7 @@ return {
   sedeMayus,
   jornadaMayus,
   fechaAsistenciaMayus,
+  horarioAsistencia,
   satisfaccion: parseInt(satisfaccion),
   comentarioLimpio
 };
@@ -248,6 +250,7 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
       sede: datos.sedeMayus,
       jornada: datos.jornadaMayus,
       fecha_asistencia: datos.fechaAsistenciaMayus,
+      horario: datos.horarioAsistencia,
       satisfaccion: datos.satisfaccion,
       comentario: datos.comentarioLimpio,
       fecha: obtenerFechaColombia()
