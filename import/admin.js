@@ -1816,6 +1816,8 @@ function generarExcelPVU(datos, nombreArchivo) {
     return {
       'Fecha': serialDate,
       'Hora': horaFormateada,
+      'Fecha de Asistencia': fila.fecha_asistencia || '',
+      'Horario de Asistencia': fila.horario || '',
       'Documento': parseInt(fila.documento) || '',
       'Nombres': fila.nombres || '',
       'Apellidos': fila.apellidos || '',
@@ -1838,6 +1840,8 @@ function generarExcelPVU(datos, nombreArchivo) {
   ws['!cols'] = [
     { wch: 12 },  // Fecha
     { wch: 8 },   // Hora
+    { wch: 18 },  // Fecha de Asistencia
+    { wch: 16 },  // Horario de Asistencia
     { wch: 12 },  // Documento
     { wch: 20 },  // Nombres
     { wch: 20 },  // Apellidos
