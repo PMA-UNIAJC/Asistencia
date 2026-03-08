@@ -9,7 +9,6 @@
 </head>
 <body class="welcome-active">
 
-<!-- Pantalla de Bienvenida -->
 <div id="pantallaBienvenida" class="welcome-screen">
   <div class="welcome-left">
     <div class="welcome-logo-section">
@@ -32,11 +31,13 @@
   </div>
 </div>
 
-<!-- Contenido del Formulario -->
 <div id="contenidoFormulario" class="hidden">
   <div class="container">
   <div id="pantallaFormulario">
     <h2 class="section-title">Preparación para la Vida Universitaria</h2>
+    <p id="fechaHoraActual" style="text-align:center; color:#666; font-size:14px; margin-bottom:12px;"></p>
+    
+    <br>
     
     <div id="mensajeFormulario"></div>
     
@@ -71,7 +72,13 @@
           minlength="7" 
           maxlength="12"
           oninput="this.value = this.value.replace(/[^0-9]/g, ''); limpiarValidacionConfirmacionDocumento()"
-          autocomplete="off">
+          autocomplete="off"
+          onpaste="return false"
+          oncopy="return false"
+          oncut="return false"
+          ondrop="return false"
+          oncontextmenu="return false">
+
         <span class="error-message" id="errorDocumentoConfirmar"></span>
       </div>
 
@@ -123,7 +130,8 @@
 
       <!-- CORREO -->
       <div class="form-group">
-        <label>Correo (Escribe únicamente lo que va antes del @, y luego selecciona el dominio correspondiente). <span class="required-asterisk">*</span></label>
+        <label>Correo <span class="required-asterisk">*</span></label>
+        <small style="display:block; color:#666; margin-bottom:8px;">Escribe únicamente lo que va antes del @, y luego selecciona el dominio correspondiente.</small>
         <div class="email-container">
           <input 
             type="text" 
@@ -132,6 +140,7 @@
             autocomplete="off"
             oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto()"
             onblur="limpiarEspacios(this)"
+            placeholder="Aquí únicamente antes del @"
             class="email-input">
           <span class="email-separator">@</span>
           <select id="dominioCorreo" class="email-domain" required>
@@ -220,9 +229,10 @@
 
       <!-- COMENTARIO -->
       <div class="form-group">
-      <label>Déjanos un comentario de sugerencia, felicitación, petición o reclamo sobre la experiencia de aprendizaje realizada</label>        
+      <label>Comentario (Opcional)</label>        
       <textarea 
-      id="comentario" 
+      id="comentario"
+      placeholder="Déjanos un comentario de sugerencia, felicitación, petición o reclamo sobre la experiencia de aprendizaje realizada"
       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,.\-]/g, '')"
       onblur="limpiarEspacios(this)"
       rows="4"></textarea>

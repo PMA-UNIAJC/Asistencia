@@ -170,7 +170,6 @@ const cacheFormularios = {
 async function obtenerFormulariosCache() {
   const ahora = Date.now();
   
-  // Si hay datos en caché y no han expirado, devolverlos
   if (cacheFormularios.datos && 
       cacheFormularios.timestamp && 
       (ahora - cacheFormularios.timestamp) < cacheFormularios.ttl) {
@@ -178,11 +177,9 @@ async function obtenerFormulariosCache() {
     return cacheFormularios.datos;
   }
   
-  // Si no hay caché o expiró, cargar desde la BD
-  console.log('Cargando formularios desde la BD...');
-  const datos = await supabaseQuery('formularios', { order: 'fecha.asc' });
+  console.log('Cargando formularios desde la BD (sin límite)...');
+  const datos = await supabaseQuerySinLimite('formularios', { order: 'fecha.asc' });
   
-  // Actualizar caché
   cacheFormularios.datos = datos;
   cacheFormularios.timestamp = ahora;
   
@@ -914,7 +911,7 @@ async function verificarDocumento(event) {
     });
 
     if (existing.length > 0) {
-      mostrarMensaje('mensajeRegistro', 'Este documento ya está registrado correctamente.', 'success');
+      mostrarMensaje('mensajeRegistro', 'Registro Exitoso.', 'success');
       return;
     }
 

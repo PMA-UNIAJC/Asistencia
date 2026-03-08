@@ -905,18 +905,15 @@ async function descargarDatos() {
   try {
     const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
     const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
-    let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      }
+
+    const data = await supabaseQuerySinLimite('formularios', {
+      gte: { field: 'fecha', value: desdeISO },
+      lte: { field: 'fecha', value: hastaISO },
+      order: 'fecha.asc'
     });
-    
-    const data = await response.json();
+
     const datosTutores = data.filter(item => item.tipo_instructor === 'Tutor');
-    
+
     if (datosTutores.length === 0) {
       alert('No hay registros de tutores en el rango de fechas seleccionado');
       return;
@@ -943,7 +940,7 @@ async function descargarTodo() {
   btnDescarga.textContent = 'Preparando descarga completa...';
 
   try {
-    const data = await supabaseQuery('formularios', { order: 'fecha.asc' });
+const data = await supabaseQuerySinLimite('formularios', { order: 'fecha.asc' });
     
     if (data.length === 0) {
       alert('No hay registros para descargar');
@@ -983,18 +980,15 @@ async function descargarDocentes() {
   try {
     const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
     const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
-    let url = `${SUPABASE_URL}/rest/v1/formularios?fecha=gte.${desdeISO}&fecha=lte.${hastaISO}&order=fecha.asc`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      }
+
+    const data = await supabaseQuerySinLimite('formularios', {
+      gte: { field: 'fecha', value: desdeISO },
+      lte: { field: 'fecha', value: hastaISO },
+      order: 'fecha.asc'
     });
-    
-    const data = await response.json();
+
     const datosDocentes = data.filter(item => item.tipo_instructor === 'Profesor');
-    
+
     if (datosDocentes.length === 0) {
       alert('No hay registros de docentes en el rango de fechas seleccionado');
       return;
@@ -1013,40 +1007,43 @@ async function descargarDocentes() {
 
 async function descargarPorFacultad() {
   const checkboxes = document.querySelectorAll('.facultad-checkbox:checked');
-  
+
   if (checkboxes.length === 0) {
     alert('Por favor seleccione al menos una facultad');
     return;
   }
+
   const mapeoFacultades = {
-    'FCE': 'Ciencias Empresariales',
-    'FCSH': 'Ciencias Sociales y Humanas',
-    'FEDV': 'Educación a Distancia y Virtual',
-    'FI': 'Ingeniería'
+  'FCE': 'CIENCIAS EMPRESARIALES',
+  'FCSH': 'CIENCIAS SOCIALES Y HUMANAS',
+  'FEDV': 'EDUCACION A DISTANCIA Y VIRTUAL',
+  'FI': 'INGENIERIA'
   };
+
   const codigosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
   const nombresFacultadesBD = codigosSeleccionados.map(codigo => mapeoFacultades[codigo]).filter(Boolean);
-  
+
   if (nombresFacultadesBD.length === 0) {
     alert('Error al mapear las facultades seleccionadas');
     return;
   }
-  
+
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
   btnDescarga.textContent = 'Preparando descarga...';
-  
+
   try {
-    const datosFinales = await supabaseQuery('formularios', {
+    const datosFinales = await supabaseQuerySinLimite('formularios', {
       in: { field: 'facultad', values: nombresFacultadesBD },
       order: 'fecha.asc'
     });
-    
+
     if (datosFinales.length === 0) {
       alert('No hay registros para las facultades seleccionadas');
       return;
     }
+
     generarExcelPorFacultad(datosFinales, codigosSeleccionados);
     alert(`${datosFinales.length} registros descargados exitosamente`);
   } catch (error) {
@@ -1197,27 +1194,29 @@ async function descargarPorGrupo() {
     alert('Por favor busque y seleccione un grupo primero');
     return;
   }
-  
+
   const btnDescarga = document.getElementById('btnDescargarGrupo');
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
   btnDescarga.textContent = 'Preparando descarga...';
-  
+
   try {
-    const data = await supabaseQuery('formularios', {
+    const data = await supabaseQuerySinLimite('formularios', {
       ilike: { field: 'grupo', value: grupoSeleccionadoParaDescarga },
       order: 'fecha.asc'
     });
+
     const datosFinales = data.filter(item => {
       const grupo = item.grupo ? item.grupo.trim().toUpperCase() : '';
       return grupo === grupoSeleccionadoParaDescarga;
     });
-    
+
     if (datosFinales.length === 0) {
       alert('No hay registros para el grupo seleccionado. Por favor busque nuevamente.');
       limpiarSeleccionGrupo();
       return;
     }
+
     generarExcelPorGrupo(datosFinales, grupoSeleccionadoParaDescarga);
     alert(`${datosFinales.length} registros descargados exitosamente`);
   } catch (error) {
@@ -1485,8 +1484,6 @@ function toggleProfesoresFacultad(facultadId) {
 }
 
 
-
-
 function obtenerNombreFacultad(codigo) {
   const nombres = {
     'DCB': 'Departamento de Ciencias Básicas',
@@ -1519,8 +1516,10 @@ async function descargarAAAIndividual() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    const { data, error } = await supabaseClient.from('acompanamiento').select('*').eq('tipo_acompanamiento', 'Individual').order('fecha_hora', { ascending: true });
-    if (error) throw error;
+    const data = await supabaseQuerySinLimite('acompanamiento', {
+      eq: { field: 'tipo_acompanamiento', value: 'Individual' },
+      order: 'fecha_hora.asc'
+    });
 
     if (!data || data.length === 0) {
       alert('No hay registros de acompañamiento individual para descargar');
@@ -1545,8 +1544,10 @@ async function descargarAAAGrupal() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    const { data: data, error } = await supabaseClient.from('acompanamiento').select('*').eq('tipo_acompanamiento', 'Grupal').order('fecha_hora', { ascending: true });
-    if (error) throw error;
+    const data = await supabaseQuerySinLimite('acompanamiento', {
+      eq: { field: 'tipo_acompanamiento', value: 'Grupal' },
+      order: 'fecha_hora.asc'
+    });
 
     if (!data || data.length === 0) {
       alert('No hay registros de acompañamiento grupal para descargar');
@@ -1571,9 +1572,7 @@ async function descargarAAATodo() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    // Usar cliente autenticado (JWT) para que RLS permita SELECT a admin
-    const { data: data, error } = await supabaseClient.from('acompanamiento').select('*').order('fecha_hora', { ascending: true });
-    if (error) throw error;
+    const data = await supabaseQuerySinLimite('acompanamiento', { order: 'fecha_hora.asc' });
 
     if (!data || data.length === 0) {
       alert('No hay registros de AAA para descargar');
@@ -1789,8 +1788,7 @@ async function descargarPVU() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    const data = await supabaseQuery('pvu', { order: 'fecha.asc' });
-    
+const data = await supabaseQuerySinLimite('pvu', { order: 'fecha.asc' });    
     if (data.length === 0) {
       alert('No hay registros de PVU para descargar');
       return;
@@ -2080,8 +2078,8 @@ async function cargarEstadisticasPVU() {
   
   try {
     // Cargar datos de la tabla pvu
-    const data = await supabaseQuery('pvu', { order: 'fecha.asc' });
-    
+const data = await supabaseQuerySinLimite('pvu', { order: 'fecha.asc' });
+
     if (data.length === 0) {
       if (statsGridPVU) {
         statsGridPVU.textContent = '';
@@ -2107,6 +2105,47 @@ async function cargarEstadisticasPVU() {
       statsGridPVU.appendChild(p);
     }
   }
+}
+
+async function supabaseQuerySinLimite(tabla, opciones = {}) {
+  const pageSize = 1000;
+  let allData = [];
+  let from = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const url = new URL(`${SUPABASE_URL}/rest/v1/${tabla}`);
+    if (opciones.order) url.searchParams.set('order', opciones.order);
+    if (opciones.eq) url.searchParams.set(opciones.eq.field, `eq.${opciones.eq.value}`);
+    if (opciones.ilike) url.searchParams.set(opciones.ilike.field, `ilike.${opciones.ilike.value}`);
+    if (opciones.gte) url.searchParams.append(opciones.gte.field, `gte.${opciones.gte.value}`);
+    if (opciones.lte) url.searchParams.append(opciones.lte.field, `lte.${opciones.lte.value}`);
+    if (opciones.in) {
+      const { field, values } = opciones.in;
+      url.searchParams.set(field, `in.(${values.join(',')})`);
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Range': `${from}-${from + pageSize - 1}`,
+        'Range-Unit': 'items'
+      }
+    });
+
+    const page = await response.json();
+    if (!Array.isArray(page)) break;
+    allData = allData.concat(page);
+
+    if (page.length < pageSize) {
+      hasMore = false;
+    } else {
+      from += pageSize;
+    }
+  }
+
+  return allData;
 }
 
 // MOSTRAR ESTADÍSTICAS

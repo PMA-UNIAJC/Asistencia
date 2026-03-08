@@ -3,6 +3,30 @@ const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 
+
+
+function actualizarFechaHora() {
+  const ahora = new Date().toLocaleString('es-CO', {
+    timeZone: 'America/Bogota',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  const elemento = document.getElementById('fechaHoraActual');
+  if (elemento) {
+    elemento.textContent = ahora.charAt(0).toUpperCase() + ahora.slice(1);
+  }
+}
+
+actualizarFechaHora();
+setInterval(actualizarFechaHora, 1000); // Se actualiza cada segundo
+
+
+
 function obtenerFechaColombia() {
   const ahora = new Date();
   
