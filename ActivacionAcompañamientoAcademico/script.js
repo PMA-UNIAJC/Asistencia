@@ -1,11 +1,14 @@
+// ============================================================
 // Configuración de Supabase
+// ============================================================
 const SUPABASE_URL = `https://hgppzklpukgslnrynvld.supabase.co`;
 const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs`;
 
-// Zona horaria de Colombia (Bogotá, UTC-5)
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 
-// Lista de asignaturas disponibles
+// ============================================================
+// Datos estáticos de opciones
+// ============================================================
 const ASIGNATURAS_DISPONIBLES = [
   'Comunicación y Lenguaje I - II',
   'Cálculo Diferencial',
@@ -16,54 +19,14 @@ const ASIGNATURAS_DISPONIBLES = [
   'Otras'
 ];
 
-// Opciones para selects compartidos
-const OPCIONES_SEDE = [
-  { value: 'Sur', text: 'Sur' },
-  { value: 'Norte', text: 'Norte' },
-  { value: 'Virtual', text: 'Virtual' }
+const ASIGNATURAS_MATEMATICAS = [
+  'Cálculo Diferencial',
+  'Cálculo Integral',
+  'Matemáticas I - Básicas - Fundamental',
+  'Matemáticas II',
+  'Lógica y Razonamiento'
 ];
 
-// Caché para facultades y programas desde la BD
-let datosCacheFacultades = [];
-let facultadesData = {};
-
-const OPCIONES_SEMESTRE = Array.from({ length: 10 }, (_, i) => ({
-  value: String(i + 1),
-  text: String(i + 1)
-}));
-
-const OPCIONES_CARGO = [
-  { value: 'Profesor Ocasional Tiempo Completo', text: 'Profesor Ocasional Tiempo Completo' },
-  { value: 'Profesor Hora Cátedra', text: 'Profesor Hora Cátedra' },
-  { value: 'Funcionario', text: 'Funcionario' },
-  { value: 'Dependencia - Facultad', text: 'Dependencia - Facultad' }
-];
-
-const OPCIONES_DEPENDENCIA = [
-  { value: 'Centro de Idiomas', text: 'Centro de Idiomas' },
-  { value: 'Coordinación Académica', text: 'Coordinación Académica' },
-  { value: 'Departamento de Ciencias Básicas', text: 'Departamento de Ciencias Básicas' },
-  { value: 'Facultad de Ciencias Empresariales', text: 'Facultad de Ciencias Empresariales' },
-  { value: 'Facultad de Ciencias Sociales y Humanas', text: 'Facultad de Ciencias Sociales y Humanas' },
-  { value: 'Facultad de Educación a Distancia y Virtual', text: 'Facultad de Educación a Distancia y Virtual' },
-  { value: 'Facultad de Ingenierías', text: 'Facultad de Ingenierías' },
-  { value: 'PAI', text: 'PAI' },
-  { value: 'Psicología', text: 'Psicología' },
-  { value: 'Vicerrectoría Académica', text: 'Vicerrectoría Académica' }
-];
-
-const OPCIONES_SI_NO = [
-  { value: 'Si', text: 'Sí' },
-  { value: 'No', text: 'No' }
-];
-
-const OPCIONES_DOMINIO_CORREO = [
-  { value: 'estudiante.uniajc.edu.co', text: 'estudiante.uniajc.edu.co' },
-  { value: 'profesores.uniajc.edu.co', text: 'profesores.uniajc.edu.co' },
-  { value: 'admon.uniajc.edu.co', text: 'admon.uniajc.edu.co' }
-];
-
-// Motivos por asignatura
 const MOTIVOS_MATEMATICAS = [
   'Bajo rendimiento académico',
   'Bajas calificaciones en actividades evaluativas',
@@ -93,654 +56,271 @@ const MOTIVOS_COMUNICACION = [
   'Uso de signos de puntuación'
 ];
 
-// Asignaturas de matemáticas
-const ASIGNATURAS_MATEMATICAS = [
-  'Cálculo Diferencial',
-  'Cálculo Integral',
-  'Matemáticas I - Básicas - Fundamental',
-  'Matemáticas II',
-  'Lógica y Razonamiento'
+const OPCIONES_SEDE = [
+  { value: 'Sur',     text: 'Sur' },
+  { value: 'Norte',   text: 'Norte' },
+  { value: 'Virtual', text: 'Virtual' }
 ];
 
-// Función para obtener la fecha actual en zona horaria de Colombia (sin timezone)
-function obtenerFechaColombia() {
-  const ahora = new Date();
-  
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: TIMEZONE_COLOMBIA,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const partes = formatter.formatToParts(ahora);
-  const anio = partes.find(p => p.type === 'year').value;
-  const mes = partes.find(p => p.type === 'month').value;
-  const dia = partes.find(p => p.type === 'day').value;
-  const hora = partes.find(p => p.type === 'hour').value;
-  const minuto = partes.find(p => p.type === 'minute').value;
-  const segundo = partes.find(p => p.type === 'second').value;
-  
-  const fechaLocal = `${anio}-${mes}-${dia}T${hora}:${minuto}:${segundo}`;
-  
-  return fechaLocal;
-}
+const OPCIONES_SEMESTRE = Array.from({ length: 10 }, (_, i) => ({
+  value: String(i + 1),
+  text: String(i + 1)
+}));
 
-// Función para consultar datos en Supabase
+const OPCIONES_CARGO = [
+  { value: 'Profesor Ocasional Tiempo Completo', text: 'Profesor Ocasional Tiempo Completo' },
+  { value: 'Profesor Hora Cátedra',              text: 'Profesor Hora Cátedra' },
+  { value: 'Funcionario',                        text: 'Funcionario' },
+  { value: 'Dependencia - Facultad',             text: 'Dependencia - Facultad' }
+];
+
+const OPCIONES_DEPENDENCIA = [
+  { value: 'Centro de Idiomas',                         text: 'Centro de Idiomas' },
+  { value: 'Coordinación Académica',                    text: 'Coordinación Académica' },
+  { value: 'Departamento de Ciencias Básicas',          text: 'Departamento de Ciencias Básicas' },
+  { value: 'Facultad de Ciencias Empresariales',        text: 'Facultad de Ciencias Empresariales' },
+  { value: 'Facultad de Ciencias Sociales y Humanas',   text: 'Facultad de Ciencias Sociales y Humanas' },
+  { value: 'Facultad de Educación a Distancia y Virtual', text: 'Facultad de Educación a Distancia y Virtual' },
+  { value: 'Facultad de Ingenierías',                   text: 'Facultad de Ingenierías' },
+  { value: 'PAI',                                       text: 'PAI' },
+  { value: 'Psicología',                                text: 'Psicología' },
+  { value: 'Vicerrectoría Académica',                   text: 'Vicerrectoría Académica' }
+];
+
+const OPCIONES_SI_NO = [
+  { value: 'Si', text: 'Sí' },
+  { value: 'No', text: 'No' }
+];
+
+const OPCIONES_DOMINIO_CORREO = [
+  { value: 'estudiante.uniajc.edu.co',  text: 'estudiante.uniajc.edu.co' },
+  { value: 'profesores.uniajc.edu.co',  text: 'profesores.uniajc.edu.co' },
+  { value: 'admon.uniajc.edu.co',       text: 'admon.uniajc.edu.co' }
+];
+
+// ============================================================
+// Textos dinámicos según tipo de acompañamiento
+// ============================================================
+const TEXTOS = {
+  Individual: {
+    subtitulo:       'Datos del Estudiante',
+    labelDocumento:  'Número de documento de identidad del estudiante',
+    labelContacto:   'Número de contacto del estudiante',
+    labelCorreo:     'Correo del estudiante',
+    labelGrupo:      'Grupo al que pertenece el estudiante',
+    labelFacultad:   'Facultad a la cual pertenece el estudiante',
+    labelPrograma:   'Programa académico al cual pertenece el estudiante',
+    labelConsciente: '¿El estudiante es consciente del acompañamiento académico?'
+  },
+  Grupal: {
+    subtitulo:       'Datos del Grupo',
+    labelDocumento:  'Número de documento de identidad del vocero',
+    labelContacto:   'Número de contacto del vocero del grupo',
+    labelCorreo:     'Correo del vocero del grupo',
+    labelGrupo:      'Grupo al que se debe realizar el acompañamiento',
+    labelFacultad:   'Facultad a la cual pertenece el grupo',
+    labelPrograma:   'Programa académico al cual pertenece el grupo',
+    labelConsciente: '¿El grupo es consciente del acompañamiento académico?'
+  }
+};
+
+// ============================================================
+// Caché de facultades / programas
+// ============================================================
+let datosCacheFacultades = [];
+let facultadesData = {};
+
+// ============================================================
+// Utilidades Supabase
+// ============================================================
 async function supabaseQuery(table, options = {}) {
   let url = `${SUPABASE_URL}/rest/v1/${table}`;
   const params = [];
-  
+
   if (options.select) params.push(`select=${options.select}`);
-  if (options.eq) params.push(`${options.eq.field}=eq.${encodeURIComponent(options.eq.value)}`);
-  if (options.ilike) params.push(`${options.ilike.field}=ilike.${encodeURIComponent(options.ilike.value)}`);
-  if (options.order) params.push(`order=${options.order}`);
-  
-  // Soporte para filtro "in" (múltiples valores)
+  if (options.eq)     params.push(`${options.eq.field}=eq.${encodeURIComponent(options.eq.value)}`);
+  if (options.ilike)  params.push(`${options.ilike.field}=ilike.${encodeURIComponent(options.ilike.value)}`);
+  if (options.order)  params.push(`order=${options.order}`);
   if (options.in) {
     const { field, values } = options.in;
-    const valoresEncoded = values.map(v => encodeURIComponent(v)).join(',');
-    params.push(`${field}=in.(${valoresEncoded})`);
+    params.push(`${field}=in.(${values.map(v => encodeURIComponent(v)).join(',')})`);
   }
-  
-  if (params.length > 0) {
-    url += `?${params.join('&')}`;
-  }
-  
+
+  if (params.length) url += `?${params.join('&')}`;
+
   const headers = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json'
   };
-  
-  try {
-    const response = await fetch(url, { headers });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error de respuesta:', response.status, response.statusText);
-      console.error('Detalles del error:', errorData);
-      throw new Error(errorData.message || errorData.hint || `Error ${response.status}: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error('Error en supabaseQuery:', error);
-    throw error;
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || err.hint || `Error ${response.status}`);
   }
+  return response.json();
 }
 
-// Función para insertar datos en Supabase
 async function supabaseInsert(table, data) {
-  try {
-    console.log('Enviando datos a la tabla:', table);
-    console.log('Datos a enviar:', JSON.stringify(data, null, 2));
-    
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(data)
-    });
+  console.log('Enviando a tabla:', table, JSON.stringify(data, null, 2));
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error de respuesta:', response.status, response.statusText);
-      console.error('Detalles del error:', errorData);
-      throw new Error(errorData.message || errorData.hint || `Error ${response.status}: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log('Datos guardados exitosamente:', result);
-    return result;
-  } catch (error) {
-    console.error('Error en supabaseInsert:', error);
-    throw error;
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || err.hint || `Error ${response.status}`);
   }
+  return response.json();
 }
 
-// Función para limpiar espacios
+// ============================================================
+// Fecha Colombia
+// ============================================================
+function obtenerFechaColombia() {
+  const ahora = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE_COLOMBIA,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  });
+  const p = formatter.formatToParts(ahora);
+  const g = type => p.find(x => x.type === type).value;
+  return `${g('year')}-${g('month')}-${g('day')}T${g('hour')}:${g('minute')}:${g('second')}`;
+}
+
+// ============================================================
+// Validaciones
+// ============================================================
 function limpiarEspacios(input) {
-  let valor = input.value;
-  valor = valor.trim();
-  valor = valor.replace(/\s+/g, ' ');
-  input.value = valor;
+  input.value = input.value.trim().replace(/\s+/g, ' ');
 }
 
-// Función para validar documento
 function validarDocumento(input) {
-  const documento = input.value;
-  
-  if (documento.length > 0 && documento.length < 7) {
-    input.setCustomValidity('Escriba correctamente su documento');
-  } else if (documento.length > 12) {
-    input.setCustomValidity('Escriba correctamente su documento');
-  } else {
-    input.setCustomValidity('');
-  }
+  const len = input.value.length;
+  input.setCustomValidity(len > 0 && (len < 7 || len > 12) ? 'Escriba correctamente su documento' : '');
 }
 
-// Función para validar contacto (10 números exactos y debe empezar por 3)
 function validarContacto(input) {
-  const contacto = input.value;
-  
-  if (contacto.length > 0) {
-    if (contacto.length !== 10) {
-      input.setCustomValidity('Número de contacto no válido');
-    } else if (!contacto.startsWith('3')) {
-      input.setCustomValidity('Número de contacto no válido');
-    } else {
-      input.setCustomValidity('');
-    }
+  const val = input.value;
+  if (val.length > 0) {
+    input.setCustomValidity(val.length !== 10 || !val.startsWith('3') ? 'Número de contacto no válido' : '');
   } else {
     input.setCustomValidity('');
   }
 }
 
-// Función genérica para actualizar correo completo
+// ============================================================
+// Correos (función genérica — funciona con cualquier prefijo)
+// ============================================================
 function actualizarCorreoCompleto(prefijo) {
-  const correoInput = document.getElementById(prefijo);
-  const dominioSelect = document.getElementById(`dominio${prefijo.charAt(0).toUpperCase() + prefijo.slice(1)}`);
+  const correoInput    = document.getElementById(prefijo);
+  const dominioSelect  = document.getElementById(`dominio${prefijo.charAt(0).toUpperCase()}${prefijo.slice(1)}`);
   const correoCompleto = document.getElementById(`${prefijo}Completo`);
-  
+
   if (!correoInput || !dominioSelect || !correoCompleto) return;
-  
+
   const correo = correoInput.value.trim().toLowerCase();
   const dominio = dominioSelect.value.toLowerCase();
-  
-  if (correo && dominio && dominio !== '') {
-    correoCompleto.value = `${correo}@${dominio}`;
-    correoInput.setCustomValidity('');
-  } else {
-    correoCompleto.value = '';
-    if (correoInput.value.trim() && !dominio) {
-      correoInput.setCustomValidity('Seleccione un dominio de correo');
-    } else {
-      correoInput.setCustomValidity('');
-    }
-  }
+
+  correoCompleto.value = (correo && dominio) ? `${correo}@${dominio}` : '';
+  correoInput.setCustomValidity('');
 }
 
-// Función para limpiar todos los campos de un contenedor
-function limpiarCampos(contenedor) {
-  // Limpiar inputs
-  const inputs = contenedor.querySelectorAll('input[type="text"], input[type="tel"]');
-  inputs.forEach(input => {
-    input.value = '';
-    input.required = false;
-  });
-  
-  // Limpiar selects
-  const selects = contenedor.querySelectorAll('select');
-  selects.forEach(select => {
-    select.selectedIndex = 0;
-    select.required = false;
-    // Si es un select de programa, deshabilitarlo y limpiarlo
-    if (select.id === 'programa' || select.id === 'programaGrupal') {
-      select.disabled = true;
-      select.innerHTML = '<option value="">Seleccione un programa</option>';
-      select.required = true; // Mantener requerido pero deshabilitado
-    }
-  });
-  
-  // Limpiar checkboxes
-  const checkboxes = contenedor.querySelectorAll('input[type="checkbox"]');
-  checkboxes.forEach(checkbox => {
-    checkbox.checked = false;
-  });
-  
-  // Limpiar campos hidden de correo
-  const correosCompletos = contenedor.querySelectorAll('input[type="hidden"]');
-  correosCompletos.forEach(campo => {
-    campo.value = '';
-  });
-  
-  // Ocultar contenedores de "otras asignaturas"
-  const otrosContainers = contenedor.querySelectorAll('.otro-asignatura-container');
-  otrosContainers.forEach(container => {
-    container.classList.add('hidden');
-    const input = container.querySelector('input');
-    if (input) {
-      input.value = '';
-      input.required = false;
-    }
-  });
-}
-
-// Manejar cambio de tipo de acompañamiento
-function manejarTipoAcompanamiento() {
-  const tipo = document.getElementById('tipoAcompanamiento').value;
-  const camposIndividual = document.getElementById('camposIndividual');
-  const camposGrupal = document.getElementById('camposGrupal');
-  
-  if (tipo === 'Individual') {
-    // Limpiar campos grupales antes de ocultarlos
-    limpiarCampos(camposGrupal);
-    
-    camposIndividual.classList.remove('hidden');
-    camposGrupal.classList.add('hidden');
-    // Hacer requeridos los campos individuales
-    const campos = camposIndividual.querySelectorAll('input[required], select[required]');
-    campos.forEach(campo => campo.required = true);
-    // Quitar requerido de campos grupales
-    const camposGrupales = camposGrupal.querySelectorAll('input[required], select[required]');
-    camposGrupales.forEach(campo => campo.required = false);
-  } else if (tipo === 'Grupal') {
-    // Limpiar campos individuales antes de ocultarlos
-    limpiarCampos(camposIndividual);
-    
-    camposIndividual.classList.add('hidden');
-    camposGrupal.classList.remove('hidden');
-    // Quitar requerido de campos individuales
-    const campos = camposIndividual.querySelectorAll('input[required], select[required]');
-    campos.forEach(campo => campo.required = false);
-    // Hacer requeridos los campos grupales
-    const camposGrupales = camposGrupal.querySelectorAll('input[required], select[required]');
-    camposGrupales.forEach(campo => campo.required = true);
-  } else {
-    // Limpiar ambos si no hay selección
-    limpiarCampos(camposIndividual);
-    limpiarCampos(camposGrupal);
-    camposIndividual.classList.add('hidden');
-    camposGrupal.classList.add('hidden');
-  }
-  
-  // Limpiar motivos cuando cambia el tipo
-  limpiarMotivos();
-  limpiarMotivosGrupal();
-}
-
-// Manejar cambio de asignaturas
-function manejarAsignaturas() {
-  const asignaturasSeleccionadas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked')).map(cb => cb.value);
-  const otroAsignaturaContainer = document.getElementById('otroAsignaturaContainer');
-  const motivosContainer = document.getElementById('motivosContainer');
-  const motivosCheckboxes = document.getElementById('motivosCheckboxes');
-  
-  // Mostrar/ocultar campo "Otras"
-  const otrasSeleccionada = asignaturasSeleccionadas.includes('Otras');
-  if (otrasSeleccionada) {
-    otroAsignaturaContainer.classList.remove('hidden');
-    document.getElementById('otroAsignatura').required = true;
-  } else {
-    otroAsignaturaContainer.classList.add('hidden');
-    document.getElementById('otroAsignatura').required = false;
-    document.getElementById('otroAsignatura').value = '';
-  }
-  
-  // Si no hay asignaturas seleccionadas, ocultar motivos
-  if (asignaturasSeleccionadas.length === 0) {
-    motivosContainer.classList.add('hidden');
-    limpiarMotivos();
-    return;
-  }
-  
-  // Determinar qué motivos mostrar
-  const tieneMatematicas = asignaturasSeleccionadas.some(a => ASIGNATURAS_MATEMATICAS.includes(a));
-  const tieneComunicacion = asignaturasSeleccionadas.includes('Comunicación y Lenguaje I - II');
-  const tieneOtras = asignaturasSeleccionadas.includes('Otras');
-  
-  let motivosAMostrar = [];
-  
-  if (tieneOtras) {
-    // Si tiene "Otras", mostrar todos los motivos (sin repetir)
-    const todosMotivos = [...MOTIVOS_MATEMATICAS, ...MOTIVOS_COMUNICACION];
-    // Eliminar duplicados
-    motivosAMostrar = [...new Set(todosMotivos)];
-    // Ordenar: primero matemáticas, luego comunicación
-    motivosAMostrar.sort((a, b) => {
-      const aEsMat = MOTIVOS_MATEMATICAS.includes(a);
-      const bEsMat = MOTIVOS_MATEMATICAS.includes(b);
-      if (aEsMat && !bEsMat) return -1;
-      if (!aEsMat && bEsMat) return 1;
-      return 0;
-    });
-  } else {
-    if (tieneMatematicas) {
-      motivosAMostrar = [...motivosAMostrar, ...MOTIVOS_MATEMATICAS];
-    }
-    if (tieneComunicacion) {
-      motivosAMostrar = [...motivosAMostrar, ...MOTIVOS_COMUNICACION];
-    }
-    // Eliminar duplicados si tiene ambos
-    if (tieneMatematicas && tieneComunicacion) {
-      motivosAMostrar = [...new Set(motivosAMostrar)];
-      // Mantener orden: primero matemáticas, luego comunicación
-      motivosAMostrar.sort((a, b) => {
-        const aEsMat = MOTIVOS_MATEMATICAS.includes(a);
-        const bEsMat = MOTIVOS_MATEMATICAS.includes(b);
-        if (aEsMat && !bEsMat) return -1;
-        if (!aEsMat && bEsMat) return 1;
-        return 0;
-      });
-    }
-  }
-  
-  // Generar checkboxes de motivos
-  generarMotivos(motivosAMostrar);
-  
-  // Mostrar contenedor de motivos
-  if (motivosAMostrar.length > 0) {
-    motivosContainer.classList.remove('hidden');
-  } else {
-    motivosContainer.classList.add('hidden');
-  }
-}
-
-// Función genérica para generar checkboxes de motivos
-function generarMotivosGenerico(motivos, containerId, nameAttr) {
-  const motivosCheckboxes = document.getElementById(containerId);
-  if (!motivosCheckboxes) return;
-  
-  motivosCheckboxes.innerHTML = '';
-  
-  motivos.forEach(motivo => {
-    const label = document.createElement('label');
-    label.className = 'checkbox-label';
-    
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.name = nameAttr;
-    input.value = motivo;
-    
-    const span = document.createElement('span');
-    span.textContent = motivo;
-    
-    label.appendChild(input);
-    label.appendChild(span);
-    motivosCheckboxes.appendChild(label);
-  });
-}
-
-// Generar checkboxes de motivos (Individual)
-function generarMotivos(motivos) {
-  generarMotivosGenerico(motivos, 'motivosCheckboxes', 'motivo');
-}
-
-// Generar checkboxes de motivos (Grupal)
-function generarMotivosGrupal(motivos) {
-  generarMotivosGenerico(motivos, 'motivosCheckboxesGrupal', 'motivoGrupal');
-}
-
-// Función genérica para limpiar motivos
-function limpiarMotivosGenerico(checkboxesId, containerId) {
-  const motivosCheckboxes = document.getElementById(checkboxesId);
-  if (motivosCheckboxes) {
-    motivosCheckboxes.innerHTML = '';
-  }
-  const motivosContainer = document.getElementById(containerId);
-  if (motivosContainer) {
-    motivosContainer.classList.add('hidden');
-  }
-}
-
-// Limpiar motivos (Individual)
-function limpiarMotivos() {
-  limpiarMotivosGenerico('motivosCheckboxes', 'motivosContainer');
-}
-
-// Limpiar motivos (Grupal)
-function limpiarMotivosGrupal() {
-  limpiarMotivosGenerico('motivosCheckboxesGrupal', 'motivosContainerGrupal');
-}
-
-// Función genérica para manejar asignaturas (reutilizable)
-function manejarAsignaturasGenerico(tipo) {
-  const esGrupal = tipo === 'grupal';
-  const nameAttr = esGrupal ? 'asignaturaGrupal' : 'asignatura';
-  const otroContainerId = esGrupal ? 'otroAsignaturaContainerGrupal' : 'otroAsignaturaContainer';
-  const otroInputId = esGrupal ? 'otroAsignaturaGrupal' : 'otroAsignatura';
-  const motivosContainerId = esGrupal ? 'motivosContainerGrupal' : 'motivosContainer';
-  const motivosCheckboxesId = esGrupal ? 'motivosCheckboxesGrupal' : 'motivosCheckboxes';
-  const generarMotivosFunc = esGrupal ? generarMotivosGrupal : generarMotivos;
-  const limpiarMotivosFunc = esGrupal ? limpiarMotivosGrupal : limpiarMotivos;
-  
-  const asignaturasSeleccionadas = Array.from(document.querySelectorAll(`input[name="${nameAttr}"]:checked`)).map(cb => cb.value);
-  const otroAsignaturaContainer = document.getElementById(otroContainerId);
-  const motivosContainer = document.getElementById(motivosContainerId);
-  const motivosCheckboxes = document.getElementById(motivosCheckboxesId);
-  
-  // Mostrar/ocultar campo "Otras"
-  const otrasSeleccionada = asignaturasSeleccionadas.includes('Otras');
-  if (otrasSeleccionada) {
-    otroAsignaturaContainer.classList.remove('hidden');
-    document.getElementById(otroInputId).required = true;
-  } else {
-    otroAsignaturaContainer.classList.add('hidden');
-    document.getElementById(otroInputId).required = false;
-    document.getElementById(otroInputId).value = '';
-  }
-  
-  // Si no hay asignaturas seleccionadas, ocultar motivos
-  if (asignaturasSeleccionadas.length === 0) {
-    motivosContainer.classList.add('hidden');
-    limpiarMotivosFunc();
-    return;
-  }
-  
-  // Determinar qué motivos mostrar
-  const tieneMatematicas = asignaturasSeleccionadas.some(a => ASIGNATURAS_MATEMATICAS.includes(a));
-  const tieneComunicacion = asignaturasSeleccionadas.includes('Comunicación y Lenguaje I - II');
-  const tieneOtras = asignaturasSeleccionadas.includes('Otras');
-  
-  let motivosAMostrar = [];
-  
-  if (tieneOtras) {
-    // Si tiene "Otras", mostrar todos los motivos (sin repetir)
-    const todosMotivos = [...MOTIVOS_MATEMATICAS, ...MOTIVOS_COMUNICACION];
-    // Eliminar duplicados
-    motivosAMostrar = [...new Set(todosMotivos)];
-    // Ordenar: primero matemáticas, luego comunicación
-    motivosAMostrar.sort((a, b) => {
-      const aEsMat = MOTIVOS_MATEMATICAS.includes(a);
-      const bEsMat = MOTIVOS_MATEMATICAS.includes(b);
-      if (aEsMat && !bEsMat) return -1;
-      if (!aEsMat && bEsMat) return 1;
-      return 0;
-    });
-  } else {
-    if (tieneMatematicas) {
-      motivosAMostrar = [...motivosAMostrar, ...MOTIVOS_MATEMATICAS];
-    }
-    if (tieneComunicacion) {
-      motivosAMostrar = [...motivosAMostrar, ...MOTIVOS_COMUNICACION];
-    }
-    // Eliminar duplicados si tiene ambos
-    if (tieneMatematicas && tieneComunicacion) {
-      motivosAMostrar = [...new Set(motivosAMostrar)];
-      // Mantener orden: primero matemáticas, luego comunicación
-      motivosAMostrar.sort((a, b) => {
-        const aEsMat = MOTIVOS_MATEMATICAS.includes(a);
-        const bEsMat = MOTIVOS_MATEMATICAS.includes(b);
-        if (aEsMat && !bEsMat) return -1;
-        if (!aEsMat && bEsMat) return 1;
-        return 0;
-      });
-    }
-  }
-  
-  // Generar checkboxes de motivos
-  generarMotivosFunc(motivosAMostrar);
-  
-  // Mostrar contenedor de motivos
-  if (motivosAMostrar.length > 0) {
-    motivosContainer.classList.remove('hidden');
-  } else {
-    motivosContainer.classList.add('hidden');
-  }
-}
-
-// Manejar cambio de asignaturas (Individual)
-function manejarAsignaturas() {
-  manejarAsignaturasGenerico('individual');
-}
-
-// Manejar cambio de asignaturas (Grupal)
-function manejarAsignaturasGrupal() {
-  manejarAsignaturasGenerico('grupal');
-}
-
-// Función genérica para generar un select
+// ============================================================
+// Generadores de selects
+// ============================================================
 function generarSelect(selectId, opciones, placeholder, required = true) {
   const select = document.getElementById(selectId);
   if (!select) return;
-  
-  select.innerHTML = '';
-  
-  // Agregar opción placeholder
-  const optionPlaceholder = document.createElement('option');
-  optionPlaceholder.value = '';
-  optionPlaceholder.textContent = placeholder;
-  select.appendChild(optionPlaceholder);
-  
-  // Agregar opciones
-  opciones.forEach(opcion => {
-    const option = document.createElement('option');
-    option.value = opcion.value;
-    option.textContent = opcion.text;
-    select.appendChild(option);
+
+  select.innerHTML = `<option value="">${placeholder}</option>`;
+  opciones.forEach(op => {
+    const opt = document.createElement('option');
+    opt.value   = op.value;
+    opt.textContent = op.text;
+    select.appendChild(opt);
   });
-  
   select.required = required;
 }
 
-// Función para generar select de dominio de correo
-function generarSelectDominioCorreo(selectId, required = true) {
+function generarSelectDominioCorreo(selectId) {
   const select = document.getElementById(selectId);
   if (!select) return;
-  
-  select.innerHTML = '';
-  
-  const optionPlaceholder = document.createElement('option');
-  optionPlaceholder.value = '';
-  optionPlaceholder.textContent = 'Seleccione';
-  select.appendChild(optionPlaceholder);
-  
-  OPCIONES_DOMINIO_CORREO.forEach(opcion => {
-    const option = document.createElement('option');
-    option.value = opcion.value;
-    option.textContent = opcion.text;
-    select.appendChild(option);
+
+  select.innerHTML = '<option value="">Seleccione</option>';
+  OPCIONES_DOMINIO_CORREO.forEach(op => {
+    const opt = document.createElement('option');
+    opt.value       = op.value;
+    opt.textContent = op.text;
+    select.appendChild(opt);
   });
-  
-  select.required = required;
+  select.required = true;
 }
 
-// Función genérica para poblar un select
 function poblarSelect(selectElement, datos, opciones = {}) {
-  const {
-    valueKey = null,
-    textKey = null,
-    primeraOpcion = '',
-    ordenar = null
-  } = opciones;
-  
-  // Limpiar select y agregar primera opción
+  const { primeraOpcion = '', ordenar = null } = opciones;
+
   selectElement.innerHTML = primeraOpcion ? `<option value="">${primeraOpcion}</option>` : '';
-  
-  if (!datos || datos.length === 0) return;
-  
-  // Ordenar datos si se proporciona función
+
   const datosOrdenados = ordenar ? [...datos].sort(ordenar) : datos;
-  
-  // Crear fragment para mejor rendimiento
   const fragment = document.createDocumentFragment();
-  
-  for (const item of datosOrdenados) {
-    const option = document.createElement('option');
-    
-    if (typeof item === 'string') {
-      option.value = item;
-      option.textContent = item;
-    } else {
-      option.value = valueKey ? item[valueKey] : item;
-      option.textContent = textKey ? item[textKey] : item;
-    }
-    
-    fragment.appendChild(option);
-  }
-  
+
+  datosOrdenados.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value       = item;
+    opt.textContent = item;
+    fragment.appendChild(opt);
+  });
+
   selectElement.appendChild(fragment);
 }
 
-// Función para precargar datos de facultades desde la BD
+// ============================================================
+// Facultades y programas (desde BD)
+// ============================================================
 async function precargarDatosFacultades() {
-  if (datosCacheFacultades.length > 0) return; // Ya cargados
-  
-  try {
-    console.log('Precargando datos de facultades y programas...');
-    
-    const facultadesCarreras = await supabaseQuery('facultades_carreras');
-    
-    datosCacheFacultades = facultadesCarreras;
-    procesarFacultadesData();
-    
-    console.log('Datos de facultades y programas cargados');
-  } catch (error) {
-    console.error('Error precargando datos de facultades:', error);
-    throw error;
-  }
-}
+  if (datosCacheFacultades.length > 0) return;
+  const data = await supabaseQuery('facultades_carreras');
+  datosCacheFacultades = data;
 
-// Función para procesar los datos de facultades y crear la estructura
-function procesarFacultadesData() {
   facultadesData = {};
-  
-  for (const item of datosCacheFacultades) {
-    if (!facultadesData[item.facultad]) {
-      facultadesData[item.facultad] = [];
-    }
+  data.forEach(item => {
+    if (!facultadesData[item.facultad]) facultadesData[item.facultad] = [];
     facultadesData[item.facultad].push(item.programa);
-  }
-  
-  // Eliminar duplicados de programas por facultad
-  for (const facultad in facultadesData) {
-    facultadesData[facultad] = [...new Set(facultadesData[facultad])];
+  });
+  for (const f in facultadesData) {
+    facultadesData[f] = [...new Set(facultadesData[f])];
   }
 }
 
-// Función para cargar facultades en el select
-function cargarFacultades(selectId) {
-  const select = document.getElementById(selectId);
+function cargarFacultades() {
+  const select = document.getElementById('facultad');
   if (!select) return;
-  
-  const facultades = Object.keys(facultadesData);
-  poblarSelect(select, facultades, {
+  poblarSelect(select, Object.keys(facultadesData), {
     primeraOpcion: 'Seleccione una facultad',
     ordenar: (a, b) => a.localeCompare(b)
   });
 }
 
-// Función para actualizar programas según facultad seleccionada
-function actualizarProgramas(facultadSelectId, programaSelectId) {
-  const facultadSelect = document.getElementById(facultadSelectId);
-  const programaSelect = document.getElementById(programaSelectId);
-  
-  if (!facultadSelect || !programaSelect) return;
-  
-  const facultadSeleccionada = facultadSelect.value;
-  
-  // Limpiar el select de programas
-  programaSelect.innerHTML = '';
-  
-  // Agregar opción placeholder
-  const optionPlaceholder = document.createElement('option');
-  optionPlaceholder.value = '';
-  optionPlaceholder.textContent = 'Seleccione un programa';
-  programaSelect.appendChild(optionPlaceholder);
-  
-  // Si hay una facultad seleccionada, mostrar sus programas
-  if (facultadSeleccionada && facultadesData[facultadSeleccionada]) {
-    const programas = facultadesData[facultadSeleccionada];
-    poblarSelect(programaSelect, programas, {
+// Un solo select de programa, un solo select de facultad
+function actualizarProgramas() {
+  const facultadSelect  = document.getElementById('facultad');
+  const programaSelect  = document.getElementById('programa');
+  const facultad        = facultadSelect.value;
+
+  programaSelect.innerHTML = '<option value="">Seleccione un programa</option>';
+
+  if (facultad && facultadesData[facultad]) {
+    poblarSelect(programaSelect, facultadesData[facultad], {
       primeraOpcion: 'Seleccione un programa',
       ordenar: (a, b) => a.localeCompare(b)
     });
@@ -748,685 +328,582 @@ function actualizarProgramas(facultadSelectId, programaSelectId) {
     programaSelect.required = true;
   } else {
     programaSelect.disabled = true;
-    programaSelect.required = false;
   }
 }
 
-// Función para generar checkboxes de asignaturas
-function generarAsignaturasCheckboxes(containerId, nameAttr, onChangeFunc) {
-  const container = document.getElementById(containerId);
+// ============================================================
+// Asignaturas y motivos (un solo conjunto de elementos)
+// ============================================================
+function generarAsignaturasCheckboxes() {
+  const container = document.getElementById('asignaturasContainer');
   if (!container) return;
-  
   container.innerHTML = '';
-  
+
   ASIGNATURAS_DISPONIBLES.forEach(asignatura => {
     const label = document.createElement('label');
     label.className = 'checkbox-label';
-    
+
     const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.name = nameAttr;
-    input.value = asignatura;
-    input.onchange = onChangeFunc;
-    
+    input.type     = 'checkbox';
+    input.name     = 'asignatura';
+    input.value    = asignatura;
+    input.onchange = manejarAsignaturas;
+
     const span = document.createElement('span');
     span.textContent = asignatura;
-    
+
     label.appendChild(input);
     label.appendChild(span);
     container.appendChild(label);
   });
 }
 
-// Manejar cambio de dominio de correo
-document.addEventListener('DOMContentLoaded', async function() {
-  // Precargar datos de facultades desde la BD
-  try {
-    await precargarDatosFacultades();
-  } catch (error) {
-    console.error('Error al cargar facultades:', error);
-  }
-  
-  // Generar selects compartidos para Individual
-  generarSelect('sede', OPCIONES_SEDE, 'Seleccione una sede');
-  // Facultad se carga desde la BD
-  cargarFacultades('facultad');
-  // Programa se genera dinámicamente según facultad
-  const programaIndividual = document.getElementById('programa');
-  if (programaIndividual) {
-    programaIndividual.innerHTML = '<option value="">Seleccione un programa</option>';
-    programaIndividual.disabled = true;
-    programaIndividual.required = true;
-  }
-  generarSelect('semestre', OPCIONES_SEMESTRE, 'Seleccione un semestre');
-  generarSelect('estudianteConsciente', OPCIONES_SI_NO, 'Seleccione una opción');
-  generarSelect('cargo', OPCIONES_CARGO, 'Seleccione un cargo');
-  generarSelect('dependencia', OPCIONES_DEPENDENCIA, 'Seleccione una dependencia');
-  generarSelectDominioCorreo('dominioCorreo');
-  generarSelectDominioCorreo('dominioCorreoEstudiante');
+function manejarAsignaturas() {
+  const seleccionadas  = Array.from(document.querySelectorAll('input[name="asignatura"]:checked')).map(cb => cb.value);
+  const otroContainer  = document.getElementById('otroAsignaturaContainer');
+  const otroInput      = document.getElementById('otroAsignatura');
+  const motivosContainer = document.getElementById('motivosContainer');
 
-  // Generar selects compartidos para Grupal
-  generarSelect('sedeGrupal', OPCIONES_SEDE, 'Seleccione una sede');
-  // Facultad se carga desde la BD
-  cargarFacultades('facultadGrupal');
-  // Programa se genera dinámicamente según facultad
-  const programaGrupal = document.getElementById('programaGrupal');
-  if (programaGrupal) {
-    programaGrupal.innerHTML = '<option value="">Seleccione un programa</option>';
-    programaGrupal.disabled = true;
-    programaGrupal.required = true;
-  }
-  generarSelect('semestreGrupal', OPCIONES_SEMESTRE, 'Seleccione un semestre');
-  generarSelect('grupoConsciente', OPCIONES_SI_NO, 'Seleccione una opción');
-  generarSelect('cargoGrupal', OPCIONES_CARGO, 'Seleccione un cargo');
-  generarSelect('dependenciaGrupal', OPCIONES_DEPENDENCIA, 'Seleccione una dependencia');
-  generarSelectDominioCorreo('dominioCorreoVocero');
-  generarSelectDominioCorreo('dominioCorreoGrupal');
-  
-  // Agregar event listeners para cambios de facultad
-  const facultadIndividual = document.getElementById('facultad');
-  const facultadGrupal = document.getElementById('facultadGrupal');
-  
-  if (facultadIndividual) {
-    facultadIndividual.addEventListener('change', function() {
-      actualizarProgramas('facultad', 'programa');
-    });
-  }
-  
-  if (facultadGrupal) {
-    facultadGrupal.addEventListener('change', function() {
-      actualizarProgramas('facultadGrupal', 'programaGrupal');
-    });
-  }
-  
-  // Generar checkboxes de asignaturas para Individual
-  generarAsignaturasCheckboxes('asignaturasContainer', 'asignatura', manejarAsignaturas);
-  
-  // Generar checkboxes de asignaturas para Grupal
-  generarAsignaturasCheckboxes('asignaturasContainerGrupal', 'asignaturaGrupal', manejarAsignaturasGrupal);
-  
-  // Event listeners para todos los correos usando la función genérica
-const correosConfig = [
-  { input: 'correo', dominio: 'dominioCorreo', completo: 'correoCompleto' },
-  { input: 'correoEstudiante', dominio: 'dominioCorreoEstudiante', completo: 'correoEstudianteCompleto' },
-  { input: 'correoVocero', dominio: 'dominioCorreoVocero', completo: 'correoVoceroCompleto' },
-  { input: 'correoGrupal', dominio: 'dominioCorreoGrupal', completo: 'correoGrupalCompleto' }
-];
+  // Mostrar/ocultar "Otras"
+  const tieneOtras = seleccionadas.includes('Otras');
+  otroContainer.classList.toggle('hidden', !tieneOtras);
+  otroInput.required = tieneOtras;
+  if (!tieneOtras) otroInput.value = '';
 
-correosConfig.forEach(config => {
-  const dominioSelect = document.getElementById(config.dominio);
-  const correoInput = document.getElementById(config.input);
-
-  if (dominioSelect) {
-    dominioSelect.addEventListener('change', function() {
-      actualizarCorreoCompleto(config.input);
-    });
+  if (seleccionadas.length === 0) {
+    motivosContainer.classList.add('hidden');
+    document.getElementById('motivosCheckboxes').innerHTML = '';
+    return;
   }
 
-  if (correoInput) {
-    correoInput.addEventListener('blur', function() {
-      actualizarCorreoCompleto(config.input);
-      const correoCompleto = document.getElementById(config.completo);
-      if (this.value.trim() && !correoCompleto.value) {
-        this.setCustomValidity('Seleccione un dominio de correo');
-      }
-    });
+  // Calcular motivos a mostrar
+  const tieneMatematicas  = seleccionadas.some(a => ASIGNATURAS_MATEMATICAS.includes(a));
+  const tieneComunicacion = seleccionadas.includes('Comunicación y Lenguaje I - II');
+
+  let motivosAMostrar = [];
+
+  if (tieneOtras) {
+    motivosAMostrar = [...new Set([...MOTIVOS_MATEMATICAS, ...MOTIVOS_COMUNICACION])];
+  } else {
+    if (tieneMatematicas)  motivosAMostrar.push(...MOTIVOS_MATEMATICAS);
+    if (tieneComunicacion) motivosAMostrar.push(...MOTIVOS_COMUNICACION);
+    if (tieneMatematicas && tieneComunicacion) motivosAMostrar = [...new Set(motivosAMostrar)];
   }
-});
 
-});
-
-
-// Variable para controlar los reintentos
-let intentosRestantes = 3;
-
-// Función para obtener los datos del formulario
-function obtenerDatosFormulario() {
-  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
-  
-  // Limpiar espacios en todos los campos
-  const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], textarea');
-  inputs.forEach(input => {
-    if (input.value.trim()) {
-      limpiarEspacios(input);
-    }
+  // Orden: matemáticas primero, comunicación después
+  motivosAMostrar.sort((a, b) => {
+    const aM = MOTIVOS_MATEMATICAS.includes(a);
+    const bM = MOTIVOS_MATEMATICAS.includes(b);
+    if (aM && !bM) return -1;
+    if (!aM && bM) return 1;
+    return 0;
   });
-  
-  // Obtener fecha en formato ISO con timezone para PostgreSQL
-  const fechaColombia = obtenerFechaColombia();
-  const fechaISO = fechaColombia.includes('T') ? fechaColombia : `${fechaColombia}T00:00:00`;
-  
-  let datos = {
-    tipo_acompanamiento: tipoAcompanamiento, // Select - mantener original
-    fecha_hora: fechaISO
-  };
-  
-  if (tipoAcompanamiento === 'Individual') {
-    // Campos de escritura (inputs de texto) - convertir a mayúsculas
-const documento = document.getElementById('documento').value.trim().toUpperCase();
-const nombresApellidos = document.getElementById('nombresApellidos').value.trim().toUpperCase();
-const contactoEstudiante = document.getElementById('contactoEstudiante').value.trim();
-const correoEstudianteCompleto = document.getElementById('correoEstudianteCompleto').value.trim().toLowerCase();
-const grupo = document.getElementById('grupo').value.trim().toUpperCase();
-const nombreSolicitante = document.getElementById('nombreSolicitante').value.trim().toUpperCase();
-const correoCompleto = document.getElementById('correoCompleto').value.trim().toLowerCase();
-    
-    // Campos de opciones (selects) - mantener original
-    const sede = document.getElementById('sede').value;
-    const facultad = document.getElementById('facultad').value;
-    const programa = document.getElementById('programa').value;
-    const semestre = document.getElementById('semestre').value;
-    const estudianteConsciente = document.getElementById('estudianteConsciente').value;
-    const cargo = document.getElementById('cargo').value;
-    const dependencia = document.getElementById('dependencia').value;
-    
-    // Asignaturas seleccionadas (checkboxes) - mantener original
-    const asignaturas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked')).map(cb => cb.value);
-    const otraAsignatura = document.getElementById('otroAsignatura').value.trim();
-    if (asignaturas.includes('Otras') && otraAsignatura) {
-      asignaturas[asignaturas.indexOf('Otras')] = `Otras: ${otraAsignatura.toUpperCase()}`;
-    }
-    
-    // Motivos seleccionados (checkboxes) - mantener original
-    const motivos = Array.from(document.querySelectorAll('input[name="motivo"]:checked')).map(cb => cb.value);
-    
-    datos = {
-      ...datos,
-      documento,
-      nombres_y_apellidos: nombresApellidos,
-      contacto: contactoEstudiante,
-      correo_estudiante: correoEstudianteCompleto,
-      grupo,
-      sede,
-      facultad_estudiante: facultad,
-      programa_estudiante: programa,
-      semestre,
-      enterado: estudianteConsciente,
-      profesor: nombreSolicitante,
-      cargo,
-      dependencia,
-      correo_profesor: correoCompleto,
-      asignatura: asignaturas.join('; '),
-      motivo: motivos.join('; ')
-    };
-  } else if (tipoAcompanamiento === 'Grupal') {
-    // Campos de escritura (inputs de texto) - convertir a mayúsculas
-    const grupoGrupal = document.getElementById('grupoGrupal').value.trim().toUpperCase();
-    const nombresApellidosVocero = document.getElementById('nombresApellidosVocero').value.trim().toUpperCase();
-    const contactoVocero = document.getElementById('contactoVocero').value.trim();
-    const nombreSolicitanteGrupal = document.getElementById('nombreSolicitanteGrupal').value.trim().toUpperCase();
-    const correoVoceroCompleto = document.getElementById('correoVoceroCompleto').value.trim().toLowerCase();
-    const correoGrupalCompleto = document.getElementById('correoGrupalCompleto').value.trim().toLowerCase();
-    
-    // Campos de opciones (selects) - mantener original
-    const sedeGrupal = document.getElementById('sedeGrupal').value;
-    const facultadGrupal = document.getElementById('facultadGrupal').value;
-    const programaGrupal = document.getElementById('programaGrupal').value;
-    const semestreGrupal = document.getElementById('semestreGrupal').value;
-    const grupoConsciente = document.getElementById('grupoConsciente').value;
-    const cargoGrupal = document.getElementById('cargoGrupal').value;
-    const dependenciaGrupal = document.getElementById('dependenciaGrupal').value;
-    
-    // Asignaturas seleccionadas (checkboxes) - mantener original
-    const asignaturasGrupal = Array.from(document.querySelectorAll('input[name="asignaturaGrupal"]:checked')).map(cb => cb.value);
-    const otraAsignaturaGrupal = document.getElementById('otroAsignaturaGrupal').value.trim();
-    if (asignaturasGrupal.includes('Otras') && otraAsignaturaGrupal) {
-      asignaturasGrupal[asignaturasGrupal.indexOf('Otras')] = `Otras: ${otraAsignaturaGrupal.toUpperCase()}`;
-    }
-    
-    // Motivos seleccionados (checkboxes) - mantener original
-    const motivosGrupal = Array.from(document.querySelectorAll('input[name="motivoGrupal"]:checked')).map(cb => cb.value);
-    
-    datos = {
-      ...datos,
-      // No enviar documento en grupal (es opcional)
-      nombres_y_apellidos: nombresApellidosVocero,
-      grupo: grupoGrupal,
-      contacto: contactoVocero,
-      correo_estudiante: correoVoceroCompleto,
-      sede: sedeGrupal,
-      facultad_estudiante: facultadGrupal,
-      programa_estudiante: programaGrupal,
-      semestre: semestreGrupal,
-      enterado: grupoConsciente,
-      profesor: nombreSolicitanteGrupal,
-      cargo: cargoGrupal,
-      dependencia: dependenciaGrupal,
-      correo_profesor: correoGrupalCompleto,
-      asignatura: asignaturasGrupal.join('; '),
-      motivo: motivosGrupal.join('; ')
-    };
+
+  // Renderizar checkboxes de motivos
+  const motivosCheckboxes = document.getElementById('motivosCheckboxes');
+  motivosCheckboxes.innerHTML = '';
+  motivosAMostrar.forEach(motivo => {
+    const label = document.createElement('label');
+    label.className = 'checkbox-label';
+
+    const input = document.createElement('input');
+    input.type  = 'checkbox';
+    input.name  = 'motivo';
+    input.value = motivo;
+
+    const span = document.createElement('span');
+    span.textContent = motivo;
+
+    label.appendChild(input);
+    label.appendChild(span);
+    motivosCheckboxes.appendChild(label);
+  });
+
+  motivosContainer.classList.toggle('hidden', motivosAMostrar.length === 0);
+}
+
+// ============================================================
+// Manejo del tipo de acompañamiento — actualiza labels y visibilidad
+// ============================================================
+function manejarTipoAcompanamiento() {
+  const tipo = document.getElementById('tipoAcompanamiento').value;
+  const seccion = document.getElementById('seccionDinamica');
+
+  if (!tipo) {
+    seccion.classList.add('hidden');
+    resetearFormulario(false);
+    return;
   }
-  
+
+  // Mostrar sección compartida
+  seccion.classList.remove('hidden');
+
+  const textos = TEXTOS[tipo];
+
+  // Actualizar subtítulo
+  document.getElementById('subtituloDinamico').textContent = textos.subtitulo;
+
+  // Actualizar todos los labels dinámicos (sin tocar el asterisco)
+  actualizarLabel('labelDocumento',  textos.labelDocumento);
+  actualizarLabel('labelContacto',   textos.labelContacto);
+  actualizarLabel('labelCorreoPersona', textos.labelCorreo);
+  actualizarLabel('labelGrupo',      textos.labelGrupo);
+  actualizarLabel('labelFacultad',   textos.labelFacultad);
+  actualizarLabel('labelPrograma',   textos.labelPrograma);
+  actualizarLabel('labelConsciente', textos.labelConsciente);
+
+  // Campos exclusivos según tipo
+  const campoNombreIndividual = document.getElementById('campoNombresIndividual');
+  const campoNombreVocero     = document.getElementById('campoNombreVocero');
+  const nombresApellidos      = document.getElementById('nombresApellidos');
+  const nombresVocero         = document.getElementById('nombresApellidosVocero');
+
+  if (tipo === 'Individual') {
+    // Mostrar nombre del estudiante, ocultar nombre del vocero
+    campoNombreIndividual.classList.remove('hidden');
+    campoNombreVocero.classList.add('hidden');
+    nombresApellidos.required = true;
+    nombresVocero.required    = false;
+    nombresVocero.value       = '';
+  } else {
+    // Mostrar nombre del vocero, ocultar nombre del estudiante
+    campoNombreVocero.classList.remove('hidden');
+    campoNombreIndividual.classList.add('hidden');
+    nombresVocero.required    = true;
+    nombresApellidos.required = false;
+    nombresApellidos.value    = '';
+  }
+
+  // Limpiar campos comunes al cambiar de tipo para evitar datos cruzados
+  limpiarCamposComunes();
+}
+
+// Actualiza el texto de un label conservando el <span> del asterisco
+function actualizarLabel(labelId, nuevoTexto) {
+  const label = document.getElementById(labelId);
+  if (!label) return;
+  const asterisco = label.querySelector('span');
+  label.textContent = nuevoTexto + ' ';
+  if (asterisco) label.appendChild(asterisco);
+}
+
+function limpiarCamposComunes() {
+  // Inputs de texto / tel
+  ['documento', 'nombresApellidos', 'nombresApellidosVocero', 'contacto',
+   'correoPersona', 'grupo', 'nombreSolicitante', 'correo', 'otroAsignatura', 'infoAdicional'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Campos ocultos de correo
+  ['correoPersonaCompleto', 'correoCompleto'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Selects — volver a primera opción
+  ['sede', 'facultad', 'semestre', 'consciente', 'cargo', 'dependencia',
+   'dominioCorreoPersona', 'dominioCorreo'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.selectedIndex = 0;
+  });
+
+  // Programa — deshabilitar y limpiar
+  const programa = document.getElementById('programa');
+  if (programa) {
+    programa.innerHTML = '<option value="">Seleccione un programa</option>';
+    programa.disabled = true;
+  }
+
+  // Checkboxes de asignaturas
+  document.querySelectorAll('input[name="asignatura"]').forEach(cb => cb.checked = false);
+
+  // Motivos — ocultar y limpiar
+  document.getElementById('motivosCheckboxes').innerHTML = '';
+  document.getElementById('motivosContainer').classList.add('hidden');
+  document.getElementById('otroAsignaturaContainer').classList.add('hidden');
+}
+
+// ============================================================
+// Obtener datos del formulario (estructura unificada)
+// ============================================================
+function obtenerDatosFormulario() {
+  const tipo = document.getElementById('tipoAcompanamiento').value;
+
+  // Limpiar espacios en todos los inputs visibles
+  document.querySelectorAll('input[type="text"], input[type="tel"], textarea').forEach(el => {
+    if (el.value.trim()) limpiarEspacios(el);
+  });
+
+  // Asignaturas
+  const asignaturas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked')).map(cb => cb.value);
+  const otraAsignatura = document.getElementById('otroAsignatura').value.trim();
+  if (asignaturas.includes('Otras') && otraAsignatura) {
+    asignaturas[asignaturas.indexOf('Otras')] = `Otras: ${otraAsignatura.toUpperCase()}`;
+  }
+
+  // Motivos
+  const motivos = Array.from(document.querySelectorAll('input[name="motivo"]:checked')).map(cb => cb.value);
+
+  // Campos comunes
+  const datos = {
+    tipo_acompanamiento:  tipo,
+    fecha_hora:           obtenerFechaColombia(),
+    documento:            document.getElementById('documento').value.trim().toUpperCase(),
+    contacto:             document.getElementById('contacto').value.trim(),
+    correo_estudiante:    document.getElementById('correoPersonaCompleto').value.trim().toLowerCase(),
+    grupo:                document.getElementById('grupo').value.trim().toUpperCase(),
+    sede:                 document.getElementById('sede').value,
+    facultad_estudiante:  document.getElementById('facultad').value,
+    programa_estudiante:  document.getElementById('programa').value,
+    semestre:             document.getElementById('semestre').value,
+    enterado:             document.getElementById('consciente').value,
+    profesor:             document.getElementById('nombreSolicitante').value.trim().toUpperCase(),
+    cargo:                document.getElementById('cargo').value,
+    dependencia:          document.getElementById('dependencia').value,
+    correo_profesor:      document.getElementById('correoCompleto').value.trim().toLowerCase(),
+    asignatura:           asignaturas.join('; '),
+    motivo:               motivos.join('; '),
+    comentarios:          document.getElementById('infoAdicional').value.trim().toUpperCase() || null
+  };
+
+  // Campos exclusivos según tipo
+  if (tipo === 'Individual') {
+    datos.nombres_y_apellidos = document.getElementById('nombresApellidos').value.trim().toUpperCase();
+  } else {
+    datos.nombres_y_apellidos = document.getElementById('nombresApellidosVocero').value.trim().toUpperCase();
+  }
+
   return datos;
 }
 
-// Función para intentar enviar con reintentos
+// ============================================================
+// Validación antes de enviar
+// ============================================================
+function validarFormulario() {
+  const tipo = document.getElementById('tipoAcompanamiento').value;
+
+  if (!tipo) {
+    mostrarMensaje('Por favor seleccione un tipo de acompañamiento', 'error');
+    return false;
+  }
+
+  // Documento
+  const docInput = document.getElementById('documento');
+  validarDocumento(docInput);
+  if (!docInput.validity.valid) { docInput.reportValidity(); scrollToError(docInput); return false; }
+
+  // Nombre individual
+  if (tipo === 'Individual') {
+    const nombres = document.getElementById('nombresApellidos');
+    if (!nombres.value.trim()) {
+      mostrarMensaje('Por favor ingrese los nombres y apellidos del estudiante', 'error');
+      scrollToError(nombres); return false;
+    }
+  } else {
+    const vocero = document.getElementById('nombresApellidosVocero');
+    if (!vocero.value.trim()) {
+      mostrarMensaje('Por favor ingrese los nombres y apellidos del vocero', 'error');
+      scrollToError(vocero); return false;
+    }
+  }
+
+  // Contacto
+  const contactoInput = document.getElementById('contacto');
+  validarContacto(contactoInput);
+  if (!contactoInput.validity.valid) { contactoInput.reportValidity(); scrollToError(contactoInput); return false; }
+
+  // Correo de la persona (estudiante/vocero)
+  const correoPersonaCompleto = document.getElementById('correoPersonaCompleto').value.trim();
+  if (!correoPersonaCompleto || !correoPersonaCompleto.includes('@')) {
+    mostrarMensaje('Por favor complete el correo correctamente', 'error');
+    scrollToError(document.getElementById('correoPersona')); return false;
+  }
+
+  // Facultad
+  if (!document.getElementById('facultad').value) {
+    mostrarMensaje('Por favor seleccione una facultad', 'error');
+    scrollToError(document.getElementById('facultad')); return false;
+  }
+
+  // Programa
+  const programaEl = document.getElementById('programa');
+  if (!programaEl.value || programaEl.disabled) {
+    mostrarMensaje('Por favor seleccione un programa', 'error');
+    scrollToError(programaEl); return false;
+  }
+
+  // Asignaturas
+  const asignaturas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked'));
+  if (asignaturas.length === 0) {
+    mostrarMensaje('Por favor seleccione al menos una asignatura', 'error');
+    scrollToError(document.getElementById('asignaturasContainer')); return false;
+  }
+
+  if (asignaturas.some(a => a.value === 'Otras')) {
+    if (!document.getElementById('otroAsignatura').value.trim()) {
+      mostrarMensaje('Por favor especifique la otra asignatura', 'error');
+      scrollToError(document.getElementById('otroAsignatura')); return false;
+    }
+  }
+
+  // Motivos
+  const motivos = Array.from(document.querySelectorAll('input[name="motivo"]:checked'));
+  if (motivos.length === 0) {
+    mostrarMensaje('Por favor seleccione al menos un motivo', 'error');
+    scrollToError(document.getElementById('motivosContainer')); return false;
+  }
+
+  // Correo institucional del solicitante
+  const correoCompleto = document.getElementById('correoCompleto').value.trim();
+  if (!correoCompleto || !correoCompleto.includes('@')) {
+    mostrarMensaje('Por favor complete el correo institucional correctamente', 'error');
+    scrollToError(document.getElementById('correo')); return false;
+  }
+
+  return true;
+}
+
+// ============================================================
+// Envío del formulario
+// ============================================================
+let intentosRestantes = 3;
+
+async function enviarFormulario(event) {
+  event.preventDefault();
+
+  const btnEnviar = document.getElementById('btnEnviar');
+
+  if (!validarFormulario()) {
+    btnEnviar.disabled  = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    return;
+  }
+
+  let datos;
+  try {
+    datos = obtenerDatosFormulario();
+  } catch (err) {
+    console.error('Error al obtener datos:', err);
+    mostrarMensaje('Error al procesar los datos del formulario', 'error');
+    return;
+  }
+
+  btnEnviar.disabled    = true;
+  btnEnviar.textContent = 'Enviando...';
+  intentosRestantes     = 3;
+
+  try {
+    await intentarEnviarConReintentos(datos);
+  } catch (err) {
+    console.error('Error después de 3 intentos:', err);
+    mostrarMensaje('Error al enviar el formulario después de 3 intentos. Verifique su conexión e intente nuevamente.', 'error');
+    btnEnviar.disabled    = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+  }
+}
+
 async function intentarEnviarConReintentos(datos, intento = 1) {
   const btnEnviar = document.getElementById('btnEnviar');
-  
   try {
-    // Insertar en Supabase (ajustar el nombre de la tabla según corresponda)
     await supabaseInsert('acompanamiento', datos);
-    
     intentosRestantes = 3;
     mostrarModalExito();
-    
+
     setTimeout(() => {
-      document.getElementById('formAcompanamiento').reset();
-      document.getElementById('correoCompleto').value = '';
-      document.getElementById('correoVoceroCompleto').value = '';
-      document.getElementById('correoGrupalCompleto').value = '';
-      const errorDocumento = document.getElementById('errorDocumento');
-      if (errorDocumento) {
-        errorDocumento.style.display = 'none';
-      }
-      document.getElementById('camposIndividual').classList.add('hidden');
-      document.getElementById('camposGrupal').classList.add('hidden');
-      limpiarMotivos();
-      limpiarMotivosGrupal();
-      btnEnviar.disabled = false;
+      resetearFormulario(true);
+      btnEnviar.disabled    = false;
       btnEnviar.textContent = 'Enviar Formulario';
       regresarABienvenida();
     }, 2000);
 
     return true;
-  } catch (error) {
-    console.error(`Error en intento ${intento}:`, error);
-    
+  } catch (err) {
+    console.error(`Error intento ${intento}:`, err);
     if (intento < 3) {
       intentosRestantes = 3 - intento;
-      const delay = intento * 1000;
-      
       btnEnviar.textContent = `Reintentando... (${intentosRestantes} intentos restantes)`;
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      return await intentarEnviarConReintentos(datos, intento + 1);
-    } else {
-      intentosRestantes = 3;
-      throw error;
+      await new Promise(r => setTimeout(r, intento * 1000));
+      return intentarEnviarConReintentos(datos, intento + 1);
     }
+    intentosRestantes = 3;
+    throw err;
   }
 }
 
-// Función para enviar el formulario
-async function enviarFormulario(event) {
-  event.preventDefault();
-
-  const btnEnviar = document.getElementById('btnEnviar');
-  const mensajeFormulario = document.getElementById('mensajeFormulario');
-  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
-  
-  // Validar tipo de acompañamiento
-  if (!tipoAcompanamiento) {
-    mostrarMensaje('Por favor seleccione un tipo de acompañamiento', 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    return;
+// ============================================================
+// Resetear formulario completo
+// ============================================================
+function resetearFormulario(incluirTipo = true) {
+  if (incluirTipo) {
+    document.getElementById('tipoAcompanamiento').selectedIndex = 0;
+    document.getElementById('seccionDinamica').classList.add('hidden');
   }
-  
-  // Validaciones para Individual
-  if (tipoAcompanamiento === 'Individual') {
-    const documentoInput = document.getElementById('documento');
-    validarDocumento(documentoInput);
-    if (!documentoInput.validity.valid) {
-      documentoInput.reportValidity();
-      scrollToError(documentoInput);
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-// Validar contacto del estudiante (10 números)
-  const contactoEstudianteInput = document.getElementById('contactoEstudiante');
-  validarContacto(contactoEstudianteInput);
-  if (!contactoEstudianteInput.validity.valid) {
-    contactoEstudianteInput.reportValidity();
-    scrollToError(contactoEstudianteInput);
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    return;
-  }
-  
-  // Validar correo del estudiante
-  const correoEstudianteCompleto = document.getElementById('correoEstudianteCompleto').value.trim();
-  if (!correoEstudianteCompleto || !correoEstudianteCompleto.includes('@')) {
-    mostrarMensaje('Por favor complete el correo del estudiante correctamente', 'error');
-    scrollToError(document.getElementById('correoEstudiante'));
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    return;
-  }
-
-    // Validar asignaturas
-    const asignaturas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked'));
-    if (asignaturas.length === 0) {
-      mostrarMensaje('Por favor seleccione al menos una asignatura', 'error');
-      scrollToError(document.getElementById('asignaturasContainer'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar "Otras" asignatura
-    if (asignaturas.some(a => a.value === 'Otras')) {
-      const otraAsignatura = document.getElementById('otroAsignatura').value.trim();
-      if (!otraAsignatura) {
-        mostrarMensaje('Por favor especifique la otra asignatura', 'error');
-        scrollToError(document.getElementById('otroAsignatura'));
-        btnEnviar.disabled = false;
-        btnEnviar.textContent = 'Enviar Formulario';
-        return;
-      }
-    }
-    
-    // Validar motivos
-    const motivos = Array.from(document.querySelectorAll('input[name="motivo"]:checked'));
-    if (motivos.length === 0) {
-      mostrarMensaje('Por favor seleccione al menos un motivo', 'error');
-      scrollToError(document.getElementById('motivosContainer'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar facultad
-    const facultad = document.getElementById('facultad').value;
-    if (!facultad) {
-      mostrarMensaje('Por favor seleccione una facultad', 'error');
-      scrollToError(document.getElementById('facultad'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar programa
-    const programa = document.getElementById('programa').value;
-    if (!programa || document.getElementById('programa').disabled) {
-      mostrarMensaje('Por favor seleccione un programa', 'error');
-      scrollToError(document.getElementById('programa'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar correo
-    const correoCompleto = document.getElementById('correoCompleto').value.trim();
-    if (!correoCompleto || !correoCompleto.includes('@')) {
-      mostrarMensaje('Por favor complete el correo electrónico correctamente', 'error');
-      scrollToError(document.getElementById('correo'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-  } else if (tipoAcompanamiento === 'Grupal') {
-    // Validar contacto del vocero (10 números)
-    const contactoInput = document.getElementById('contactoVocero');
-    validarContacto(contactoInput);
-    if (!contactoInput.validity.valid) {
-      contactoInput.reportValidity();
-      scrollToError(contactoInput);
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar correo del vocero
-    const correoVoceroCompleto = document.getElementById('correoVoceroCompleto').value.trim();
-    if (!correoVoceroCompleto || !correoVoceroCompleto.includes('@')) {
-      mostrarMensaje('Por favor complete el correo del vocero correctamente', 'error');
-      scrollToError(document.getElementById('correoVocero'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar asignaturas
-    const asignaturas = Array.from(document.querySelectorAll('input[name="asignaturaGrupal"]:checked'));
-    if (asignaturas.length === 0) {
-      mostrarMensaje('Por favor seleccione al menos una asignatura', 'error');
-      scrollToError(document.getElementById('asignaturasContainerGrupal'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar "Otras" asignatura
-    if (asignaturas.some(a => a.value === 'Otras')) {
-      const otraAsignatura = document.getElementById('otroAsignaturaGrupal').value.trim();
-      if (!otraAsignatura) {
-        mostrarMensaje('Por favor especifique la otra asignatura', 'error');
-        scrollToError(document.getElementById('otroAsignaturaGrupal'));
-        btnEnviar.disabled = false;
-        btnEnviar.textContent = 'Enviar Formulario';
-        return;
-      }
-    }
-    
-    // Validar motivos
-    const motivos = Array.from(document.querySelectorAll('input[name="motivoGrupal"]:checked'));
-    if (motivos.length === 0) {
-      mostrarMensaje('Por favor seleccione al menos un motivo', 'error');
-      scrollToError(document.getElementById('motivosContainerGrupal'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar facultad
-    const facultadGrupal = document.getElementById('facultadGrupal').value;
-    if (!facultadGrupal) {
-      mostrarMensaje('Por favor seleccione una facultad', 'error');
-      scrollToError(document.getElementById('facultadGrupal'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar programa
-    const programaGrupal = document.getElementById('programaGrupal').value;
-    if (!programaGrupal || document.getElementById('programaGrupal').disabled) {
-      mostrarMensaje('Por favor seleccione un programa', 'error');
-      scrollToError(document.getElementById('programaGrupal'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-    
-    // Validar correo institucional
-    const correoGrupalCompleto = document.getElementById('correoGrupalCompleto').value.trim();
-    if (!correoGrupalCompleto || !correoGrupalCompleto.includes('@')) {
-      mostrarMensaje('Por favor complete el correo electrónico correctamente', 'error');
-      scrollToError(document.getElementById('correoGrupal'));
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      return;
-    }
-  }
-  
-  // Obtener datos del formulario
-  let datos;
-  try {
-    datos = obtenerDatosFormulario();
-  } catch (error) {
-    console.error('Error al obtener datos:', error);
-    mostrarMensaje('Error al procesar los datos del formulario', 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    return;
-  }
-
-  // Deshabilitar botón mientras se envía
-  btnEnviar.disabled = true;
-  btnEnviar.textContent = 'Enviando...';
-  intentosRestantes = 3;
-
-  try {
-    await intentarEnviarConReintentos(datos);
-  } catch (error) {
-    console.error('Error al enviar formulario después de 3 intentos:', error);
-    mostrarMensaje('Error al enviar el formulario después de 3 intentos. Por favor, verifique su conexión e intente nuevamente más tarde.', 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-  }
+  limpiarCamposComunes();
 }
 
-// Función para hacer scroll a un elemento de error
+// ============================================================
+// UI helpers
+// ============================================================
 function scrollToError(elemento) {
-  if (elemento) {
-    elemento.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'center' 
-    });
-    setTimeout(() => {
-      if (elemento.tagName === 'INPUT' || elemento.tagName === 'SELECT' || elemento.tagName === 'TEXTAREA') {
-        elemento.focus();
-        elemento.style.transition = 'box-shadow 0.3s ease';
-        elemento.style.boxShadow = '0 0 0 4px rgba(220, 53, 69, 0.3)';
-        setTimeout(() => {
-          elemento.style.boxShadow = '';
-        }, 2000);
-      } else {
-        elemento.style.transition = 'box-shadow 0.3s ease';
-        elemento.style.boxShadow = '0 0 0 4px rgba(220, 53, 69, 0.3)';
-        setTimeout(() => {
-          elemento.style.boxShadow = '';
-        }, 2000);
-      }
-    }, 300);
-  }
+  if (!elemento) return;
+  elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => {
+    if (elemento.focus) elemento.focus();
+    elemento.style.transition  = 'box-shadow 0.3s ease';
+    elemento.style.boxShadow   = '0 0 0 4px rgba(220, 53, 69, 0.3)';
+    setTimeout(() => { elemento.style.boxShadow = ''; }, 2000);
+  }, 300);
 }
 
-// Función para mostrar mensajes
 function mostrarMensaje(mensaje, tipo) {
-  const mensajeFormulario = document.getElementById('mensajeFormulario');
-  mensajeFormulario.textContent = mensaje;
-  mensajeFormulario.className = `mensaje ${tipo}`;
-  mensajeFormulario.style.display = 'block';
+  const el = document.getElementById('mensajeFormulario');
+  el.textContent = mensaje;
+  el.className   = `mensaje ${tipo}`;
+  el.style.display = 'block';
 
   if (tipo === 'error') {
-    setTimeout(() => {
-      mensajeFormulario.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-    }, 100);
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
   }
-
-  setTimeout(() => {
-    mensajeFormulario.style.display = 'none';
-  }, 5000);
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
 }
 
-// Función para mostrar modal de éxito
 function mostrarModalExito() {
   const modal = document.getElementById('modalExito');
   modal.classList.remove('hidden');
-
-  setTimeout(() => {
-    modal.classList.add('hidden');
-  }, 3000);
+  setTimeout(() => modal.classList.add('hidden'), 3000);
 }
 
-// Función para mostrar el formulario
+// ============================================================
+// Navegación entre pantallas
+// ============================================================
 async function mostrarFormulario() {
-  // Asegurar que las facultades estén cargadas
   try {
-    if (datosCacheFacultades.length === 0) {
-      await precargarDatosFacultades();
-    }
-    // Recargar las facultades en los selects
-    cargarFacultades('facultad');
-    cargarFacultades('facultadGrupal');
-  } catch (error) {
-    console.error('Error al cargar facultades:', error);
+    if (datosCacheFacultades.length === 0) await precargarDatosFacultades();
+    cargarFacultades();
+  } catch (err) {
+    console.error('Error al cargar facultades:', err);
   }
-  
-  const pantallaBienvenida = document.getElementById('pantallaBienvenida');
-  const contenidoFormulario = document.getElementById('contenidoFormulario');
-  
-  pantallaBienvenida.style.opacity = '0';
-  pantallaBienvenida.style.transition = 'opacity 0.5s ease';
-  
+
+  const bienvenida  = document.getElementById('pantallaBienvenida');
+  const formulario  = document.getElementById('contenidoFormulario');
+
+  bienvenida.style.opacity    = '0';
+  bienvenida.style.transition = 'opacity 0.5s ease';
+
   setTimeout(() => {
-    pantallaBienvenida.style.display = 'none';
-    contenidoFormulario.classList.remove('hidden');
-    contenidoFormulario.style.opacity = '0';
-    contenidoFormulario.style.transition = 'opacity 0.5s ease';
-    
+    bienvenida.style.display  = 'none';
+    formulario.classList.remove('hidden');
+    formulario.style.opacity  = '0';
+    formulario.style.transition = 'opacity 0.5s ease';
     setTimeout(() => {
-      contenidoFormulario.style.opacity = '1';
+      formulario.style.opacity = '1';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 50);
   }, 500);
 }
 
-// Función para regresar a la pantalla de bienvenida
 function regresarABienvenida() {
-  const pantallaBienvenida = document.getElementById('pantallaBienvenida');
-  const contenidoFormulario = document.getElementById('contenidoFormulario');
-  
-  contenidoFormulario.style.opacity = '0';
-  contenidoFormulario.style.transition = 'opacity 0.5s ease';
-  
+  const bienvenida = document.getElementById('pantallaBienvenida');
+  const formulario = document.getElementById('contenidoFormulario');
+
+  formulario.style.opacity    = '0';
+  formulario.style.transition = 'opacity 0.5s ease';
+
   setTimeout(() => {
-    contenidoFormulario.classList.add('hidden');
-    pantallaBienvenida.style.display = 'flex';
-    pantallaBienvenida.style.opacity = '0';
-    pantallaBienvenida.style.transition = 'opacity 0.5s ease';
-    
+    formulario.classList.add('hidden');
+    bienvenida.style.display  = 'flex';
+    bienvenida.style.opacity  = '0';
+    bienvenida.style.transition = 'opacity 0.5s ease';
     setTimeout(() => {
-      pantallaBienvenida.style.opacity = '1';
+      bienvenida.style.opacity = '1';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 50);
   }, 500);
 }
 
-// Función para mostrar modal de confirmación de cancelar
 function mostrarConfirmacionCancelar() {
   const modal = document.getElementById('modalConfirmacion');
-  document.getElementById('tituloConfirmacion').textContent = '¿Seguro que deseas cancelar?';
+  document.getElementById('tituloConfirmacion').textContent  = '¿Seguro que deseas cancelar?';
   document.getElementById('mensajeConfirmacion').textContent = 'Se perderán todos los datos del formulario que has ingresado.';
-  
+
   modal.style.display = 'flex';
   modal.classList.remove('hidden');
-  
-  document.getElementById('btnConfirmarModal').onclick = function() {
+
+  document.getElementById('btnConfirmarModal').onclick = () => {
     modal.style.display = 'none';
     modal.classList.add('hidden');
     window.location.reload();
   };
-  
-  document.getElementById('btnCancelarModal').onclick = function() {
+  document.getElementById('btnCancelarModal').onclick = () => {
     modal.style.display = 'none';
     modal.classList.add('hidden');
   };
 }
 
-// Inicialización
-console.log('Formulario Acompañamiento Académico iniciado');
-
-// ===================================
-// REINICIO AUTOMÁTICO POR INACTIVIDAD
-// ===================================
-// Reinicia la página si el usuario estuvo fuera más de X minutos
-
+// ============================================================
+// Reinicio automático por inactividad (3 minutos)
+// ============================================================
 let tiempoSalida = null;
 const MINUTOS_PARA_REINICIAR = 3;
 
-document.addEventListener('visibilitychange', function() {
+document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    // Usuario salió de la página (minimizó, cambió de pestaña, cerró navegador)
     tiempoSalida = Date.now();
-  } else {
-    // Usuario volvió a la página
-    if (tiempoSalida) {
-      const minutosAusente = (Date.now() - tiempoSalida) / 1000 / 60;
-      if (minutosAusente >= MINUTOS_PARA_REINICIAR) {
-        location.reload();
-      }
-      tiempoSalida = null;
-    }
+  } else if (tiempoSalida) {
+    const minutosAusente = (Date.now() - tiempoSalida) / 60000;
+    if (minutosAusente >= MINUTOS_PARA_REINICIAR) location.reload();
+    tiempoSalida = null;
   }
+});
+
+// ============================================================
+// Inicialización al cargar el DOM
+// ============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  // Precargar facultades en segundo plano
+  try {
+    await precargarDatosFacultades();
+  } catch (err) {
+    console.error('Error al precargar facultades:', err);
+  }
+
+  // Generar todos los selects estáticos (una sola vez)
+  generarSelect('sede',       OPCIONES_SEDE,      'Seleccione una sede');
+  generarSelect('semestre',   OPCIONES_SEMESTRE,  'Seleccione un semestre');
+  generarSelect('consciente', OPCIONES_SI_NO,     'Seleccione una opción');
+  generarSelect('cargo',      OPCIONES_CARGO,     'Seleccione un cargo');
+  generarSelect('dependencia',OPCIONES_DEPENDENCIA,'Seleccione una dependencia');
+
+  generarSelectDominioCorreo('dominioCorreoPersona');
+  generarSelectDominioCorreo('dominioCorreo');
+
+  // Programa empieza deshabilitado
+  const programaEl = document.getElementById('programa');
+  if (programaEl) {
+    programaEl.innerHTML = '<option value="">Seleccione un programa</option>';
+    programaEl.disabled  = true;
+  }
+
+  // Cargar facultades en el select
+  cargarFacultades();
+
+  // Event listener facultad → programa
+  document.getElementById('facultad').addEventListener('change', actualizarProgramas);
+
+  // Generar checkboxes de asignaturas
+  generarAsignaturasCheckboxes();
+
+  // Event listeners de correos
+  [
+    { input: 'correoPersona', dominio: 'dominioCorreoPersona' },
+    { input: 'correo',        dominio: 'dominioCorreo'        }
+  ].forEach(({ input, dominio }) => {
+    document.getElementById(dominio)?.addEventListener('change', () => actualizarCorreoCompleto(input));
+    document.getElementById(input)?.addEventListener('blur',     () => actualizarCorreoCompleto(input));
+  });
+
+  console.log('Formulario Acompañamiento Académico iniciado (refactorizado)');
 });

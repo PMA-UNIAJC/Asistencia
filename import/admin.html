@@ -134,6 +134,7 @@
               </div>
               <button class="btn btn-descargar-facultad" onclick="descargarPorFacultad()">Descargar Registros por Facultad</button>
             </div>
+
             <div class="chart-container chart-container-spacing">
               <h3 class="chart-title">Descargar por Grupo</h3>
               <p class="texto-descargas">Descargue registros filtrados por grupo académico con columnas específicas.</p>
@@ -151,6 +152,21 @@
               </div>
               <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo()" id="btnDescargarGrupo" disabled>Descargar Registros por Grupo</button>
             </div>
+
+            <div class="chart-container chart-container-spacing">
+              <h3 class="chart-title">Descargar Informe</h3>
+              <p class="texto-descargas">Descargue un informe filtrado por área (M, C, DCB) con todas las columnas de registro.</p>
+              <div class="form-group">
+                <label>Fecha Desde (opcional)</label>
+                <input type="date" id="fechaDesdeInforme">
+              </div>
+              <div class="form-group">
+                <label>Fecha Hasta (opcional)</label>
+                <input type="date" id="fechaHastaInforme">
+              </div>
+              <button class="btn btn-descargar-informe" onclick="descargarInforme()">Descargar Informe</button>
+            </div>
+
           </div>
         </div>
 
@@ -185,8 +201,6 @@
             <div class="chart-container">
               <h3 class="chart-title">Descargar Reportes AAA</h3>
               <p class="texto-descargas">Descargue los registros del programa Activación y Acompañamiento Académico.</p>
-              <button class="btn" onclick="descargarAAAIndividual()" id="btnDescargarAAAIndividual">Individual</button>
-              <button class="btn btn-secondary" onclick="descargarAAAGrupal()" id="btnDescargarAAAGrupal">Grupal</button>
               <button class="btn btn-secondary" onclick="descargarAAATodo()" id="btnDescargarAAATodo">Todos los Registros</button>
             </div>
           </div>

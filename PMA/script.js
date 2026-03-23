@@ -1755,7 +1755,7 @@ const datos = {
     dominio_tema: parseInt(dominioTemaRadio.value),
     ambiente: parseInt(ambienteRadio.value),
     recomienda_pma: parseInt(recomendaPmaRadio.value),
-    sugerencias: document.getElementById('sugerencias').value.toUpperCase() || 'Ninguna',
+    sugerencias: document.getElementById('sugerencias').value.toUpperCase().trim() || null,
     fecha: fechaISO
   };
 

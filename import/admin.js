@@ -919,7 +919,7 @@ async function descargarDatos() {
       return;
     }
 
-    generarExcelSimplificado(datosTutores, `PMA_Tutores_${desde}_a_${hasta}`);
+    generarExcelSimplificado(datosTutores, desde, hasta);
     alert(`${datosTutores.length} registros de tutores descargados exitosamente`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
@@ -994,7 +994,7 @@ async function descargarDocentes() {
       return;
     }
 
-    generarExcelDocentes(datosDocentes, `PMA_Docentes_${desde}_a_${hasta}`);
+    generarExcelDocentes(datosDocentes, desde, hasta);
     alert(`${datosDocentes.length} registros de docentes descargados exitosamente`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
@@ -1275,7 +1275,7 @@ function generarExcelPorGrupo(datos, grupo) {
 }
 
 
-function generarExcelSimplificado(datos, nombreArchivo) {
+function generarExcelSimplificado(datos, desde, hasta) {
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
@@ -1307,8 +1307,12 @@ function generarExcelSimplificado(datos, nombreArchivo) {
 
   XLSX.utils.book_append_sheet(wb, ws, "Tutores");
 
-    const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-  XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
+const mesesCortos = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const [añoD, mesD, diaD] = desde.split('-');
+const [añoH, mesH, diaH] = hasta.split('-');
+const labelDesde = `${mesesCortos[parseInt(mesD)-1]} ${diaD}`;
+const labelHasta = `${mesesCortos[parseInt(mesH)-1]} ${diaH}`;
+XLSX.writeFile(wb, `TUTORES_${labelDesde} - ${labelHasta}.xlsx`);
 }
 
 function generarExcelCompleto(datos, nombreArchivo) {
@@ -1327,7 +1331,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
       'Programa': fila.programa,
       'Semestre': fila.semestre,
       'Grupo': fila.grupo,
-      'Tipo Acompañamiento': fila.tipo_acompanamiento || 'Tutoría',
+      'Tipo Acompañamiento': fila.tipo_acompanamiento,
       'Título Curso': fila.titulo_curso || '',
       'Sede Estudiante': fila.sede_estudiante || '',
       'Sede Tutoría': fila.sede_tutoria,
@@ -1336,7 +1340,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
       'Instructor': fila.instructor,
       'Asignatura': fila.asignatura,
       'Tema': fila.tema,
-      'Motivo Consulta': fila.motivo_consulta || '',
+      'Motivo de Consulta': fila.motivo_consulta || '',
       'Calificación': fila.calificacion,
       'Dudas Resueltas': fila.dudas_resueltas || '',
       'Dominio del Tema': fila.dominio_tema || '',
@@ -1368,8 +1372,7 @@ ws['!cols'] = [
 }
 
 
-
-function generarExcelDocentes(datos, nombreArchivo) {
+function generarExcelDocentes(datos, desde, hasta) {
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
@@ -1411,8 +1414,12 @@ function generarExcelDocentes(datos, nombreArchivo) {
 
   XLSX.utils.book_append_sheet(wb, ws, "Docentes");
 
-    const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-  XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
+const mesesCortos = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const [añoD, mesD, diaD] = desde.split('-');
+const [añoH, mesH, diaH] = hasta.split('-');
+const labelDesde = `${mesesCortos[parseInt(mesD)-1]} ${diaD}`;
+const labelHasta = `${mesesCortos[parseInt(mesH)-1]} ${diaH}`;
+XLSX.writeFile(wb, `DOCENTES_${labelDesde} - ${labelHasta}.xlsx`);
 }
 
 
@@ -1509,61 +1516,6 @@ function togglePassword() {
   }
 }
 
-async function descargarAAAIndividual() {
-  const btnDescarga = document.getElementById('btnDescargarAAAIndividual');
-  const textoOriginal = btnDescarga.textContent;
-  btnDescarga.disabled = true;
-  btnDescarga.textContent = 'Preparando descarga...';
-
-  try {
-    const data = await supabaseQuerySinLimite('acompanamiento', {
-      eq: { field: 'tipo_acompanamiento', value: 'Individual' },
-      order: 'fecha_hora.asc'
-    });
-
-    if (!data || data.length === 0) {
-      alert('No hay registros de acompañamiento individual para descargar');
-      return;
-    }
-
-    generarExcelAAAIndividual(data, 'AAA_Individual');
-    alert(`${data.length} registros de acompañamiento individual descargados exitosamente`);
-  } catch (error) {
-    alert('Error al descargar datos: ' + error.message);
-    console.error(error);
-  } finally {
-    btnDescarga.disabled = false;
-    btnDescarga.textContent = textoOriginal;
-  }
-}
-
-async function descargarAAAGrupal() {
-  const btnDescarga = document.getElementById('btnDescargarAAAGrupal');
-  const textoOriginal = btnDescarga.textContent;
-  btnDescarga.disabled = true;
-  btnDescarga.textContent = 'Preparando descarga...';
-
-  try {
-    const data = await supabaseQuerySinLimite('acompanamiento', {
-      eq: { field: 'tipo_acompanamiento', value: 'Grupal' },
-      order: 'fecha_hora.asc'
-    });
-
-    if (!data || data.length === 0) {
-      alert('No hay registros de acompañamiento grupal para descargar');
-      return;
-    }
-
-    generarExcelAAAGrupal(data, 'AAA_Grupal');
-    alert(`${data.length} registros de acompañamiento grupal descargados exitosamente`);
-  } catch (error) {
-    alert('Error al descargar datos: ' + error.message);
-    console.error(error);
-  } finally {
-    btnDescarga.disabled = false;
-    btnDescarga.textContent = textoOriginal;
-  }
-}
 
 async function descargarAAATodo() {
   const btnDescarga = document.getElementById('btnDescargarAAATodo');
@@ -1590,131 +1542,6 @@ async function descargarAAATodo() {
   }
 }
 
-function generarExcelAAAIndividual(datos, nombreArchivo) {
-  const datosExcel = datos.map(fila => {
-    const fechaColombia = convertirFechaAColombia(fila.fecha_hora);
-    const horaFormateada = formatearHora(fechaColombia);
-    const serialDate = convertirFechaASerialExcel(fechaColombia);
-    
-    return {
-      'Fecha': serialDate,
-      'Hora': horaFormateada,
-      'Tipo Acompañamiento': fila.tipo_acompanamiento || '',
-      'Documento': parseInt(fila.documento) || '',
-      'Nombre': fila.nombres_y_apellidos || '',
-      'Contacto': fila.contacto || '',
-      'Correo Estudiante': fila.correo_estudiante || '',
-      'Grupo': fila.grupo || '',
-      'Sede': fila.sede || '',
-      'Facultad': fila.facultad_estudiante || '',
-      'Programa': fila.programa_estudiante || '',
-      'Semestre': fila.semestre || '',
-      'Enterado': fila.enterado || '',
-      'Profesor': fila.profesor || '',
-      'Cargo': fila.cargo || '',
-      'Dependencia': fila.dependencia || '',
-      'Correo Profesor': fila.correo_profesor || '',
-      'Asignatura': fila.asignatura || '',
-      'Motivo': fila.motivo || ''
-    };
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(datosExcel);
-
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  aplicarFormatoExcel(ws, range, 0, 3);
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
-
-  ws['!cols'] = [
-    { wch: 12 },  // Fecha
-    { wch: 8 },   // Hora
-    { wch: 18 },  // Tipo Acompañamiento
-    { wch: 12 },  // Documento
-    { wch: 30 },  // Nombre
-    { wch: 15 },  // Contacto
-    { wch: 35 },  // Correo Estudiante
-    { wch: 12 },  // Grupo
-    { wch: 10 },  // Sede
-    { wch: 40 },  // Facultad
-    { wch: 35 },  // Programa
-    { wch: 10 },  // Semestre
-    { wch: 10 },  // Enterado
-    { wch: 30 },  // Profesor
-    { wch: 30 },  // Cargo
-    { wch: 35 },  // Dependencia
-    { wch: 35 },  // Correo Profesor
-    { wch: 40 },  // Asignatura
-    { wch: 50 }   // Motivo
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, "Individual");
-
-  const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-  XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
-}
-
-function generarExcelAAAGrupal(datos, nombreArchivo) {
-  const datosExcel = datos.map(fila => {
-    const fechaColombia = convertirFechaAColombia(fila.fecha_hora);
-    const horaFormateada = formatearHora(fechaColombia);
-    const serialDate = convertirFechaASerialExcel(fechaColombia);
-    
-    return {
-      'Fecha': serialDate,
-      'Hora': horaFormateada,
-      'Tipo Acompañamiento': fila.tipo_acompanamiento || '',
-      'Vocero': fila.nombres_y_apellidos || '',
-      'Contacto Vocero': fila.contacto || '',
-      'Correo Vocero': fila.correo_estudiante || '',
-      'Grupo': fila.grupo || '',
-      'Sede': fila.sede || '',
-      'Facultad': fila.facultad_estudiante || '',
-      'Programa': fila.programa_estudiante || '',
-      'Semestre': fila.semestre || '',
-      'Enterado': fila.enterado || '',
-      'Profesor': fila.profesor || '',
-      'Cargo': fila.cargo || '',
-      'Dependencia': fila.dependencia || '',
-      'Correo Profesor': fila.correo_profesor || '',
-      'Asignatura': fila.asignatura || '',
-      'Motivo': fila.motivo || ''
-    };
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(datosExcel);
-
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  aplicarFormatoExcel(ws, range, 0, -1); // -1 porque no hay columna documento
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
-
-  ws['!cols'] = [
-    { wch: 12 },  // Fecha
-    { wch: 8 },   // Hora
-    { wch: 18 },  // Tipo Acompañamiento
-    { wch: 30 },  // Vocero
-    { wch: 15 },  // Contacto Vocero
-    { wch: 35 },  // Correo Vocero
-    { wch: 12 },  // Grupo
-    { wch: 10 },  // Sede
-    { wch: 40 },  // Facultad
-    { wch: 35 },  // Programa
-    { wch: 10 },  // Semestre
-    { wch: 10 },  // Enterado
-    { wch: 30 },  // Profesor
-    { wch: 30 },  // Cargo
-    { wch: 35 },  // Dependencia
-    { wch: 35 },  // Correo Profesor
-    { wch: 40 },  // Asignatura
-    { wch: 50 }   // Motivo
-  ];
-
-  XLSX.utils.book_append_sheet(wb, ws, "Grupal");
-
-  const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-  XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
-}
 
 function generarExcelAAACompleto(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
@@ -1741,7 +1568,8 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
       'Dependencia': fila.dependencia || '',
       'Correo Profesor': fila.correo_profesor || '',
       'Asignatura': fila.asignatura || '',
-      'Motivo': fila.motivo || ''
+      'Motivo': fila.motivo || '',
+      'Comentarios': fila.comentarios || ''
     };
   });
 
@@ -1771,7 +1599,8 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
     { wch: 35 },  // Dependencia
     { wch: 35 },  // Correo Profesor
     { wch: 40 },  // Asignatura
-    { wch: 50 }   // Motivo
+    { wch: 50 },  // Motivo
+    { wch: 50 }   // Comentarios
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Todos");
@@ -2253,6 +2082,169 @@ function mostrarEstadisticasAAA() {
     detallesStatsAAA.textContent = '';
   }
 }
+
+
+async function descargarInforme() {
+  const desde = document.getElementById('fechaDesdeInforme').value;
+  const hasta = document.getElementById('fechaHastaInforme').value;
+
+  if (desde && !hasta) {
+    alert('Si selecciona una Fecha Desde, también debe seleccionar una Fecha Hasta.');
+    return;
+  }
+
+  if (desde && hasta && new Date(desde) > new Date(hasta)) {
+    alert('La fecha inicial no puede ser mayor que la fecha final.');
+    return;
+  }
+
+  const btnDescarga = event.target;
+  const textoOriginal = btnDescarga.textContent;
+  btnDescarga.disabled = true;
+  btnDescarga.textContent = 'Preparando descarga...';
+
+  try {
+    const [tutoresNorte, tutoresSur] = await Promise.all([
+      supabaseQuerySinLimite('tutores_norte', {}),
+      supabaseQuerySinLimite('tutores_sur', {})
+    ]);
+
+    const areasPorInstructor = {};
+    [...tutoresNorte, ...tutoresSur].forEach(t => {
+      if (t.nombre && t.area) {
+        areasPorInstructor[t.nombre.trim()] = t.area.trim().toUpperCase();
+      }
+    });
+
+    const AREAS_PERMITIDAS = new Set(['M', 'C']);
+
+    const opcionesQuery = { order: 'fecha.asc' };
+
+    if (!desde && hasta) {
+      opcionesQuery.lte = {
+        field: 'fecha',
+        value: convertirFechaInputAISOColombia(hasta, '23:59:59')
+      };
+    } else if (desde && hasta) {
+      opcionesQuery.gte = {
+        field: 'fecha',
+        value: convertirFechaInputAISOColombia(desde, '00:00:00')
+      };
+      opcionesQuery.lte = {
+        field: 'fecha',
+        value: convertirFechaInputAISOColombia(hasta, '23:59:59')
+      };
+    }
+
+    const data = await supabaseQuerySinLimite('formularios', opcionesQuery);
+
+    if (!data || data.length === 0) {
+      alert('No hay registros para el período seleccionado.');
+      return;
+    }
+
+    const datosFiltrados = data.filter(fila => {
+      const instructor = (fila.instructor || '').trim();
+      const area = areasPorInstructor[instructor];
+      const esDCB = (fila.facultad_departamento || '').trim().toUpperCase() === 'DCB';
+      return esDCB || (area && AREAS_PERMITIDAS.has(area));
+    });
+
+    if (datosFiltrados.length === 0) {
+      alert('No hay registros con instructores de las áreas M, C o DCB en el período seleccionado.');
+      return;
+    }
+
+    generarExcelInforme(datosFiltrados, areasPorInstructor, desde, hasta);
+    alert(`${datosFiltrados.length} registros descargados exitosamente.`);
+
+  } catch (error) {
+    alert('Error al descargar el informe: ' + error.message);
+    console.error(error);
+  } finally {
+    btnDescarga.disabled = false;
+    btnDescarga.textContent = textoOriginal;
+  }
+}
+
+function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
+  const datosExcel = datos.map(fila => {
+    const fechaColombia = convertirFechaAColombia(fila.fecha);
+    const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const instructor = (fila.instructor || '').trim();
+    const area = areasPorInstructor[instructor] ||
+      ((fila.facultad_departamento || '').trim().toUpperCase() === 'DCB' ? 'DCB' : '');
+
+    return {
+      'FECHA': serialDate,
+      'DOCUMENTO': parseInt(fila.documento) || '',
+      'NOMBRE': `${(fila.apellidos || '').trim()} ${(fila.nombres || '').trim()}`.trim(),
+      'FACULTAD': fila.facultad || '',
+      'PROGRAMA': fila.programa || '',
+      'SEMESTRE': fila.semestre || '',
+      'GRUPO': fila.grupo || '',
+      'SEDE ESTUDIANTE': fila.sede_estudiante || '',
+      'AREA': area,
+      'INSTRUCTOR': instructor,
+      'ASIGNATURA': fila.asignatura || '',
+      'TEMA': fila.tema || '',
+      'MOTIVO DE CONSULTA': fila.motivo_consulta || '',
+      'CALIFICACION': fila.calificacion || '',
+      'DUDAS RESUELTAS': fila.dudas_resueltas || '',
+      'DOMINIO TEMA': fila.dominio_tema || '',
+      'AMBIENTE': fila.ambiente || '',
+      'RECOMIENDA PMA': fila.recomienda_pma || '',
+      'SUGERENCIAS': fila.sugerencias || ''
+    };
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  aplicarFormatoExcel(ws, range, 0, -1);
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
+  ws['!cols'] = [
+    { wch: 12 },  // FECHA
+    { wch: 12 },  // DOCUMENTO
+    { wch: 35 },  // NOMBRE
+    { wch: 35 },  // FACULTAD
+    { wch: 35 },  // PROGRAMA
+    { wch: 10 },  // SEMESTRE
+    { wch: 12 },  // GRUPO
+    { wch: 15 },  // SEDE ESTUDIANTE
+    { wch: 8 },   // ÁREA
+    { wch: 30 },  // INSTRUCTOR
+    { wch: 30 },  // ASIGNATURA
+    { wch: 30 },  // TEMA
+    { wch: 25 },  // MOTIVO DE CONSULTA
+    { wch: 13 },  // CALIFICACIÓN
+    { wch: 16 },  // DUDAS RESUELTAS
+    { wch: 14 },  // DOMINIO TEMA
+    { wch: 12 },  // AMBIENTE
+    { wch: 15 },  // RECOMIENDA PMA
+    { wch: 40 }   // SUGERENCIAS
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'INFORME');
+
+  const mesesCortos = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  let sufijo = 'COMPLETO';
+  if (!desde && hasta) {
+    const [, mesH, diaH] = hasta.split('-');
+    sufijo = `HASTA_${mesesCortos[parseInt(mesH) - 1]}_${diaH}`;
+  } else if (desde && hasta) {
+    const [, mesD, diaD] = desde.split('-');
+    const [, mesH, diaH] = hasta.split('-');
+    sufijo = `${mesesCortos[parseInt(mesD) - 1]}_${diaD} - ${mesesCortos[parseInt(mesH) - 1]}_${diaH}`;
+  }
+
+  XLSX.writeFile(wb, `INFORME_${sufijo}.xlsx`);
+}
+
+
+
 
 (function initNavegacionAdmin() {
   window.addEventListener('popstate', function() {
