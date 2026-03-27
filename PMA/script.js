@@ -1101,19 +1101,16 @@ async function iniciarSesion(event) {
 
 
 // ===================================
-// VERIFICAR REGISTRO RECIENTE CON INSTRUCTOR ESPECÍFICO
+// VERIFICAR REGISTRO RECIENTE CON INSTRUCTOR ESPECÍFICO (3 HORAS)
 // ===================================
 async function verificarRegistroRecenteConInstructor(documento, instructorSeleccionado) {
   try {
-    // Obtener la fecha y hora REAL actual en Colombia
     const ahoraColombia = obtenerFechaActualColombia();
     
-    // Calcular hace 1 hora y 30 minutos (90 minutos)
-    const hace90Minutos = new Date(ahoraColombia.getTime() - (90 * 60 * 1000));
-    const hace90MinutosISO = hace90Minutos.toISOString();
+    const hace180Minutos = new Date(ahoraColombia.getTime() - (180 * 60 * 1000));
+    const hace180MinutosISO = hace180Minutos.toISOString();
     
-    // Consultar registros de los últimos 90 minutos CON EL MISMO INSTRUCTOR
-    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&instructor=eq.${encodeURIComponent(instructorSeleccionado)}&fecha=gte.${hace90MinutosISO}&order=fecha.desc`;
+    const url = `${SUPABASE_URL}/rest/v1/formularios?documento=eq.${documento}&instructor=eq.${encodeURIComponent(instructorSeleccionado)}&fecha=gte.${hace180MinutosISO}&order=fecha.desc`;
     
     const response = await fetch(url, {
       headers: {
@@ -1125,25 +1122,21 @@ async function verificarRegistroRecenteConInstructor(documento, instructorSelecc
     const registrosRecientes = await response.json();
     
     if (registrosRecientes.length === 0) {
-      // No hay registros recientes con este instructor, puede registrar
       return { puedeRegistrar: true };
     }
     
-    // Obtener el registro más reciente con este instructor
     const registroMasReciente = registrosRecientes[0];
     const fechaRegistro = new Date(registroMasReciente.fecha);
     const fechaRegistroColombia = convertirFechaAColombia(fechaRegistro);
     
-    // Calcular tiempo transcurrido en minutos
     const tiempoTranscurrido = Math.floor((ahoraColombia - fechaRegistroColombia) / (1000 * 60));
-    const tiempoRestanteMinutos = 90 - tiempoTranscurrido;
+    const tiempoRestanteMinutos = 180 - tiempoTranscurrido;
     
-    // Formatear tiempo restante
     let tiempoRestante;
     if (tiempoRestanteMinutos >= 60) {
       const horas = Math.floor(tiempoRestanteMinutos / 60);
       const minutos = tiempoRestanteMinutos % 60;
-      tiempoRestante = minutos > 0 ? `${horas} hora y ${minutos} minutos` : `${horas} hora`;
+      tiempoRestante = minutos > 0 ? `${horas} hora${horas > 1 ? 's' : ''} y ${minutos} minutos` : `${horas} hora${horas > 1 ? 's' : ''}`;
     } else {
       tiempoRestante = `${tiempoRestanteMinutos} minutos`;
     }
@@ -1156,7 +1149,6 @@ async function verificarRegistroRecenteConInstructor(documento, instructorSelecc
     
   } catch (error) {
     console.error('Error verificando registro reciente:', error);
-    // En caso de error, permitir el registro
     return { puedeRegistrar: true };
   }
 }
