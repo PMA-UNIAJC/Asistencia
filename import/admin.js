@@ -141,7 +141,9 @@ async function cambiarTab(event, tab) {
   if (tab === 'descargas') {
     document.getElementById('tabDescargas').classList.remove('hidden');
     setTimeout(() => inicializarBuscadorGrupos(), 100);
-  } else if (tab === 'estadisticas') {
+ 
+ 
+} else if (tab === 'estadisticas') {
     document.getElementById('tabEstadisticas').classList.remove('hidden');
     if (datosCache.tutoresNorte.length === 0) {
       if (elementosDOM.statsGrid) {
@@ -165,8 +167,13 @@ async function cambiarTab(event, tab) {
       }
     }
     
-    if (!window.datosFormulariosGlobal) {
+    // Verificar si el contenido HTML ya está renderizado,
+    // no solo si los datos existen en memoria
+    const contenidoYaRenderizado = document.getElementById('contenidoEstadisticas');
+    if (!window.datosFormulariosGlobal || !contenidoYaRenderizado) {
       await cargarEstadisticas();
+    } else {
+      mostrarEstadisticas('general');  // Re-renderiza usando datos ya en memoria
     }
     
   } else if (tab === 'graficas') {
