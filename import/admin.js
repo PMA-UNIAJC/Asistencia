@@ -746,8 +746,15 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
       });
     }
 
-    detalles += `<div class="chart-container">
+detalles += `<div class="chart-container">
       <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
+
+      <div class="botones-sedes" style="margin-bottom: 8px;">
+        <select id="filtroOrdenTutores" onchange="reordenarTutores()" class="admin-input" style="max-width: 260px; padding: 6px 10px; font-size: 13px;">
+          <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
+          <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
+        </select>
+      </div>
       
       <div class="botones-sedes">
         <button class="btn btn-secondary btn-sede" onclick="toggleInstructoresSede('norte')">
@@ -886,6 +893,34 @@ if (tipo === 'profesores') {
     grid: grid.innerHTML,
     detalles: detalles
   };
+}
+
+
+
+function reordenarTutores() {
+  const criterio = document.getElementById('filtroOrdenTutores').value;
+  
+  ['instructoresNorteAdmin', 'instructoresSurAdmin'].forEach(seccionId => {
+    const seccion = document.getElementById(seccionId);
+    if (!seccion) return;
+    
+    const items = Array.from(seccion.querySelectorAll('.list-item'));
+    if (items.length === 0) return;
+    
+    items.sort((a, b) => {
+      if (criterio === 'calificacion') {
+        const calA = parseFloat(a.querySelector('span[style]')?.textContent.replace('Calificación: ', '') || '0');
+        const calB = parseFloat(b.querySelector('span[style]')?.textContent.replace('Calificación: ', '') || '0');
+        return calB - calA;
+      } else {
+        const cantA = parseInt(a.querySelector('strong')?.textContent || '0');
+        const cantB = parseInt(b.querySelector('strong')?.textContent || '0');
+        return cantB - cantA;
+      }
+    });
+    
+    items.forEach(item => seccion.appendChild(item));
+  });
 }
 
 
