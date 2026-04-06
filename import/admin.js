@@ -749,7 +749,7 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
 detalles += `<div class="chart-container">
       <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
 
-      <div class="botones-sedes" style="margin-bottom: 8px;">
+      <div class="botones-sedes" style="margin-top: 16px; margin-bottom: 16px;">
         <select id="filtroOrdenTutores" onchange="reordenarTutores()" class="admin-input" style="max-width: 260px; padding: 6px 10px; font-size: 13px;">
           <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
           <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
