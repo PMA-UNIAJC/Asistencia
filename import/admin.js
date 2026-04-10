@@ -749,10 +749,16 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
 detalles += `<div class="chart-container">
       <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
 
-      <div class="botones-sedes" style="margin-top: 24px; margin-bottom: 24px;">
-  <select id="filtroOrdenTutores" onchange="reordenarTutores()" class="admin-input" style="width: 100%; max-width: 500px; padding: 10px 14px; font-size: 12px;">
+      <div class="botones-sedes" style="margin-top: 24px; margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+        <select id="filtroOrdenTutores" onchange="reordenarTutores()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
           <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
           <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
+        </select>
+        
+        <select id="filtroAreaTutores" onchange="filtrarTutoresPorArea()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
+          <option value="todas">Área: Todas</option>
+          <option value="M">Matemáticas (M)</option>
+          <option value="C">Comunicación (C)</option>
         </select>
       </div>
       
@@ -923,6 +929,36 @@ function reordenarTutores() {
   });
 }
 
+
+function filtrarTutoresPorArea() {
+  const area = document.getElementById('filtroAreaTutores').value;
+
+  ['instructoresNorteAdmin', 'instructoresSurAdmin'].forEach(seccionId => {
+    const seccion = document.getElementById(seccionId);
+    if (!seccion) return;
+
+    const items = Array.from(seccion.querySelectorAll('.list-item'));
+    if (items.length === 0) return;
+
+    // Determinar qué caché de tutores usar según la sección
+    const cache = seccionId === 'instructoresNorteAdmin'
+      ? datosCache.tutoresNorte
+      : datosCache.tutoresSur;
+
+    items.forEach(item => {
+      const nombreTutor = item.querySelector('span')?.textContent?.trim();
+      if (!nombreTutor) return;
+
+      if (area === 'todas') {
+        item.style.display = '';
+      } else {
+        const tutorData = cache.find(t => t.nombre?.trim() === nombreTutor);
+        const areaTutor = tutorData?.area?.trim().toUpperCase();
+        item.style.display = areaTutor === area ? '' : 'none';
+      }
+    });
+  });
+}
 
 
 async function descargarDatos() {
