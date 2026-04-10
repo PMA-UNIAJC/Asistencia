@@ -965,12 +965,12 @@ async function descargarDatos() {
   const desde = document.getElementById('fechaDesde').value;
   const hasta = document.getElementById('fechaHasta').value;
 
-  if (!desde || !hasta) {
-    alert('Por favor seleccione ambas fechas');
+  if (desde && !hasta) {
+    alert('Si selecciona una Fecha Desde, también debe seleccionar una Fecha Hasta.');
     return;
   }
 
-  if (new Date(desde) > new Date(hasta)) {
+  if (desde && hasta && new Date(desde) > new Date(hasta)) {
     alert('La fecha inicial no puede ser mayor que la fecha final');
     return;
   }
@@ -981,19 +981,20 @@ async function descargarDatos() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
-    const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
+    const opcionesQuery = { order: 'fecha.asc' };
 
-    const data = await supabaseQuerySinLimite('formularios', {
-      gte: { field: 'fecha', value: desdeISO },
-      lte: { field: 'fecha', value: hastaISO },
-      order: 'fecha.asc'
-    });
+    if (!desde && hasta) {
+      opcionesQuery.lte = { field: 'fecha', value: convertirFechaInputAISOColombia(hasta, '23:59:59') };
+    } else if (desde && hasta) {
+      opcionesQuery.gte = { field: 'fecha', value: convertirFechaInputAISOColombia(desde, '00:00:00') };
+      opcionesQuery.lte = { field: 'fecha', value: convertirFechaInputAISOColombia(hasta, '23:59:59') };
+    }
 
+    const data = await supabaseQuerySinLimite('formularios', opcionesQuery);
     const datosTutores = data.filter(item => item.tipo_instructor === 'Tutor');
 
     if (datosTutores.length === 0) {
-      alert('No hay registros de tutores en el rango de fechas seleccionado');
+      alert('No hay registros de tutores para el período seleccionado');
       return;
     }
 
@@ -1006,6 +1007,7 @@ async function descargarDatos() {
     btnDescarga.textContent = textoOriginal;
   }
 }
+
 
 async function descargarTodo() {
   if (!confirm('¿Descargar todos los registros?')) {
@@ -1040,12 +1042,12 @@ async function descargarDocentes() {
   const desde = document.getElementById('fechaDesde').value;
   const hasta = document.getElementById('fechaHasta').value;
 
-  if (!desde || !hasta) {
-    alert('Por favor seleccione ambas fechas');
+  if (desde && !hasta) {
+    alert('Si selecciona una Fecha Desde, también debe seleccionar una Fecha Hasta.');
     return;
   }
 
-  if (new Date(desde) > new Date(hasta)) {
+  if (desde && hasta && new Date(desde) > new Date(hasta)) {
     alert('La fecha inicial no puede ser mayor que la fecha final');
     return;
   }
@@ -1056,19 +1058,20 @@ async function descargarDocentes() {
   btnDescarga.textContent = 'Preparando descarga...';
 
   try {
-    const desdeISO = convertirFechaInputAISOColombia(desde, "00:00:00");
-    const hastaISO = convertirFechaInputAISOColombia(hasta, "23:59:59");
+    const opcionesQuery = { order: 'fecha.asc' };
 
-    const data = await supabaseQuerySinLimite('formularios', {
-      gte: { field: 'fecha', value: desdeISO },
-      lte: { field: 'fecha', value: hastaISO },
-      order: 'fecha.asc'
-    });
+    if (!desde && hasta) {
+      opcionesQuery.lte = { field: 'fecha', value: convertirFechaInputAISOColombia(hasta, '23:59:59') };
+    } else if (desde && hasta) {
+      opcionesQuery.gte = { field: 'fecha', value: convertirFechaInputAISOColombia(desde, '00:00:00') };
+      opcionesQuery.lte = { field: 'fecha', value: convertirFechaInputAISOColombia(hasta, '23:59:59') };
+    }
 
+    const data = await supabaseQuerySinLimite('formularios', opcionesQuery);
     const datosDocentes = data.filter(item => item.tipo_instructor === 'Profesor');
 
     if (datosDocentes.length === 0) {
-      alert('No hay registros de docentes en el rango de fechas seleccionado');
+      alert('No hay registros de docentes para el período seleccionado');
       return;
     }
 
@@ -1386,12 +1389,19 @@ function generarExcelSimplificado(datos, desde, hasta) {
   XLSX.utils.book_append_sheet(wb, ws, "Tutores");
 
 const mesesCortos = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-const [añoD, mesD, diaD] = desde.split('-');
-const [añoH, mesH, diaH] = hasta.split('-');
-const labelDesde = `${mesesCortos[parseInt(mesD)-1]} ${diaD}`;
-const labelHasta = `${mesesCortos[parseInt(mesH)-1]} ${diaH}`;
-XLSX.writeFile(wb, `TUTORES_${labelDesde} - ${labelHasta}.xlsx`);
+let sufijo = 'COMPLETO';
+if (!desde && hasta) {
+  const [, mesH, diaH] = hasta.split('-');
+  sufijo = `HASTA_${mesesCortos[parseInt(mesH) - 1]}_${diaH}`;
+} else if (desde && hasta) {
+  const [, mesD, diaD] = desde.split('-');
+  const [, mesH, diaH] = hasta.split('-');
+  sufijo = `${mesesCortos[parseInt(mesD)-1]} ${diaD} - ${mesesCortos[parseInt(mesH)-1]} ${diaH}`;
 }
+XLSX.writeFile(wb, `TUTORES_${sufijo}.xlsx`);
+}
+
+
 
 function generarExcelCompleto(datos, nombreArchivo) {
   const datosExcel = datos.map(fila => {
@@ -1493,13 +1503,17 @@ function generarExcelDocentes(datos, desde, hasta) {
   XLSX.utils.book_append_sheet(wb, ws, "Docentes");
 
 const mesesCortos = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-const [añoD, mesD, diaD] = desde.split('-');
-const [añoH, mesH, diaH] = hasta.split('-');
-const labelDesde = `${mesesCortos[parseInt(mesD)-1]} ${diaD}`;
-const labelHasta = `${mesesCortos[parseInt(mesH)-1]} ${diaH}`;
-XLSX.writeFile(wb, `DOCENTES_${labelDesde} - ${labelHasta}.xlsx`);
+let sufijo = 'COMPLETO';
+if (!desde && hasta) {
+  const [, mesH, diaH] = hasta.split('-');
+  sufijo = `HASTA_${mesesCortos[parseInt(mesH) - 1]}_${diaH}`;
+} else if (desde && hasta) {
+  const [, mesD, diaD] = desde.split('-');
+  const [, mesH, diaH] = hasta.split('-');
+  sufijo = `${mesesCortos[parseInt(mesD)-1]} ${diaD} - ${mesesCortos[parseInt(mesH)-1]} ${diaH}`;
 }
-
+XLSX.writeFile(wb, `DOCENTES_${sufijo}.xlsx`);
+}
 
 
 
