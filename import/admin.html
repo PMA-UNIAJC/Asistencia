@@ -135,24 +135,16 @@
               <button class="btn btn-descargar-facultad" onclick="descargarPorFacultad()">Descargar Registros por Facultad</button>
             </div>
 
-            <div class="chart-container chart-container-spacing">
-              <h3 class="chart-title">Descargar por Grupo</h3>
-              <p class="texto-descargas">Descargue registros filtrados por grupo académico con columnas específicas.</p>
-              <div class="form-group">
-                <label>Buscar Grupo *</label>
-                <div class="buscador-grupo-container">
-                  <input type="text" id="buscadorGrupo" placeholder="Ingrese el grupo a buscar..." autocomplete="off" class="buscador-grupo-input" onkeypress="if(event.key === 'Enter') { event.preventDefault(); buscarGrupo(); }">
-                  <button class="btn btn-buscar-grupo" onclick="buscarGrupo()" id="btnBuscarGrupo">Buscar</button>
-                </div>
-                <div id="resultadoBusquedaGrupo" class="resultado-busqueda-grupo"></div>
-                <div id="grupoSeleccionado" class="grupo-seleccionado">
-                  <strong>Grupo encontrado:</strong> <span id="grupoSeleccionadoTexto"></span>
-                  <button type="button" onclick="limpiarSeleccionGrupo()" class="btn-limpiar-grupo">Limpiar</button>
-                </div>
-              </div>
-              <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo()" id="btnDescargarGrupo" disabled>Descargar Registros por Grupo</button>
-            </div>
-
+<div class="chart-container chart-container-spacing">
+  <h3 class="chart-title">Descargar por Grupo</h3>
+  <p class="texto-descargas">Descargue registros filtrados por grupo académico con columnas específicas.</p>
+  <div class="form-group">
+    <label>Grupo *</label>
+    <input type="text" id="buscadorGrupo" placeholder="Ingrese el grupo..." autocomplete="off" class="buscador-grupo-input">
+  </div>
+  <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo()">Descargar Registros por Grupo</button>
+</div>
+            
 
 <div class="chart-container chart-container-spacing">
   <h3 class="chart-title">Descargar por Documento</h3>
