@@ -1173,7 +1173,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
 
 
 async function descargarPorGrupo() {
-  const inputRaw = document.getElementById('buscadorGrupo').value.trim();
+  const inputRaw = document.getElementById('buscadorGrupo').value.trim().toUpperCase();
 
   if (!inputRaw) {
     alert('Por favor ingrese un grupo.');
@@ -1187,14 +1187,11 @@ async function descargarPorGrupo() {
 
   try {
     const data = await supabaseQuerySinLimite('formularios', {
-      ilike: { field: 'grupo', value: inputRaw },
-      order: 'fecha.asc'
-    });
-
-const datosFinales = data.filter(item => {
-  const grupo = item.grupo ? item.grupo.trim() : '';
-  return grupo.toLowerCase() === inputRaw.toLowerCase();
+  eq: { field: 'grupo', value: inputRaw },
+  order: 'fecha.asc'
 });
+
+const datosFinales = data;
 
     if (datosFinales.length === 0) {
       alert('No se encontraron registros para el grupo ingresado.');
@@ -1289,10 +1286,7 @@ async function descargarPorDocumento() {
       order: 'fecha.asc'
     });
 
-    const datosFinales = data.filter(item => {
-      const doc = item.documento ? item.documento.toString().trim() : '';
-      return documentos.includes(doc);
-    });
+    const datosFinales = data;
 
     if (datosFinales.length === 0) {
       alert('No se encontraron registros para los documentos ingresados.');
