@@ -107,7 +107,8 @@ function cambiarTabPrincipal(event, seccion) {
       document.getElementById('tabEstadisticas').classList.add('hidden');
       document.getElementById('tabGraficas').classList.add('hidden');
       document.getElementById('tabDescargas').classList.remove('hidden');
-      setTimeout(() => inicializarBuscadorGrupos(), 100);
+
+      
     }
   } else if (seccion === 'pvu') {
     document.getElementById('contenidoPVU').classList.remove('hidden');
@@ -140,7 +141,7 @@ async function cambiarTab(event, tab) {
   
   if (tab === 'descargas') {
     document.getElementById('tabDescargas').classList.remove('hidden');
-    setTimeout(() => inicializarBuscadorGrupos(), 100);
+
  
  
 } else if (tab === 'estadisticas') {
@@ -197,11 +198,7 @@ async function cambiarTab(event, tab) {
     if (!graficoTutorias) {
       actualizarGrafica();
     }
-    
-  } else if (tab === 'descargas') {
-    document.getElementById('tabDescargas').classList.remove('hidden');
-    setTimeout(() => inicializarBuscadorGrupos(), 100);
-  }
+  }    
 }
 
 
@@ -1175,131 +1172,37 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
 }
 
 
-let grupoSeleccionadoParaDescarga = null;
-let cantidadRegistrosEncontrados = 0;
-
-function inicializarBuscadorGrupos() {
-}
-
-async function buscarGrupo() {
-  const buscadorGrupo = document.getElementById('buscadorGrupo');
-  const resultadoBusqueda = document.getElementById('resultadoBusquedaGrupo');
-  const grupoSeleccionado = document.getElementById('grupoSeleccionado');
-  const btnDescargar = document.getElementById('btnDescargarGrupo');
-  const btnBuscar = document.getElementById('btnBuscarGrupo');
-  
-  if (!buscadorGrupo || !resultadoBusqueda) return;
-  
-  const grupoBuscado = buscadorGrupo.value.trim().toUpperCase();
-  
-  if (!grupoBuscado) {
-    resultadoBusqueda.style.display = 'block';
-    resultadoBusqueda.style.background = '#fff3cd';
-    resultadoBusqueda.style.borderLeft = '4px solid #ffc107';
-    resultadoBusqueda.innerHTML = '<strong>Advertencia:</strong> Por favor ingrese un grupo para buscar.';
-    grupoSeleccionado.style.display = 'none';
-    btnDescargar.disabled = true;
-    grupoSeleccionadoParaDescarga = null;
-    return;
-  }
-  btnBuscar.disabled = true;
-  btnBuscar.textContent = 'Buscando...';
-  resultadoBusqueda.style.display = 'block';
-  resultadoBusqueda.style.background = '#e8f4fd';
-  resultadoBusqueda.style.borderLeft = '4px solid #1e3c72';
-  resultadoBusqueda.innerHTML = '<strong>Buscando...</strong> Por favor espere...';
-  grupoSeleccionado.style.display = 'none';
-  btnDescargar.disabled = true;
-  
-  try {
-    const grupoBuscadoEncoded = encodeURIComponent(grupoBuscado);
-    const url = `${SUPABASE_URL}/rest/v1/formularios?grupo=ilike.${grupoBuscadoEncoded}`;
-    
-    const headers = {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json'
-    };
-    
-    const registrosEncontrados = await fetchConReintentos(url, { headers });
-    const registrosFiltrados = registrosEncontrados.filter(item => {
-      const grupo = item.grupo ? item.grupo.trim().toUpperCase() : '';
-      return grupo === grupoBuscado;
-    });
-    
-    cantidadRegistrosEncontrados = registrosFiltrados.length;
-    
-    if (registrosFiltrados.length > 0) {
-      grupoSeleccionadoParaDescarga = grupoBuscado;
-      resultadoBusqueda.style.display = 'none';
-      resultadoBusqueda.innerHTML = '';
-      
-      document.getElementById('grupoSeleccionadoTexto').textContent = grupoBuscado;
-      grupoSeleccionado.style.display = 'block';
-      btnDescargar.disabled = false;
-    } else {
-      grupoSeleccionadoParaDescarga = null;
-      resultadoBusqueda.style.background = '#f8d7da';
-      resultadoBusqueda.style.borderLeft = '4px solid #dc3545';
-      resultadoBusqueda.innerHTML = '<strong>Grupo no encontrado</strong>';
-      
-      grupoSeleccionado.style.display = 'none';
-      btnDescargar.disabled = true;
-    }
-  } catch (error) {
-    console.error('Error buscando grupo:', error);
-    resultadoBusqueda.style.background = '#f8d7da';
-    resultadoBusqueda.style.borderLeft = '4px solid #dc3545';
-    resultadoBusqueda.innerHTML = `<strong>Error:</strong> ${error.message}`;
-    
-    grupoSeleccionado.style.display = 'none';
-    btnDescargar.disabled = true;
-    grupoSeleccionadoParaDescarga = null;
-  } finally {
-    btnBuscar.disabled = false;
-    btnBuscar.textContent = 'Buscar';
-  }
-}
-
-function limpiarSeleccionGrupo() {
-  grupoSeleccionadoParaDescarga = null;
-  cantidadRegistrosEncontrados = 0;
-  document.getElementById('buscadorGrupo').value = '';
-  document.getElementById('resultadoBusquedaGrupo').style.display = 'none';
-  document.getElementById('grupoSeleccionado').style.display = 'none';
-  document.getElementById('btnDescargarGrupo').disabled = true;
-}
-
 async function descargarPorGrupo() {
-  if (!grupoSeleccionadoParaDescarga) {
-    alert('Por favor busque y seleccione un grupo primero');
+  const inputRaw = document.getElementById('buscadorGrupo').value.trim();
+
+  if (!inputRaw) {
+    alert('Por favor ingrese un grupo.');
     return;
   }
 
-  const btnDescarga = document.getElementById('btnDescargarGrupo');
+  const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = 'Preparando descarga...';
+  btnDescarga.textContent = 'Buscando y preparando descarga...';
 
   try {
     const data = await supabaseQuerySinLimite('formularios', {
-      ilike: { field: 'grupo', value: grupoSeleccionadoParaDescarga },
+      ilike: { field: 'grupo', value: inputRaw },
       order: 'fecha.asc'
     });
 
-    const datosFinales = data.filter(item => {
-      const grupo = item.grupo ? item.grupo.trim().toUpperCase() : '';
-      return grupo === grupoSeleccionadoParaDescarga;
-    });
+const datosFinales = data.filter(item => {
+  const grupo = item.grupo ? item.grupo.trim() : '';
+  return grupo.toLowerCase() === inputRaw.toLowerCase();
+});
 
     if (datosFinales.length === 0) {
-      alert('No hay registros para el grupo seleccionado. Por favor busque nuevamente.');
-      limpiarSeleccionGrupo();
+      alert('No se encontraron registros para el grupo ingresado.');
       return;
     }
 
-    generarExcelPorGrupo(datosFinales, grupoSeleccionadoParaDescarga);
-    alert(`${datosFinales.length} registros descargados exitosamente`);
+    generarExcelPorGrupo(datosFinales, inputRaw);
+    alert(`${datosFinales.length} registros descargados exitosamente.`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
     console.error(error);
@@ -1308,6 +1211,7 @@ async function descargarPorGrupo() {
     btnDescarga.textContent = textoOriginal;
   }
 }
+
 
 function generarExcelPorGrupo(datos, grupo) {
   const datosExcel = datos.map(fila => {
