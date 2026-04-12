@@ -153,6 +153,18 @@
               <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo()" id="btnDescargarGrupo" disabled>Descargar Registros por Grupo</button>
             </div>
 
+
+<div class="chart-container chart-container-spacing">
+  <h3 class="chart-title">Descargar por Documento</h3>
+  <p class="texto-descargas">Descarga por Documento. (Separe varios documentos con <strong>;</strong>)</p>
+  <div class="form-group">
+    <label>Documento(s) *</label>
+    <input type="text" id="inputDocumentos" autocomplete="off" class="buscador-grupo-input">
+  </div>
+  <button class="btn btn-descargar-grupo" onclick="descargarPorDocumento()">Descargar Registros por Documento</button>
+</div>
+
+            
             <div class="chart-container chart-container-spacing">
               <h3 class="chart-title">Descargar Informe</h3>
               <p class="texto-descargas">Descargue un informe filtrado por área (M, C, DCB) con todas las columnas de registro.</p>
