@@ -1356,6 +1356,103 @@ function generarExcelPorGrupo(datos, grupo) {
 }
 
 
+async function descargarPorDocumento() {
+  const inputRaw = document.getElementById('inputDocumentos').value.trim();
+
+  if (!inputRaw) {
+    alert('Por favor ingrese al menos un número de documento.');
+    return;
+  }
+
+  const documentos = inputRaw
+    .split(';')
+    .map(d => d.trim())
+    .filter(d => d.length > 0);
+
+  if (documentos.length === 0) {
+    alert('No se encontraron documentos válidos.');
+    return;
+  }
+
+  const btnDescarga = event.target;
+  const textoOriginal = btnDescarga.textContent;
+  btnDescarga.disabled = true;
+  btnDescarga.textContent = 'Buscando y preparando descarga...';
+
+  try {
+    const data = await supabaseQuerySinLimite('formularios', {
+      in: { field: 'documento', values: documentos },
+      order: 'fecha.asc'
+    });
+
+    const datosFinales = data.filter(item => {
+      const doc = item.documento ? item.documento.toString().trim() : '';
+      return documentos.includes(doc);
+    });
+
+    if (datosFinales.length === 0) {
+      alert('No se encontraron registros para los documentos ingresados.');
+      return;
+    }
+
+    generarExcelPorDocumento(datosFinales, documentos);
+    alert(`${datosFinales.length} registros descargados exitosamente.`);
+  } catch (error) {
+    alert('Error al descargar datos: ' + error.message);
+    console.error(error);
+  } finally {
+    btnDescarga.disabled = false;
+    btnDescarga.textContent = textoOriginal;
+  }
+}
+
+function generarExcelPorDocumento(datos, documentos) {
+  const datosExcel = datos.map(fila => {
+    const apellidos = fila.apellidos || '';
+    const nombres = fila.nombres || '';
+    const apellidosYNombres = `${apellidos} ${nombres}`.trim();
+
+    return {
+      'Documento': parseInt(fila.documento) || '',
+      'Apellidos y Nombres': apellidosYNombres,
+      'Programa': fila.programa || '',
+      'Grupo': fila.grupo || '',
+      'Asignatura': fila.asignatura || '',
+      'Tema': fila.tema || ''
+    };
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let row = 1; row <= range.e.r; row++) {
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 0 });
+    if (ws[docCell] && row > 0) {
+      ws[docCell].t = 'n';
+      ws[docCell].z = '0';
+    }
+  }
+
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
+  ws['!cols'] = [
+    { wch: 12 },  // Documento
+    { wch: 40 },  // Apellidos y Nombres
+    { wch: 35 },  // Programa
+    { wch: 12 },  // Grupo
+    { wch: 30 },  // Asignatura
+    { wch: 30 }   // Tema
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Por Documento');
+
+  const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  XLSX.writeFile(wb, `PMA_PorDocumento_${fechaHoy}.xlsx`);
+}
+
+
+
 function generarExcelSimplificado(datos, desde, hasta) {
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
