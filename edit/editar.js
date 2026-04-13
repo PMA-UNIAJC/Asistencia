@@ -1,8 +1,8 @@
-/* =============================================
+/* ===========================================
    editar.js — lógica para editar estudiante
    Depende de: script.js (SUPABASE_URL, SUPABASE_KEY,
    mostrarMensaje, mostrarCargando, mostrarModalConfirmacion)
-   ============================================= */
+   =========================================== */
 
 // Estado interno
 let documentoOriginal = null;   // Documento con el que se buscó
