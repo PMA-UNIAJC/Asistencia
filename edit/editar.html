@@ -95,11 +95,12 @@
             </div>
             <div class="form-group">
               <label>Sede</label>
-              <select id="edit_sede">
-                <option value="">— Seleccionar —</option>
-                <option value="Norte">Norte</option>
-                <option value="Sur">Sur</option>
+              <select id="edit_sede" required>
+              <option value="">— Seleccionar —</option>
+              <option value="Norte">NORTE</option>
+              <option value="Sur">SUR</option>
               </select>
+              
             </div>
             <div class="form-group">
               <label>Semestre</label>
@@ -118,9 +119,7 @@
               </svg>
               Guardar Cambios
             </button>
-            <button class="btn btn-secondary" onclick="limpiarEdicion()" style="margin-top:10px;">
-              Cancelar
-            </button>
+            <button class="btn btn-secondary" onclick="location.reload()" style="margin-top:10px;">Cancelar</button>
           </div>
         </div>
 
