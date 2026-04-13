@@ -11,38 +11,11 @@ let datosOriginales    = null;   // Snapshot del registro al cargar
 // ── Inicialización ──────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', function () {
-  verificarSesionParaEditar();
-});
-
-async function verificarSesionParaEditar() {
-  try {
-    const { createClient } = supabase;
-    const client = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
-    });
-
-    const { data: { session } } = await client.auth.getSession();
-    if (!session) {
-      alert('Debe iniciar sesión como administrador para acceder a esta página.');
-      window.location.href = '../import/admin.html';
-      return;
-    }
-
-    const { data: adminData } = await client
-      .from('admin_usuarios')
-      .select('user_id')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (!adminData) {
-      alert('Sin permisos de administrador.');
-      window.location.href = '../import/admin.html';
-    }
-  } catch (err) {
-    console.error('Error verificando sesión:', err);
-    // No bloquear si hay error de red; permitir continuar
+  if (!sessionStorage.getItem('adminAuth')) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../import/admin.html';
   }
-}
+});
 
 // ── Buscar estudiante ────────────────────────────────────────────────────────
 
