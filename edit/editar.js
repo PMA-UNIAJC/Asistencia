@@ -143,6 +143,11 @@ function guardarCambios() {
     return;
   }
 
+  if (!document.getElementById('edit_sede').value) {
+  mostrarMensaje('mensajeGuardado', 'Por favor seleccione una sede.', 'error');
+  return;
+} 
+
   // confirmación
 const cambios = obtenerCambios();
 const msgConfirmacion = 'Se actualizarán los datos del estudiante en todos los registros.';
@@ -314,8 +319,9 @@ function mostrarResumen(cambios, registrosFormularios) {
   const contenedor = document.getElementById('contenidoResumen');
   const seccion    = document.getElementById('resumenCambios');
 
-  // Ocultar sección de edición
-  document.querySelector('.edicion-container').classList.add('hidden');
+// Ocultar sección de edición y búsqueda
+document.querySelector('.edicion-container').classList.add('hidden');
+document.getElementById('seccionBusqueda').classList.add('hidden');
 
   if (cambios.length === 0) {
     contenedor.innerHTML = `<div class="resumen-sin-cambios">No hubo cambios en los datos del estudiante.</div>`;
