@@ -48,7 +48,7 @@ async function buscarEstudiante() {
     const data = await response.json();
 
     if (!data || data.length === 0) {
-      mostrarMensaje('mensajeBusqueda', `No se encontró ningún estudiante con documento <strong>${documento}</strong>.`, 'error');
+      mostrarMensaje('mensajeBusqueda', `No se encontró ningún estudiante con este documento.`, 'error');
       return;
     }
 
@@ -196,7 +196,7 @@ async function ejecutarGuardado() {
     }
 
     // 3. Éxito
-    mostrarMensaje('mensajeGuardado', '✅ Cambios guardados correctamente.', 'success');
+    mostrarMensaje('mensajeGuardado', 'Cambios guardados correctamente.', 'success');
     mostrarResumen(cambios, registrosActualizados);
 
     // Actualizar estado interno con los nuevos datos
@@ -316,7 +316,7 @@ function mostrarResumen(cambios, registrosFormularios) {
   if (registrosFormularios > 0) {
     contenedor.innerHTML += `
       <div class="resumen-formularios">
-        📋 ${registrosFormularios} registro(s) de asistencia actualizados en <strong>formularios</strong>.
+      ${registrosFormularios} registro(s) de asistencia actualizados en <strong>formularios</strong>.
       </div>`;
   } else {
     contenedor.innerHTML += `
