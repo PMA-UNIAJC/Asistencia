@@ -18,13 +18,13 @@ async function verificarSesionParaEditar() {
   try {
     const { createClient } = supabase;
     const client = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
     });
 
     const { data: { session } } = await client.auth.getSession();
     if (!session) {
       alert('Debe iniciar sesión como administrador para acceder a esta página.');
-      window.location.href = 'index.html';
+      window.location.href = '../import/admin.html';
       return;
     }
 
@@ -36,7 +36,7 @@ async function verificarSesionParaEditar() {
 
     if (!adminData) {
       alert('Sin permisos de administrador.');
-      window.location.href = 'index.html';
+      window.location.href = '../import/admin.html';
     }
   } catch (err) {
     console.error('Error verificando sesión:', err);
