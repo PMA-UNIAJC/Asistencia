@@ -86,9 +86,10 @@ function cargarFormularioEdicion(est) {
   document.getElementById('edit_programa')        .value = est.programa        || '';
   document.getElementById('edit_semestre')        .value = est.semestre        || '';
 
-  // Sede: select
-  const selectSede = document.getElementById('edit_sede');
-  selectSede.value = est.sede || '';
+  // Sede: select — setTimeout para asegurar que el DOM lo procese
+  setTimeout(() => {
+    document.getElementById('edit_sede').value = est.sede || '';
+  }, 0);
 
   // Badge doc original
   document.getElementById('badgeDocOriginal').textContent = `Doc. original: ${documentoOriginal}`;
@@ -103,6 +104,26 @@ function cargarFormularioEdicion(est) {
   // Mostrar sección edición
   document.getElementById('seccionEdicion').classList.remove('hidden');
   document.getElementById('seccionEdicion').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Deshabilitar botón guardar hasta que haya cambios
+  const btnGuardar = document.getElementById('btnGuardar');
+  btnGuardar.disabled = true;
+  btnGuardar.style.opacity = '0.5';
+
+  const campos = ['edit_documento','edit_primer_nombre','edit_segundo_nombre',
+    'edit_primer_apellido','edit_segundo_apellido','edit_facultad',
+    'edit_programa','edit_sede','edit_semestre'];
+
+  campos.forEach(id => {
+    document.getElementById(id).addEventListener('input', verificarCambios);
+    document.getElementById(id).addEventListener('change', verificarCambios);
+  });
+
+  function verificarCambios() {
+    const hayCambios = obtenerCambios().length > 0;
+    btnGuardar.disabled = !hayCambios;
+    btnGuardar.style.opacity = hayCambios ? '1' : '0.5';
+  }
 }
 
 // ── Guardar cambios ──────────────────────────────────────────────────────────
@@ -122,14 +143,9 @@ function guardarCambios() {
     return;
   }
 
-  // Construir mensaje de confirmación
-  const cambios = obtenerCambios();
-  let msgConfirmacion = 'Se actualizará el estudiante';
-  if (cambios.length > 0) {
-    msgConfirmacion += ` con ${cambios.length} campo(s) modificado(s)`;
-  }
-  msgConfirmacion += '. Además, los registros de formularios con documento <strong>' +
-    documentoOriginal + '</strong> serán actualizados.';
+  // confirmación
+const cambios = obtenerCambios();
+const msgConfirmacion = 'Se actualizarán los datos del estudiante en todos los registros.';
 
   mostrarModalConfirmacion(
     '¿Guardar cambios?',
@@ -298,6 +314,9 @@ function mostrarResumen(cambios, registrosFormularios) {
   const contenedor = document.getElementById('contenidoResumen');
   const seccion    = document.getElementById('resumenCambios');
 
+  // Ocultar sección de edición
+  document.querySelector('.edicion-container').classList.add('hidden');
+
   if (cambios.length === 0) {
     contenedor.innerHTML = `<div class="resumen-sin-cambios">No hubo cambios en los datos del estudiante.</div>`;
   } else {
@@ -316,7 +335,7 @@ function mostrarResumen(cambios, registrosFormularios) {
   if (registrosFormularios > 0) {
     contenedor.innerHTML += `
       <div class="resumen-formularios">
-      ${registrosFormularios} registro(s) de asistencia actualizados en <strong>formularios</strong>.
+        ${registrosFormularios} registro(s) de asistencia actualizados en <strong>formularios</strong>.
       </div>`;
   } else {
     contenedor.innerHTML += `
@@ -324,6 +343,10 @@ function mostrarResumen(cambios, registrosFormularios) {
         No se encontraron registros de asistencia para este documento en <strong>formularios</strong>.
       </div>`;
   }
+
+  // Botón Aceptar que reinicia la página
+  contenedor.innerHTML += `
+    <button class="btn" style="margin-top:15px;" onclick="location.reload()">Aceptar</button>`;
 
   seccion.classList.remove('hidden');
   seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
