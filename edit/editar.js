@@ -143,10 +143,6 @@ function guardarCambios() {
     return;
   }
 
-  if (!document.getElementById('edit_sede').value) {
-  mostrarMensaje('mensajeGuardado', 'Por favor seleccione una sede.', 'error');
-  return;
-} 
 
   // confirmación
 const cambios = obtenerCambios();
