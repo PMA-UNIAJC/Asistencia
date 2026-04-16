@@ -86,10 +86,10 @@ function cargarFormularioEdicion(est) {
   document.getElementById('edit_programa')        .value = est.programa        || '';
   document.getElementById('edit_semestre')        .value = est.semestre        || '';
 
-  // Sede: select — setTimeout para asegurar que el DOM lo procese
+  // Sede: select — setTimeout
   setTimeout(() => {
-    document.getElementById('edit_sede').value = est.sede || '';
-  }, 0);
+    document.getElementById('edit_sede').value = (est.sede || '').trim().toUpperCase();
+}, 0);
 
   // Badge doc original
   document.getElementById('badgeDocOriginal').textContent = `Doc. original: ${documentoOriginal}`;
