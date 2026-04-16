@@ -82,8 +82,7 @@ function cargarFormularioEdicion(est) {
   document.getElementById('edit_segundo_nombre')  .value = est.segundo_nombre  || '';
   document.getElementById('edit_primer_apellido') .value = est.primer_apellido || '';
   document.getElementById('edit_segundo_apellido').value = est.segundo_apellido || '';
-  document.getElementById('edit_facultad')        .value = est.facultad        || '';
-  document.getElementById('edit_programa')        .value = est.programa        || '';
+  cargarFacultadesEdicion(est.facultad || '', est.programa || '');
   document.getElementById('edit_semestre')        .value = est.semestre        || '';
 
   // Sede: select — setTimeout
@@ -353,6 +352,71 @@ document.getElementById('seccionBusqueda').classList.add('hidden');
   seccion.classList.remove('hidden');
   seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+
+async function cargarFacultadesEdicion(facultadActual, programaActual) {
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/facultades_carreras`;
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Accept': 'application/json'
+      }
+    });
+    const data = await response.json();
+
+    // Construir objeto facultad → programas
+    const facultadesMap = {};
+    data.forEach(item => {
+      if (!facultadesMap[item.facultad]) facultadesMap[item.facultad] = [];
+      facultadesMap[item.facultad].push(item.programa);
+    });
+
+    // Guardar en window para reutilizar en cargarProgramasEdicion
+    window._facultadesEdicionMap = facultadesMap;
+
+    // Poblar select de facultades
+    const selectFacultad = document.getElementById('edit_facultad');
+    selectFacultad.innerHTML = '<option value="">Seleccione una facultad</option>';
+    Object.keys(facultadesMap).sort().forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f;
+      opt.textContent = f;
+      if (f === facultadActual) opt.selected = true;
+      selectFacultad.appendChild(opt);
+    });
+
+    // Cargar programas de la facultad actual
+    cargarProgramasEdicion(programaActual);
+
+  } catch (err) {
+    console.error('Error cargando facultades:', err);
+  }
+}
+
+function cargarProgramasEdicion(programaSeleccionado = null) {
+  const facultad = document.getElementById('edit_facultad').value;
+  const selectPrograma = document.getElementById('edit_programa');
+
+  if (!facultad || !window._facultadesEdicionMap) {
+    selectPrograma.innerHTML = '<option value="">Primero seleccione una facultad</option>';
+    selectPrograma.disabled = true;
+    return;
+  }
+
+  const programas = (window._facultadesEdicionMap[facultad] || []).sort();
+  selectPrograma.innerHTML = '<option value="">Seleccione un programa</option>';
+  programas.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    if (p === (programaSeleccionado || '')) opt.selected = true;
+    selectPrograma.appendChild(opt);
+  });
+  selectPrograma.disabled = false;
+}
+
 
 function limpiarEdicion() {
   documentoOriginal = null;
