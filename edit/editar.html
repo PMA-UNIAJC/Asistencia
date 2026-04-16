@@ -85,14 +85,22 @@
               <label>Segundo Apellido</label>
               <input type="text" id="edit_segundo_apellido" autocomplete="off">
             </div>
+
+
             <div class="form-group">
-              <label>Facultad</label>
-              <input type="text" id="edit_facultad" autocomplete="off">
+             <label>Facultad</label>
+            <select id="edit_facultad" onchange="cargarProgramasEdicion()">
+            <option value="">Seleccione una facultad</option>
+            </select>
             </div>
+
             <div class="form-group">
-              <label>Programa</label>
-              <input type="text" id="edit_programa" autocomplete="off">
+            <label>Programa</label>
+            <select id="edit_programa" disabled>
+            <option value="">Primero seleccione una facultad</option>
+            </select>
             </div>
+
             
             <div class="form-group">
               <label>Sede</label>
