@@ -17,6 +17,26 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
+
+
+function mostrarSeccion(seccion) {
+  document.getElementById('menuEdicion').classList.add('hidden');
+  document.getElementById('seccionEstudiante').classList.add('hidden');
+  document.getElementById('seccionTutor').classList.add('hidden');
+
+  if (seccion === 'estudiante') {
+    document.getElementById('seccionEstudiante').classList.remove('hidden');
+  } else if (seccion === 'tutor') {
+    document.getElementById('seccionTutor').classList.remove('hidden');
+  }
+}
+
+function volverMenu() {
+  location.reload();
+}
+
+
+
 // ── Buscar estudiante ────────────────────────────────────────────────────────
 
 async function buscarEstudiante() {
@@ -429,4 +449,174 @@ function limpiarEdicion() {
 
   document.getElementById('inputBuscarDocumento').focus();
   document.getElementById('seccionBusqueda').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+
+// ── Tutor / Docente ───────────────────────────────────────────────────────────
+
+function actualizarCamposTD() {
+  const tipo = document.getElementById('td_tipo').value;
+
+  const grupoSede     = document.getElementById('td_grupo_sede');
+  const grupoFacultad = document.getElementById('td_grupo_facultad');
+  const grupoArea     = document.getElementById('td_grupo_area');
+  const grupoNombre   = document.getElementById('td_grupo_nombre');
+  const btnGuardar    = document.getElementById('btnGuardarTD');
+  const areaTutor     = document.getElementById('td_area_tutor');
+  const areaDocente   = document.getElementById('td_area_docente');
+
+  // Ocultar todo primero
+  grupoSede.style.display     = 'none';
+  grupoFacultad.style.display = 'none';
+  grupoArea.style.display     = 'none';
+  grupoNombre.style.display   = 'none';
+  btnGuardar.style.display    = 'none';
+
+  if (tipo === 'tutor') {
+    grupoSede.style.display   = 'block';
+    areaTutor.style.display   = 'block';
+    areaDocente.style.display = 'none';
+    grupoArea.style.display   = 'block';
+    grupoNombre.style.display = 'block';
+    btnGuardar.style.display  = 'block';
+  } else if (tipo === 'docente') {
+    grupoFacultad.style.display = 'block';
+    areaTutor.style.display     = 'none';
+    areaDocente.style.display   = 'block';
+    grupoArea.style.display     = 'block';
+    grupoNombre.style.display   = 'block';
+    btnGuardar.style.display    = 'block';
+    actualizarAreaDocente();
+  }
+
+document.getElementById('mensajeTD').textContent = '';
+document.getElementById('td_sede').value = '';
+document.getElementById('td_area_tutor').value = '';
+document.getElementById('td_facultad').value = '';
+document.getElementById('td_area_docente').value = '';
+document.getElementById('td_nombres').value = '';
+}
+
+function actualizarAreaDocente() {
+  const facultad = document.getElementById('td_facultad').value;
+  document.getElementById('td_area_docente').value = facultad;
+}
+
+function normalizarNombre(str) {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // quitar tildes
+    .replace(/[^a-zA-Z\s]/g, '')       // quitar caracteres especiales
+    .replace(/\s+/g, ' ')              // espacios dobles → uno
+    .trim()
+    .toUpperCase();
+}
+
+function limpiarNombresTD() {
+  const textarea = document.getElementById('td_nombres');
+  const partes = textarea.value.split(';');
+  const limpios = partes
+    .map(n => normalizarNombre(n))
+    .filter(n => n.length > 0);
+  textarea.value = limpios.join(';\n');
+}
+
+async function guardarTutorDocente() {
+  const tipo = document.getElementById('td_tipo').value;
+
+  // Validaciones
+  if (!tipo) {
+    mostrarMensaje('mensajeTD', 'Seleccione un tipo.', 'error'); return;
+  }
+  if (tipo === 'tutor' && !document.getElementById('td_sede').value) {
+    mostrarMensaje('mensajeTD', 'Seleccione una sede.', 'error'); return;
+  }
+  if (tipo === 'tutor' && !document.getElementById('td_area_tutor').value) {
+    mostrarMensaje('mensajeTD', 'Seleccione un área.', 'error'); return;
+  }
+  if (tipo === 'docente' && !document.getElementById('td_facultad').value) {
+    mostrarMensaje('mensajeTD', 'Seleccione una facultad.', 'error'); return;
+  }
+
+  const nombresRaw = document.getElementById('td_nombres').value;
+  if (!nombresRaw.trim()) {
+    mostrarMensaje('mensajeTD', 'Ingrese al menos un nombre.', 'error'); return;
+  }
+
+  const nombres = nombresRaw
+    .split(/[;\n]/)
+    .map(n => normalizarNombre(n))
+    .filter(n => n.length > 0);
+
+  if (nombres.length === 0) {
+    mostrarMensaje('mensajeTD', 'No se encontraron nombres válidos.', 'error'); return;
+  }
+
+  // Determinar tabla y payload
+  let tabla, area;
+
+  if (tipo === 'tutor') {
+    const sede = document.getElementById('td_sede').value;
+    tabla = sede === 'NORTE' ? 'tutores_norte' : 'tutores_sur';
+    area  = document.getElementById('td_area_tutor').value;
+  } else {
+    tabla = 'profesores';
+    area  = document.getElementById('td_facultad').value;
+  }
+
+  const btnGuardar = document.getElementById('btnGuardarTD');
+  btnGuardar.disabled = true;
+  btnGuardar.textContent = 'Guardando...';
+  mostrarCargando('mensajeTD');
+
+  try {
+    let errores = 0;
+
+    for (const nombre of nombres) {
+      let payload;
+
+      if (tipo === 'tutor') {
+        payload = { nombre, area };
+      } else {
+        payload = { nombre, facultad_departamento: area, area };
+      }
+
+      const url = `${SUPABASE_URL}/rest/v1/${tabla}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'apikey'      : SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer'      : 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) errores++;
+    }
+
+    if (errores === 0) {
+      mostrarMensaje('mensajeTD',
+        `${nombres.length} registro(s) guardado(s) correctamente en <strong>${tabla}</strong>.`, 'success');
+      document.getElementById('td_nombres').value = '';
+    } else {
+      mostrarMensaje('mensajeTD',
+        `Se guardaron ${nombres.length - errores} de ${nombres.length} registros. Verifique los errores.`, 'error');
+    }
+
+  } catch (err) {
+    mostrarMensaje('mensajeTD', 'Error de conexión: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>
+      Guardar Registro(s)`;
+  }
 }

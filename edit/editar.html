@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PMA - Editar Estudiante</title>
+  <title>PMA - Panel de Edición</title>
   <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
   <link rel="stylesheet" href="../PMA/styles.css">
   <link rel="stylesheet" href="editar.css">
@@ -11,17 +11,46 @@
 </head>
 <body>
 
-  <div id="contenidoFormulario">
-    <div class="container">
 
+
+
+  <div id="contenidoFormulario">
+  <div class="container">
+
+    <!-- MENÚ PRINCIPAL -->
+    <div id="menuEdicion">
+      <h2 class="section-title">Panel de Edición</h2>
+      <p class="texto-descargas">Seleccione qué desea editar:</p>
+
+      <button class="btn btn-secondary" style="margin-bottom:12px;" onclick="mostrarSeccion('estudiante')">
+        Editar datos de estudiante
+      </button>
+      <button class="btn btn-secondary" onclick="mostrarSeccion('tutor')">
+        Editar tutores / docentes
+      </button>
+
+
+      <div class="admin-link">
+      <a href="../import/admin.html">Volver al panel de administración</a>
+      </div>
+
+    </div>
+
+
+
+
+
+
+    <!-- SECCIÓN ESTUDIANTE -->
+    <div id="seccionEstudiante" class="hidden">
       <div class="admin-header" style="margin-bottom: 20px;">
         <h2 class="section-title">Editar Estudiante</h2>
-        <a href="../import/admin.html" class="btn-volver" title="Volver al panel">
+        <button class="btn-volver" onclick="volverMenu()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
           Volver
-        </a>
+        </button>
       </div>
 
       <!-- Buscador -->
@@ -31,16 +60,12 @@
         <div class="form-group">
           <label>Documento</label>
           <div class="buscador-grupo-container">
-            <input
-              type="text"
-              id="inputBuscarDocumento"
-              placeholder="Ej: 1234567890"
-              class="buscador-grupo-input"
-              autocomplete="off"
-              onkeydown="if(event.key==='Enter') buscarEstudiante()"
-            >
+            <input type="text" id="inputBuscarDocumento" placeholder="Ej: 1234567890"
+              class="buscador-grupo-input" autocomplete="off"
+              onkeydown="if(event.key==='Enter') buscarEstudiante()">
             <button class="btn btn-buscar-grupo" onclick="buscarEstudiante()" id="btnBuscar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
@@ -51,7 +76,7 @@
         </div>
       </div>
 
-      <!-- Formulario de edición (oculto hasta buscar) -->
+      <!-- Formulario de edición -->
       <div id="seccionEdicion" class="hidden">
         <div class="chart-container edicion-container">
           <div class="edicion-header">
@@ -85,32 +110,26 @@
               <label>Segundo Apellido</label>
               <input type="text" id="edit_segundo_apellido" autocomplete="off">
             </div>
-
-
             <div class="form-group">
-             <label>Facultad</label>
-            <select id="edit_facultad" onchange="cargarProgramasEdicion()">
-            <option value="">Seleccione una facultad</option>
-            </select>
+              <label>Facultad</label>
+              <select id="edit_facultad" onchange="cargarProgramasEdicion()">
+                <option value="">Seleccione una facultad</option>
+              </select>
             </div>
-
             <div class="form-group">
-            <label>Programa</label>
-            <select id="edit_programa" disabled>
-            <option value="">Primero seleccione una facultad</option>
-            </select>
+              <label>Programa</label>
+              <select id="edit_programa" disabled>
+                <option value="">Primero seleccione una facultad</option>
+              </select>
             </div>
-
-            
             <div class="form-group">
               <label>Sede</label>
               <select id="edit_sede" required>
-              <option value="NORTE">NORTE</option>
-              <option value="SUR">SUR</option>
-              <option value="VIRTUAL">VIRTUAL</option>
-              </select> 
+                <option value="NORTE">NORTE</option>
+                <option value="SUR">SUR</option>
+                <option value="VIRTUAL">VIRTUAL</option>
+              </select>
             </div>
-            
             <div class="form-group">
               <label>Semestre</label>
               <input type="text" id="edit_semestre" autocomplete="off">
@@ -121,7 +140,8 @@
 
           <div class="edicion-botones">
             <button class="btn" onclick="guardarCambios()" id="btnGuardar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
                 <polyline points="7 3 7 8 15 8"></polyline>
@@ -132,20 +152,125 @@
           </div>
         </div>
 
-        <!-- Resumen de cambios -->
         <div id="resumenCambios" class="hidden chart-container" style="margin-top:20px;">
           <h3 class="chart-title">Cambios Guardados</h3>
           <div id="contenidoResumen"></div>
         </div>
       </div>
-
     </div>
 
-    <div class="logo-footer">
-      <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png" alt="Logo UNIAJC">
-      <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png" alt="Logo PMA" class="logo-footer-pma">
-    </div>
+
+
+
+
+
+    
+
+
+    <!-- SECCIÓN TUTOR -->
+<div id="seccionTutor" class="hidden">
+  <div class="admin-header" style="margin-bottom: 20px;">
+    <h2 class="section-title">Agregar Tutores / Docentes</h2>
+    <button class="btn-volver" onclick="volverMenu()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Volver
+    </button>
   </div>
+
+  <div class="chart-container">
+    <h3 class="chart-title">Agregar Tutor / Docente</h3>
+    <p class="texto-descargas">Complete los campos para registrar uno o varios tutores/docentes.</p>
+
+    <!-- Tipo -->
+    <div class="form-group">
+      <label>Tipo *</label>
+      <select id="td_tipo" onchange="actualizarCamposTD()">
+        <option value="">Seleccione un tipo</option>
+        <option value="tutor">Tutor</option>
+        <option value="docente">Docente</option>
+      </select>
+    </div>
+
+    <!-- Sede (solo tutor) -->
+    <div class="form-group" id="td_grupo_sede" style="display:none;">
+      <label>Sede *</label>
+      <select id="td_sede">
+        <option value="">Seleccione una sede</option>
+        <option value="NORTE">NORTE</option>
+        <option value="SUR">SUR</option>
+      </select>
+    </div>
+
+    <!-- Facultad (solo docente) -->
+    <div class="form-group" id="td_grupo_facultad" style="display:none;">
+      <label>Facultad *</label>
+      <select id="td_facultad" onchange="actualizarAreaDocente()">
+        <option value="">Seleccione una facultad</option>
+        <option value="DCB">DCB</option>
+        <option value="FCE">FCE</option>
+        <option value="FCSH">FCSH</option>
+        <option value="FEDV">FEDV</option>
+        <option value="FI">FI</option>
+      </select>
+    </div>
+
+    <!-- Área -->
+    <div class="form-group" id="td_grupo_area" style="display:none;">
+      <label>Área *</label>
+      <select id="td_area_tutor">
+        <option value="">Seleccione un área</option>
+        <option value="M">M</option>
+        <option value="C">C</option>
+      </select>
+      <input type="text" id="td_area_docente" readonly style="display:none; background:#f5f5f5; color:#666; cursor:not-allowed;">
+    </div>
+
+    <!-- Nombre completo -->
+    <div class="form-group" id="td_grupo_nombre" style="display:none;">
+      <label>Nombre(s) Completo(s) * <span style="font-weight:400; color:#888; font-size:12px;">— separe varios con ";"</span></label>
+      <textarea id="td_nombres" rows="4" placeholder="Ej: MARIO GERMAN DOMINGUEZ POMBO; JUAN MANUEL MAFLA MENESES" onblur="limpiarNombresTD()"></textarea>
+      <div style="font-size:11px; color:#888; margin-top:4px;">Se crearán tantos registros como nombres ingrese.</div>
+    </div>
+
+    <div id="mensajeTD"></div>
+
+    <button class="btn" id="btnGuardarTD" style="display:none;" onclick="guardarTutorDocente()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>
+      Guardar Registro(s)
+    </button>
+
+  </div>
+</div>
+
+  </div>
+
+
+
+
+
+
+
+
+  <div class="logo-footer">
+    <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png" alt="Logo UNIAJC">
+    <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png" alt="Logo PMA" class="logo-footer-pma">
+  </div>
+</div>
+
+
+
+
+
+
+
+
 
   <div id="modalConfirmacion" class="modal-overlay hidden">
     <div class="modal-confirmacion">
