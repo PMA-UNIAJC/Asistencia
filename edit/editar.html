@@ -12,8 +12,6 @@
 <body>
 
 
-
-
   <div id="contenidoFormulario">
   <div class="container">
 
@@ -23,10 +21,10 @@
       <p class="texto-descargas">Seleccione qué desea editar:</p>
 
       <button class="btn btn-secondary" style="margin-bottom:12px;" onclick="mostrarSeccion('estudiante')">
-        Editar datos de estudiante
+        Editar Datos de Estudiante
       </button>
       <button class="btn btn-secondary" onclick="mostrarSeccion('tutor')">
-        Editar tutores / docentes
+        Editar Tutores / Docentes
       </button>
 
 
@@ -35,9 +33,6 @@
       </div>
 
     </div>
-
-
-
 
 
 
@@ -96,19 +91,19 @@
             </div>
             <div class="form-group">
               <label>Primer Nombre *</label>
-              <input type="text" id="edit_primer_nombre" autocomplete="off">
+              <input type="text" id="edit_primer_nombre" autocomplete="off" onblur="this.value=normalizarNombre(this.value)">
             </div>
             <div class="form-group">
               <label>Segundo Nombre</label>
-              <input type="text" id="edit_segundo_nombre" autocomplete="off">
+              <input type="text" id="edit_segundo_nombre" autocomplete="off" onblur="this.value=normalizarNombre(this.value)">
             </div>
             <div class="form-group">
               <label>Primer Apellido *</label>
-              <input type="text" id="edit_primer_apellido" autocomplete="off">
+              <input type="text" id="edit_primer_apellido" autocomplete="off" onblur="this.value=normalizarNombre(this.value)">
             </div>
             <div class="form-group">
               <label>Segundo Apellido</label>
-              <input type="text" id="edit_segundo_apellido" autocomplete="off">
+              <input type="text" id="edit_segundo_apellido" autocomplete="off" onblur="this.value=normalizarNombre(this.value)">
             </div>
             <div class="form-group">
               <label>Facultad</label>
@@ -161,16 +156,9 @@
 
 
 
-
-
-
-    
-
-
-    <!-- SECCIÓN TUTOR -->
 <div id="seccionTutor" class="hidden">
   <div class="admin-header" style="margin-bottom: 20px;">
-    <h2 class="section-title">Agregar Tutores / Docentes</h2>
+    <h2 class="section-title">Tutores / Docentes</h2>
     <button class="btn-volver" onclick="volverMenu()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="15 18 9 12 15 6"></polyline>
@@ -179,80 +167,165 @@
     </button>
   </div>
 
-  <div class="chart-container">
-    <h3 class="chart-title">Agregar Tutor / Docente</h3>
-    <p class="texto-descargas">Complete los campos para registrar uno o varios tutores/docentes.</p>
 
-    <!-- Tipo -->
-    <div class="form-group">
-      <label>Tipo *</label>
-      <select id="td_tipo" onchange="actualizarCamposTD()">
-        <option value="">Seleccione un tipo</option>
-        <option value="tutor">Tutor</option>
-        <option value="docente">Docente</option>
-      </select>
-    </div>
-
-    <!-- Sede (solo tutor) -->
-    <div class="form-group" id="td_grupo_sede" style="display:none;">
-      <label>Sede *</label>
-      <select id="td_sede">
-        <option value="">Seleccione una sede</option>
-        <option value="NORTE">NORTE</option>
-        <option value="SUR">SUR</option>
-      </select>
-    </div>
-
-    <!-- Facultad (solo docente) -->
-    <div class="form-group" id="td_grupo_facultad" style="display:none;">
-      <label>Facultad *</label>
-      <select id="td_facultad" onchange="actualizarAreaDocente()">
-        <option value="">Seleccione una facultad</option>
-        <option value="DCB">DCB</option>
-        <option value="FCE">FCE</option>
-        <option value="FCSH">FCSH</option>
-        <option value="FEDV">FEDV</option>
-        <option value="FI">FI</option>
-      </select>
-    </div>
-
-    <!-- Área -->
-    <div class="form-group" id="td_grupo_area" style="display:none;">
-      <label>Área *</label>
-      <select id="td_area_tutor">
-        <option value="">Seleccione un área</option>
-        <option value="M">M</option>
-        <option value="C">C</option>
-      </select>
-      <input type="text" id="td_area_docente" readonly style="display:none; background:#f5f5f5; color:#666; cursor:not-allowed;">
-    </div>
-
-    <!-- Nombre completo -->
-    <div class="form-group" id="td_grupo_nombre" style="display:none;">
-      <label>Nombre(s) Completo(s) * <span style="font-weight:400; color:#888; font-size:12px;">— separe varios con ";"</span></label>
-      <textarea id="td_nombres" rows="4" placeholder="Ej: MARIO GERMAN DOMINGUEZ POMBO; JUAN MANUEL MAFLA MENESES" onblur="limpiarNombresTD()"></textarea>
-      <div style="font-size:11px; color:#888; margin-top:4px;">Se crearán tantos registros como nombres ingrese.</div>
-    </div>
-
-    <div id="mensajeTD"></div>
-
-    <button class="btn" id="btnGuardarTD" style="display:none;" onclick="guardarTutorDocente()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-        <polyline points="7 3 7 8 15 8"></polyline>
-      </svg>
-      Guardar Registro(s)
-    </button>
-
+  <!-- Pestañas -->
+  <div class="admin-tabs" style="margin-bottom: 20px;">
+    <button class="admin-tab active" id="tabAgregar" onclick="cambiarPestanaTD('agregar')">Agregar</button>
+    <button class="admin-tab" id="tabEliminar" onclick="cambiarPestanaTD('eliminar')">Eliminar</button>
   </div>
+
+
+
+
+  <!-- PANEL AGREGAR -->
+  <div id="panelAgregar">
+    <div class="chart-container">
+      <h3 class="chart-title">Agregar Tutor / Docente</h3>
+      <p class="texto-descargas">Complete los campos para registrar uno o varios tutores/docentes.</p>
+
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select id="td_tipo" onchange="actualizarCamposTD()">
+          <option value="">Seleccione un tipo</option>
+          <option value="tutor">Tutor</option>
+          <option value="docente">Docente</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="td_grupo_sede" style="display:none;">
+        <label>Sede *</label>
+        <select id="td_sede">
+          <option value="">Seleccione una sede</option>
+          <option value="NORTE">NORTE</option>
+          <option value="SUR">SUR</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="td_grupo_facultad" style="display:none;">
+        <label>Facultad *</label>
+        <select id="td_facultad" onchange="actualizarAreaDocente()">
+          <option value="">Seleccione una facultad</option>
+          <option value="DCB">DCB</option>
+          <option value="FCE">FCE</option>
+          <option value="FCSH">FCSH</option>
+          <option value="FEDV">FEDV</option>
+          <option value="FI">FI</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="td_grupo_area" style="display:none;">
+        <label>Área *</label>
+        <select id="td_area_tutor">
+          <option value="">Seleccione un área</option>
+          <option value="M">M</option>
+          <option value="C">C</option>
+        </select>
+        <input type="text" id="td_area_docente" readonly style="display:none; background:#f5f5f5; color:#666; cursor:not-allowed;">
+      </div>
+
+      <div class="form-group" id="td_grupo_nombre" style="display:none;">
+        <label>Nombre(s) Completo(s) * <span style="font-weight:400; color:#888; font-size:12px;">— separe varios con ";"</span></label>
+        <textarea id="td_nombres" rows="4" placeholder="Ej: MARIO GERMAN DOMINGUEZ POMBO; JUAN MANUEL MAFLA MENESES" onblur="limpiarNombresTD()"></textarea>
+        <div style="font-size:11px; color:#888; margin-top:4px;">Se crearán tantos registros como nombres ingrese.</div>
+      </div>
+
+      <div id="mensajeTD"></div>
+
+      <button class="btn" id="btnGuardarTD" style="display:none;" onclick="guardarTutorDocente()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        Guardar Registro(s)
+      </button>
+    </div>
+  </div>
+
+
+
+
+  <!-- PANEL ELIMINAR -->
+  <div id="panelEliminar" style="display:none;">
+    <div class="chart-container">
+      <h3 class="chart-title">Eliminar Tutor / Docente</h3>
+      <p class="texto-descargas">Filtre por tipo y sede o facultad para cargar la lista.</p>
+
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select id="el_tipo" onchange="actualizarCamposEL()">
+          <option value="">Seleccione un tipo</option>
+          <option value="tutor">Tutor</option>
+          <option value="docente">Docente</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="el_grupo_sede" style="display:none;">
+        <label>Sede *</label>
+        <select id="el_sede">
+          <option value="">Seleccione una sede</option>
+          <option value="NORTE">Norte</option>
+          <option value="SUR">Sur</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="el_grupo_facultad" style="display:none;">
+        <label>Facultad *</label>
+        <select id="el_facultad">
+          <option value="">Seleccione una facultad</option>
+          <option value="DCB">DCB</option>
+          <option value="FCE">FCE</option>
+          <option value="FCSH">FCSH</option>
+          <option value="FEDV">FEDV</option>
+          <option value="FI">FI</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="el_grupo_area" style="display:none;">
+        <label>Área</label>
+        <select id="el_area">
+          <option value="">Todas las áreas</option>
+          <option value="M">M</option>
+          <option value="C">C</option>
+        </select>
+      </div>
+
+      <button class="btn btn-secondary" id="btnCargarLista" style="display:none;" onclick="cargarListaEliminar()">
+        Cargar lista
+      </button>
+
+      <div id="mensajeEL" style="margin-top:10px;"></div>
+
+      <!-- Lista con checkboxes -->
+    <div id="listaEliminar" style="display:none; margin-top:16px;">
+  <div style="margin-bottom:18px;">
+    <span id="contadorLista" style="font-size:13px; color:#555;"></span>
+    <div style="margin-top:14px; margin-bottom:14px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:400; width:fit-content;">
+        <input type="checkbox" id="chkSeleccionarTodos" style="width:18px; height:18px; cursor:pointer;" onchange="seleccionarTodosEL(this.checked)">
+        Seleccionar todos
+      </label>
+    </div>
+  </div>
+  <div id="itemsLista"></div>
+  <button class="btn" id="btnEliminarSeleccionados" style="margin-top:14px; background:#dc3545; display:none;" onclick="eliminarSeleccionados()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+            <path d="M10 11v6"></path><path d="M14 11v6"></path>
+            <path d="M9 6V4h6v2"></path>
+          </svg>
+          Eliminar seleccionados
+        </button>
+      </div>
+
+    </div>
+  </div>
+
 </div>
-
-  </div>
-
-
-
+</div>
 
 
 
@@ -263,11 +336,6 @@
     <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png" alt="Logo PMA" class="logo-footer-pma">
   </div>
 </div>
-
-
-
-
-
 
 
 
