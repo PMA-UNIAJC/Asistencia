@@ -254,10 +254,10 @@ async function ejecutarGuardado() {
 function leerFormulario() {
   return {
     documento       : document.getElementById('edit_documento')       .value.trim(),
-    primer_nombre   : document.getElementById('edit_primer_nombre')   .value.trim(),
-    segundo_nombre  : document.getElementById('edit_segundo_nombre')  .value.trim(),
-    primer_apellido : document.getElementById('edit_primer_apellido') .value.trim(),
-    segundo_apellido: document.getElementById('edit_segundo_apellido').value.trim(),
+    primer_nombre   : normalizarNombre(document.getElementById('edit_primer_nombre')   .value),
+    segundo_nombre  : normalizarNombre(document.getElementById('edit_segundo_nombre')  .value),
+    primer_apellido : normalizarNombre(document.getElementById('edit_primer_apellido') .value),
+    segundo_apellido: normalizarNombre(document.getElementById('edit_segundo_apellido').value),
     facultad        : document.getElementById('edit_facultad')        .value.trim(),
     programa        : document.getElementById('edit_programa')        .value.trim(),
     sede            : document.getElementById('edit_sede')            .value,
@@ -356,12 +356,12 @@ document.getElementById('seccionBusqueda').classList.add('hidden');
   if (registrosFormularios > 0) {
     contenedor.innerHTML += `
       <div class="resumen-formularios">
-        ${registrosFormularios} registro(s) de asistencia actualizados en <strong>formularios</strong>.
+        ${registrosFormularios} registro(s) de asistencia actualizados en formularios.
       </div>`;
   } else {
     contenedor.innerHTML += `
       <div class="resumen-sin-cambios">
-        No se encontraron registros de asistencia para este documento en <strong>formularios</strong>.
+        No se encontraron registros de asistencia para este documento en formularios.
       </div>`;
   }
 
@@ -598,7 +598,7 @@ async function guardarTutorDocente() {
 
     if (errores === 0) {
       mostrarMensaje('mensajeTD',
-        `${nombres.length} registro(s) guardado(s) correctamente en <strong>${tabla}</strong>.`, 'success');
+        `${nombres.length} registro(s) guardado(s) correctamente en ${tabla}.`, 'success');
       document.getElementById('td_nombres').value = '';
     } else {
       mostrarMensaje('mensajeTD',
@@ -619,4 +619,196 @@ async function guardarTutorDocente() {
       </svg>
       Guardar Registro(s)`;
   }
+}
+
+
+
+// ── Pestañas Tutor/Docente ────────────────────────────────────────────────────
+
+function cambiarPestanaTD(pestana) {
+  document.getElementById('panelAgregar').style.display  = pestana === 'agregar'  ? 'block' : 'none';
+  document.getElementById('panelEliminar').style.display = pestana === 'eliminar' ? 'block' : 'none';
+  document.getElementById('tabAgregar').classList.toggle('active',  pestana === 'agregar');
+  document.getElementById('tabEliminar').classList.toggle('active', pestana === 'eliminar');
+}
+
+// ── Eliminar ─────────────────────────────────────────────────────────────────
+
+function actualizarCamposEL() {
+  const tipo = document.getElementById('el_tipo').value;
+
+  document.getElementById('el_grupo_sede').style.display    = 'none';
+  document.getElementById('el_grupo_facultad').style.display = 'none';
+  document.getElementById('el_grupo_area').style.display    = 'none';
+  document.getElementById('btnCargarLista').style.display   = 'none';
+  document.getElementById('listaEliminar').style.display    = 'none';
+  document.getElementById('mensajeEL').textContent          = '';
+  document.getElementById('itemsLista').innerHTML           = '';
+
+  document.getElementById('el_sede').value    = '';
+  document.getElementById('el_facultad').value = '';
+  document.getElementById('el_area').value    = '';
+
+  if (tipo === 'tutor') {
+    document.getElementById('el_grupo_sede').style.display = 'block';
+    document.getElementById('el_grupo_area').style.display = 'block';
+    document.getElementById('btnCargarLista').style.display = 'block';
+  } else if (tipo === 'docente') {
+    document.getElementById('el_grupo_facultad').style.display = 'block';
+    document.getElementById('btnCargarLista').style.display = 'block';
+  }
+}
+
+async function cargarListaEliminar() {
+  const tipo = document.getElementById('el_tipo').value;
+
+  if (tipo === 'tutor' && !document.getElementById('el_sede').value) {
+    mostrarMensaje('mensajeEL', 'Seleccione una sede.', 'error'); return;
+  }
+  if (tipo === 'docente' && !document.getElementById('el_facultad').value) {
+    mostrarMensaje('mensajeEL', 'Seleccione una facultad.', 'error'); return;
+  }
+
+  let tabla, filtros = '';
+
+  if (tipo === 'tutor') {
+    const sede = document.getElementById('el_sede').value;
+    const area = document.getElementById('el_area').value;
+    tabla = sede === 'NORTE' ? 'tutores_norte' : 'tutores_sur';
+    if (area) filtros = `&area=eq.${encodeURIComponent(area)}`;
+  } else {
+    const facultad = document.getElementById('el_facultad').value;
+    tabla = 'profesores';
+    filtros = `&facultad_departamento=eq.${encodeURIComponent(facultad)}`;
+  }
+
+  const btnCargar = document.getElementById('btnCargarLista');
+  btnCargar.disabled = true;
+  btnCargar.textContent = 'Cargando...';
+  mostrarCargando('mensajeEL');
+
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/${tabla}?select=id,nombre,area${filtros}&order=nombre.asc`;
+    const resp = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!resp.ok) throw new Error('Error consultando la base de datos');
+
+    const data = await resp.json();
+
+    document.getElementById('mensajeEL').textContent = '';
+    document.getElementById('listaEliminar').style.display = 'block';
+    document.getElementById('contadorLista').textContent = `${data.length} registro(s) encontrado(s)`;
+    document.getElementById('btnEliminarSeleccionados').style.display = 'none';
+
+    const contenedor = document.getElementById('itemsLista');
+
+    if (data.length === 0) {
+      contenedor.innerHTML = '<div class="resumen-sin-cambios">No se encontraron registros con esos filtros.</div>';
+      return;
+    }
+
+    contenedor.innerHTML = data.map(item => `
+      <div class="list-item" style="gap:10px;">
+        <input type="checkbox" id="chk_${item.id}" value="${item.id}"
+          style="width:18px; height:18px; flex-shrink:0; cursor:pointer;"
+          onchange="actualizarBotonEliminar()">
+        <label for="chk_${item.id}" style="margin:0; font-weight:400; cursor:pointer; flex:1; display:flex; justify-content:space-between; align-items:center;">
+          <span>${item.nombre}</span>
+          <span style="font-size:11px; color:#888; margin-left:6px;">${item.area || ''}</span>
+        </label>
+      </div>
+    `).join('');
+
+    // Guardar referencia a la tabla actual
+    window._tablaEliminar = tabla;
+
+  } catch (err) {
+    mostrarMensaje('mensajeEL', 'Error de conexión: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    btnCargar.disabled = false;
+    btnCargar.textContent = 'Cargar lista';
+  }
+}
+
+function seleccionarTodosEL(marcar) {
+  document.querySelectorAll('#itemsLista input[type="checkbox"]').forEach(chk => {
+    chk.checked = marcar;
+  });
+  document.getElementById('chkSeleccionarTodos').checked = marcar;
+  actualizarBotonEliminar();
+}
+
+function actualizarBotonEliminar() {
+  const seleccionados = document.querySelectorAll('#itemsLista input[type="checkbox"]:checked').length;
+  const btn = document.getElementById('btnEliminarSeleccionados');
+  btn.style.display = seleccionados > 0 ? 'block' : 'none';
+  btn.textContent = `Eliminar ${seleccionados} registro(s)`;
+}
+
+async function eliminarSeleccionados() {
+  const checkboxes = document.querySelectorAll('#itemsLista input[type="checkbox"]:checked');
+  const ids = Array.from(checkboxes).map(chk => chk.value);
+
+  if (ids.length === 0) return;
+
+  const tabla = window._tablaEliminar;
+
+  mostrarModalConfirmacion(
+    '¿Eliminar registros?',
+    `Se eliminarán ${ids.length} registro(s) de forma permanente.`,
+    async () => {
+      const btn = document.getElementById('btnEliminarSeleccionados');
+      btn.disabled = true;
+      btn.textContent = 'Eliminando...';
+      mostrarCargando('mensajeEL');
+
+      try {
+        let errores = 0;
+
+        for (const id of ids) {
+          const url = `${SUPABASE_URL}/rest/v1/${tabla}?id=eq.${encodeURIComponent(id)}`;
+          const resp = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Prefer': 'return=minimal'
+            }
+          });
+          if (!resp.ok) errores++;
+        }
+
+        if (errores === 0) {
+          mostrarMensaje('mensajeEL', `${ids.length} registro(s) eliminado(s) correctamente.`, 'success');
+        } else {
+          mostrarMensaje('mensajeEL', `Se eliminaron ${ids.length - errores} de ${ids.length} registros.`, 'error');
+        }
+
+        // Recargar lista
+        cargarListaEliminar();
+
+      } catch (err) {
+        mostrarMensaje('mensajeEL', 'Error de conexión: ' + err.message, 'error');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+btn.innerHTML = `
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;">
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+    <path d="M10 11v6"></path><path d="M14 11v6"></path>
+    <path d="M9 6V4h6v2"></path>
+  </svg>
+  Eliminar seleccionados`;
+      }
+    }
+  );
 }
