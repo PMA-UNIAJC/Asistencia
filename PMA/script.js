@@ -1731,7 +1731,6 @@ const datos = {
     facultad: datosEstudiante.facultad,
     programa: datosEstudiante.programa,
     semestre: datosEstudiante.semestre,
-    grupo: document.getElementById('grupoAcademicoFormulario').value.toUpperCase().trim(),
     tipo_acompanamiento: tipoAcompanamiento,
     titulo_curso: tituloCurso,
     sede_estudiante: datosEstudiante.sede,
@@ -2018,7 +2017,6 @@ if ('scrollRestoration' in window.history) {
 // ===================================
 function validarPagina1() {
   const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
-  const grupoAcademico = document.getElementById('grupoAcademicoFormulario').value.trim();
   const sedeTutoria = document.getElementById('sedeTutoria').value;
   const tipoInstructor = document.getElementById('tipoInstructor').value;
   const instructor = document.getElementById('instructor').value;
@@ -2028,9 +2026,6 @@ function validarPagina1() {
   // Validar campos básicos con mensajes específicos
   if (!tipoAcompanamiento) {
     return { valido: false, mensaje: 'Por favor seleccione un tipo de acompañamiento' };
-  }
-  if (!grupoAcademico) {
-    return { valido: false, mensaje: 'Por favor ingrese su grupo académico' };
   }
   if (!sedeTutoria) {
     return { valido: false, mensaje: 'Por favor seleccione una sede' };

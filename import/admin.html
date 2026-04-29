@@ -139,10 +139,14 @@
 
 <div class="chart-container chart-container-spacing">
   <h3 class="chart-title">Descargar por Grupo</h3>
-  <p class="texto-descargas">Descargue registros filtrados por grupo académico con columnas específicas.</p>
+  <p class="texto-descargas">Sube archivo Matriculados e ingresa el grupo.</p>
+  <div class="form-group">
+    <label>Archivo Matriculados (Excel) *</label>
+    <input type="file" id="archivoMatriculados" accept=".xlsx,.xls" class="buscador-grupo-input">
+  </div>
   <div class="form-group">
     <label>Grupo *</label>
-    <input type="text" id="buscadorGrupo" placeholder="Ingrese el grupo..." autocomplete="off" class="buscador-grupo-input">
+    <input type="text" id="buscadorGrupo" placeholder="Ej: 2303A" autocomplete="off" class="buscador-grupo-input">
   </div>
   <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo()">Descargar Registros por Grupo</button>
 </div>

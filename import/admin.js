@@ -1173,35 +1173,57 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
 
 
 async function descargarPorGrupo() {
-  const inputRaw = document.getElementById('buscadorGrupo').value.trim().toUpperCase();
+  const archivoInput = document.getElementById('archivoMatriculados');
+  const grupoFiltro = document.getElementById('buscadorGrupo').value.trim().toUpperCase();
 
-  if (!inputRaw) {
-    alert('Por favor ingrese un grupo.');
+  if (!archivoInput.files || archivoInput.files.length === 0) {
+    alert('Por favor selecciona el archivo MATRICULADOS.');
+    return;
+  }
+  if (!grupoFiltro) {
+    alert('Por favor ingresa el grupo.');
     return;
   }
 
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = 'Buscando y preparando descarga...';
+  btnDescarga.textContent = 'Procesando...';
 
   try {
-    const data = await supabaseQuerySinLimite('formularios', {
-  eq: { field: 'grupo', value: inputRaw },
-  order: 'fecha.asc'
-});
+    // 1. Leer el Excel de MATRICULADOS y construir mapa documento -> grupo
+    const mapaGrupos = await leerMatriculados(archivoInput.files[0], grupoFiltro);
 
-const datosFinales = data;
-
-    if (datosFinales.length === 0) {
-      alert('No se encontraron registros para el grupo ingresado.');
+    if (mapaGrupos.size === 0) {
+      alert(`No se encontraron estudiantes con el grupo "${grupoFiltro}" en el archivo MATRICULADOS.`);
       return;
     }
 
-    generarExcelPorGrupo(datosFinales, inputRaw);
-    alert(`${datosFinales.length} registros descargados exitosamente.`);
+    // 2. Descargar todos los registros de la BD
+    btnDescarga.textContent = 'Descargando de la BD...';
+    const data = await supabaseQuerySinLimite('formularios', { order: 'fecha.asc' });
+
+    if (!data || data.length === 0) {
+      alert('No hay registros en la base de datos.');
+      return;
+    }
+
+    // 3. Cruzar: solo los registros cuyo documento esté en el mapa
+    const datosFiltrados = data.filter(fila =>
+      mapaGrupos.has(String(fila.documento).trim())
+    );
+
+    if (datosFiltrados.length === 0) {
+      alert(`No se encontraron registros en la BD para los estudiantes del grupo "${grupoFiltro}".`);
+      return;
+    }
+
+    // 4. Generar Excel usando el grupo real del archivo MATRICULADOS
+    generarExcelPorGrupoMatriculados(datosFiltrados, mapaGrupos, grupoFiltro);
+    alert(`${datosFiltrados.length} registros descargados exitosamente para el grupo "${grupoFiltro}".`);
+
   } catch (error) {
-    alert('Error al descargar datos: ' + error.message);
+    alert('Error: ' + error.message);
     console.error(error);
   } finally {
     btnDescarga.disabled = false;
@@ -1209,51 +1231,87 @@ const datosFinales = data;
   }
 }
 
+function leerMatriculados(archivo, grupoFiltro) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-function generarExcelPorGrupo(datos, grupo) {
+        if (filas.length === 0) {
+          reject(new Error('El archivo MATRICULADOS está vacío.'));
+          return;
+        }
+
+        // Detectar columnas DOCUMENTO y GRUPO (insensible a mayúsculas/espacios)
+        const primeraFila = filas[0];
+        const keys = Object.keys(primeraFila);
+
+        const colDoc = keys.find(k => k.trim().toUpperCase() === 'DOCUMENTO');
+        const colGrupo = keys.find(k => k.trim().toUpperCase() === 'GRUPO');
+
+        if (!colDoc || !colGrupo) {
+          reject(new Error(`No se encontraron las columnas DOCUMENTO y GRUPO en el archivo. Columnas detectadas: ${keys.join(', ')}`));
+          return;
+        }
+
+        // Construir mapa: documento -> grupo, filtrando solo el grupo buscado
+        const mapa = new Map();
+        filas.forEach(fila => {
+          const doc = String(fila[colDoc]).trim();
+          const grupo = String(fila[colGrupo]).trim().toUpperCase();
+          if (grupo === grupoFiltro && doc) {
+            mapa.set(doc, grupo);
+          }
+        });
+
+        resolve(mapa);
+      } catch (err) {
+        reject(new Error('Error leyendo el archivo Excel: ' + err.message));
+      }
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsArrayBuffer(archivo);
+  });
+}
+
+function generarExcelPorGrupoMatriculados(datos, mapaGrupos, grupoFiltro) {
   const datosExcel = datos.map(fila => {
+    const doc = String(fila.documento).trim();
+    const grupoReal = mapaGrupos.get(doc) || grupoFiltro;
     const apellidos = fila.apellidos || '';
     const nombres = fila.nombres || '';
-    const apellidosYNombres = `${apellidos} ${nombres}`.trim();
-    
+
     return {
       'Documento': parseInt(fila.documento) || '',
-      'Apellidos y Nombres': apellidosYNombres,
+      'Apellidos y Nombres': `${apellidos} ${nombres}`.trim(),
       'Programa': fila.programa || '',
-      'Grupo': fila.grupo || '',
+      'Grupo': grupoReal,
       'Asignatura': fila.asignatura || '',
       'Tema': fila.tema || ''
     };
   });
-  
+
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(datosExcel);
-  
+
   const range = XLSX.utils.decode_range(ws['!ref']);
   for (let row = 1; row <= range.e.r; row++) {
     const docCell = XLSX.utils.encode_cell({ r: row, c: 0 });
-    if (ws[docCell] && row > 0) {
-      ws[docCell].t = 'n';
-      ws[docCell].z = '0';
-    }
+    if (ws[docCell]) { ws[docCell].t = 'n'; ws[docCell].z = '0'; }
   }
-  
+
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
-  
   ws['!cols'] = [
-    { wch: 12 },  // Documento
-    { wch: 40 },  // Apellidos y Nombres
-    { wch: 35 },  // Programa
-    { wch: 12 },  // Grupo
-    { wch: 30 },  // Asignatura
-    { wch: 30 }   // Tema
+    { wch: 12 }, { wch: 40 }, { wch: 35 }, { wch: 12 }, { wch: 30 }, { wch: 30 }
   ];
-  
-  XLSX.utils.book_append_sheet(wb, ws, "Por Grupo");
-  
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Por Grupo');
+
   const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-  const nombreGrupo = grupo.replace(/\s+/g, '_');
-  XLSX.writeFile(wb, `PMA_PorGrupo_${nombreGrupo}_${fechaHoy}.xlsx`);
+  XLSX.writeFile(wb, `PMA_PorGrupo_${grupoFiltro.replace(/\s+/g, '_')}_${fechaHoy}.xlsx`);
 }
 
 
