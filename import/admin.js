@@ -2263,17 +2263,12 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
       ((fila.facultad_departamento || '').trim().toUpperCase() === 'DCB' ? 'DCB' : '');
 
     return {
-      'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': `${(fila.apellidos || '').trim()} ${(fila.nombres || '').trim()}`.trim(),
       'FACULTAD': fila.facultad || '',
       'PROGRAMA': fila.programa || '',
-      'SEMESTRE': fila.semestre || '',
-      'GRUPO': fila.grupo || '',
       'SEDE ESTUDIANTE': fila.sede_estudiante || '',
       'AREA': area,
-      'INSTRUCTOR': instructor,
-      'ASIGNATURA': fila.asignatura || '',
       'TEMA': fila.tema || '',
       'MOTIVO DE CONSULTA': fila.motivo_consulta || '',
       'CALIFICACION': fila.calificacion || '',
@@ -2293,17 +2288,12 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
   ws['!cols'] = [
-    { wch: 12 },  // FECHA
     { wch: 12 },  // DOCUMENTO
     { wch: 35 },  // NOMBRE
     { wch: 35 },  // FACULTAD
     { wch: 35 },  // PROGRAMA
-    { wch: 10 },  // SEMESTRE
-    { wch: 12 },  // GRUPO
     { wch: 15 },  // SEDE ESTUDIANTE
     { wch: 8 },   // ÁREA
-    { wch: 30 },  // INSTRUCTOR
-    { wch: 30 },  // ASIGNATURA
     { wch: 30 },  // TEMA
     { wch: 25 },  // MOTIVO DE CONSULTA
     { wch: 13 },  // CALIFICACIÓN
