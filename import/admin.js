@@ -1174,14 +1174,24 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
 
 async function descargarPorGrupo() {
   const archivoInput = document.getElementById('archivoMatriculados');
-  const grupoFiltro = document.getElementById('buscadorGrupo').value.trim().toUpperCase();
+  const grupoRaw = document.getElementById('buscadorGrupo').value.trim().toUpperCase();
 
   if (!archivoInput.files || archivoInput.files.length === 0) {
     alert('Por favor selecciona el archivo MATRICULADOS.');
     return;
   }
-  if (!grupoFiltro) {
-    alert('Por favor ingresa el grupo.');
+  if (!grupoRaw) {
+    alert('Por favor ingresa al menos un grupo.');
+    return;
+  }
+
+  const gruposFiltro = grupoRaw
+    .split(';')
+    .map(g => g.trim())
+    .filter(Boolean);
+
+  if (gruposFiltro.length === 0) {
+    alert('No se encontraron grupos válidos.');
     return;
   }
 
@@ -1191,15 +1201,13 @@ async function descargarPorGrupo() {
   btnDescarga.textContent = 'Procesando...';
 
   try {
-    // 1. Leer el Excel de MATRICULADOS y construir mapa documento -> grupo
-    const mapaGrupos = await leerMatriculados(archivoInput.files[0], grupoFiltro);
+    const mapaGrupos = await leerMatriculadosMultiple(archivoInput.files[0], gruposFiltro);
 
     if (mapaGrupos.size === 0) {
-      alert(`No se encontraron estudiantes con el grupo "${grupoFiltro}" en el archivo MATRICULADOS.`);
+      alert(`No se encontraron estudiantes con los grupos "${gruposFiltro.join('; ')}" en el archivo MATRICULADOS.`);
       return;
     }
 
-    // 2. Descargar todos los registros de la BD
     btnDescarga.textContent = 'Descargando de la BD...';
     const data = await supabaseQuerySinLimite('formularios', { order: 'fecha.asc' });
 
@@ -1208,19 +1216,17 @@ async function descargarPorGrupo() {
       return;
     }
 
-    // 3. Cruzar: solo los registros cuyo documento esté en el mapa
     const datosFiltrados = data.filter(fila =>
       mapaGrupos.has(String(fila.documento).trim())
     );
 
     if (datosFiltrados.length === 0) {
-      alert(`No se encontraron registros en la BD para los estudiantes del grupo "${grupoFiltro}".`);
+      alert(`No se encontraron registros en la BD para los estudiantes de los grupos "${gruposFiltro.join('; ')}".`);
       return;
     }
 
-    // 4. Generar Excel usando el grupo real del archivo MATRICULADOS
-    generarExcelPorGrupoMatriculados(datosFiltrados, mapaGrupos, grupoFiltro);
-    alert(`${datosFiltrados.length} registros descargados exitosamente para el grupo "${grupoFiltro}".`);
+    generarExcelPorGrupoMatriculados(datosFiltrados, mapaGrupos, gruposFiltro.join('_'));
+    alert(`${datosFiltrados.length} registros descargados exitosamente para los grupos: ${gruposFiltro.join(', ')}.`);
 
   } catch (error) {
     alert('Error: ' + error.message);
@@ -1231,51 +1237,6 @@ async function descargarPorGrupo() {
   }
 }
 
-function leerMatriculados(archivo, grupoFiltro) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const wb = XLSX.read(e.target.result, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-        if (filas.length === 0) {
-          reject(new Error('El archivo MATRICULADOS está vacío.'));
-          return;
-        }
-
-        // Detectar columnas DOCUMENTO y GRUPO (insensible a mayúsculas/espacios)
-        const primeraFila = filas[0];
-        const keys = Object.keys(primeraFila);
-
-        const colDoc = keys.find(k => k.trim().toUpperCase() === 'DOCUMENTO');
-        const colGrupo = keys.find(k => k.trim().toUpperCase() === 'GRUPO');
-
-        if (!colDoc || !colGrupo) {
-          reject(new Error(`No se encontraron las columnas DOCUMENTO y GRUPO en el archivo. Columnas detectadas: ${keys.join(', ')}`));
-          return;
-        }
-
-        // Construir mapa: documento -> grupo, filtrando solo el grupo buscado
-        const mapa = new Map();
-        filas.forEach(fila => {
-          const doc = String(fila[colDoc]).trim();
-          const grupo = String(fila[colGrupo]).trim().toUpperCase();
-          if (grupo === grupoFiltro && doc) {
-            mapa.set(doc, grupo);
-          }
-        });
-
-        resolve(mapa);
-      } catch (err) {
-        reject(new Error('Error leyendo el archivo Excel: ' + err.message));
-      }
-    };
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
-    reader.readAsArrayBuffer(archivo);
-  });
-}
 
 function generarExcelPorGrupoMatriculados(datos, mapaGrupos, grupoFiltro) {
   const datosExcel = datos.map(fila => {
@@ -2313,6 +2274,55 @@ async function descargarInforme() {
 }
 
 function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
+
+  const acentos = {
+    'ADMINISTRACION': 'ADMINISTRACIÓN',
+    'ALGEBRA': 'ÁLGEBRA',
+    'ANATOMIA': 'ANATOMÍA',
+    'AUDITORIA': 'AUDITORÍA',
+    'BASICAS': 'BÁSICAS',
+    'BIOLOGIA': 'BIOLOGÍA',
+    'CALCULO': 'CÁLCULO',
+    'CIUDADANIA': 'CIUDADANÍA',
+    'COMUNICACION': 'COMUNICACIÓN',
+    'CONSTITUCION': 'CONSTITUCIÓN',
+    'CONTADURIA': 'CONTADURÍA',
+    'ECONOMIA': 'ECONOMÍA',
+    'ECOLOGIA': 'ECOLOGÍA',
+    'EDUCACION': 'EDUCACIÓN',
+    'ELECTRONICA': 'ELECTRÓNICA',
+    'ESTADISTICA': 'ESTADÍSTICA',
+    'ETICA': 'ÉTICA',
+    'FISICA': 'FÍSICA',
+    'FISIOLOGIA': 'FISIOLOGÍA',
+    'GESTION': 'GESTIÓN',
+    'INFORMACION': 'INFORMACIÓN',
+    'INGENIERIA': 'INGENIERÍA',
+    'INGENIERIAS': 'INGENIERÍA',
+    'LEGISLACION': 'LEGISLACIÓN',
+    'LOGICA': 'LÓGICA',
+    'MATEMATICA': 'MATEMÁTICA',
+    'MATEMATICAS': 'MATEMÁTICAS',
+    'MECATRONICA': 'MECATRÓNICA',
+    'ORGANIZACION': 'ORGANIZACIÓN',
+    'PLANEACION': 'PLANEACIÓN',
+    'POLITICA': 'POLÍTICA',
+    'PRODUCCION': 'PRODUCCIÓN',
+    'QUIMICA': 'QUÍMICA',
+    'SOCIOLOGIA': 'SOCIOLOGÍA',
+    'EVALUACION': 'EVALUACIÓN',
+    'TECNOLOGIA': 'TECNOLOGÍA',
+    'TEORIA': 'TEORÍA'
+  };
+
+  function corregirAcentos(texto) {
+    if (!texto) return '';
+    return texto
+      .split(' ')
+      .map(palabra => acentos[palabra.toUpperCase()] || palabra)
+      .join(' ');
+  }
+
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
@@ -2323,11 +2333,11 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
     return {
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': `${(fila.apellidos || '').trim()} ${(fila.nombres || '').trim()}`.trim(),
-      'FACULTAD': fila.facultad || '',
-      'PROGRAMA': fila.programa || '',
+      'FACULTAD': corregirAcentos(fila.facultad || ''),
+      'PROGRAMA': corregirAcentos(fila.programa || ''),
       'SEDE ESTUDIANTE': fila.sede_estudiante || '',
       'AREA': area,
-      'TEMA': fila.tema || '',
+      'TEMA': corregirAcentos(fila.tema || ''),
       'MOTIVO DE CONSULTA': fila.motivo_consulta || '',
       'CALIFICACION': fila.calificacion || '',
       'DUDAS RESUELTAS': fila.dudas_resueltas || '',
