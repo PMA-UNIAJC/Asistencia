@@ -1276,6 +1276,51 @@ function generarExcelPorGrupoMatriculados(datos, mapaGrupos, grupoFiltro) {
 }
 
 
+function leerMatriculadosMultiple(archivo, gruposFiltro) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        if (filas.length === 0) {
+          reject(new Error('El archivo MATRICULADOS está vacío.'));
+          return;
+        }
+
+        const primeraFila = filas[0];
+        const keys = Object.keys(primeraFila);
+
+        const colDoc = keys.find(k => k.trim().toUpperCase() === 'DOCUMENTO');
+        const colGrupo = keys.find(k => k.trim().toUpperCase() === 'GRUPO');
+
+        if (!colDoc || !colGrupo) {
+          reject(new Error(`No se encontraron las columnas DOCUMENTO y GRUPO. Columnas detectadas: ${keys.join(', ')}`));
+          return;
+        }
+
+        const mapa = new Map();
+        filas.forEach(fila => {
+          const doc = String(fila[colDoc]).trim();
+          const grupo = String(fila[colGrupo]).trim().toUpperCase();
+          if (gruposFiltro.includes(grupo) && doc) {
+            mapa.set(doc, grupo);
+          }
+        });
+
+        resolve(mapa);
+      } catch (err) {
+        reject(new Error('Error leyendo el archivo Excel: ' + err.message));
+      }
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsArrayBuffer(archivo);
+  });
+}
+
+
 async function descargarPorDocumento() {
   const inputRaw = document.getElementById('inputDocumentos').value.trim();
 
