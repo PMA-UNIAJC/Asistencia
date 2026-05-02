@@ -1244,29 +1244,38 @@ function generarExcelPorGrupoMatriculados(datos, mapaGrupos, grupoFiltro) {
     const grupoReal = mapaGrupos.get(doc) || grupoFiltro;
     const apellidos = fila.apellidos || '';
     const nombres = fila.nombres || '';
+    const fechaColombia = convertirFechaAColombia(fila.fecha);
+    const horaFormateada = formatearHora(fechaColombia);
+    const serialDate = convertirFechaASerialExcel(fechaColombia);
 
     return {
+      'Fecha': serialDate,
+      'Hora': horaFormateada,
       'Documento': parseInt(fila.documento) || '',
       'Apellidos y Nombres': `${apellidos} ${nombres}`.trim(),
+      'Facultad': fila.facultad || '',
       'Programa': fila.programa || '',
       'Grupo': grupoReal,
       'Asignatura': fila.asignatura || '',
-      'Tema': fila.tema || ''
+      'Tema': fila.tema || '',
+      'Motivo de Consulta': fila.motivo_consulta || ''
     };
   });
 
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let row = 1; row <= range.e.r; row++) {
-    const docCell = XLSX.utils.encode_cell({ r: row, c: 0 });
-    if (ws[docCell]) { ws[docCell].t = 'n'; ws[docCell].z = '0'; }
-  }
+const range = XLSX.utils.decode_range(ws['!ref']);
+aplicarFormatoExcel(ws, range, 0, 2);
+for (let row = 1; row <= range.e.r; row++) {
+  const docCell = XLSX.utils.encode_cell({ r: row, c: 2 });
+  if (ws[docCell]) { ws[docCell].t = 'n'; ws[docCell].z = '0'; }
+}
 
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
-  ws['!cols'] = [
-    { wch: 12 }, { wch: 40 }, { wch: 35 }, { wch: 12 }, { wch: 30 }, { wch: 30 }
+ws['!cols'] = [
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 40 },
+    { wch: 35 }, { wch: 35 }, { wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 25 }
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, 'Por Grupo');
