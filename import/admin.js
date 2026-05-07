@@ -2385,6 +2385,7 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
       ((fila.facultad_departamento || '').trim().toUpperCase() === 'DCB' ? 'DCB' : '');
 
     return {
+      'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': `${(fila.apellidos || '').trim()} ${(fila.nombres || '').trim()}`.trim(),
       'FACULTAD': corregirAcentos(fila.facultad || ''),
@@ -2406,10 +2407,11 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
-  aplicarFormatoExcel(ws, range, 0, -1);
+  aplicarFormatoExcel(ws, range, 0, 0);
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
   ws['!cols'] = [
+    { wch: 12 },  // FECHA
     { wch: 12 },  // DOCUMENTO
     { wch: 35 },  // NOMBRE
     { wch: 35 },  // FACULTAD
