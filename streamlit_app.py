@@ -1167,15 +1167,15 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, opcion1,
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df_general.to_excel(writer, sheet_name='GENERAL', index=False)
-        (df_asistencia_matematicas if not df_asistencia_matematicas.empty else df_general.head(0)).to_excel(writer, sheet_name='ASISTENCIA MATEMÁTICAS', index=False)
-        (df_asistencia_comunicacion if not df_asistencia_comunicacion.empty else df_general.head(0)).to_excel(writer, sheet_name='ASISTENCIA COMUNICACIÓN', index=False)
+        (df_asistencia_matematicas if not df_asistencia_matematicas.empty else df_general.head(0)).to_excel(writer, sheet_name='ASISTENCIA MATEMATICAS', index=False)
+        (df_asistencia_comunicacion if not df_asistencia_comunicacion.empty else df_general.head(0)).to_excel(writer, sheet_name='ASISTENCIA COMUNICACION', index=False)
         (df_asistencia_pma if not df_asistencia_pma.empty else df_general.head(0)).to_excel(writer, sheet_name='ASISTENCIA PMA', index=False)
-        (df_ganaron_matematicas if not df_ganaron_matematicas.empty else df_general.head(0)).to_excel(writer, sheet_name='GANARON MATEMÁTICAS', index=False)
-        (df_ganaron_comunicacion if not df_ganaron_comunicacion.empty else df_general.head(0)).to_excel(writer, sheet_name='GANARON COMUNICACIÓN', index=False)
+        (df_ganaron_matematicas if not df_ganaron_matematicas.empty else df_general.head(0)).to_excel(writer, sheet_name='GANARON MATEMATICAS', index=False)
+        (df_ganaron_comunicacion if not df_ganaron_comunicacion.empty else df_general.head(0)).to_excel(writer, sheet_name='GANARON COMUNICACION', index=False)
 
     output.seek(0)
     workbook = openpyxl.load_workbook(output)
-    for hoja in ['GENERAL', 'ASISTENCIA MATEMÁTICAS', 'ASISTENCIA COMUNICACIÓN', 'ASISTENCIA PMA', 'GANARON MATEMÁTICAS', 'GANARON COMUNICACIÓN']:
+    for hoja in ['GENERAL', 'ASISTENCIA MATEMATICAS', 'ASISTENCIA COMUNICACION', 'ASISTENCIA PMA', 'GANARON MATEMATICAS', 'GANARON COMUNICACION']:
         cruce_aplicar_formato(workbook, hoja)
     final_output = io.BytesIO()
     workbook.save(final_output)
@@ -1462,11 +1462,11 @@ with st.sidebar:
     modulo = st.radio(
         "Selecciona un módulo:",
         options=[
-            "🏛️  Facultades",
-            "📋  Matriculados",
-            "🔀  Cruce",
-            "📊  Informe General",
-            "🗄️  Estudiantes Supabase"
+            "Facultades",
+            "Matriculados",
+            "Cruce",
+            "Informe General",
+            "Estudiantes Supabase"
         ],
         label_visibility="collapsed"
     )
@@ -1483,10 +1483,9 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 #  MÓDULO 1 — FACULTADES
 # ─────────────────────────────────────────────
-if modulo == "🏛️  Facultades":
+if modulo == "Facultades":
     st.markdown("""
     <div class="module-header">
-        <span class="module-icon">🏛️</span>
         <h1>Procesador de Facultades</h1>
         <p>Lee el archivo de facultades y genera un libro Excel por cada facultad,<br>
         con hoja GENERAL y una hoja por programa. También produce el <strong>INFORME GENERAL</strong>.</p>
@@ -1497,7 +1496,7 @@ if modulo == "🏛️  Facultades":
     <div class="info-card">
         <strong>¿Qué hace este módulo?</strong><br>
         • Filtra estudiantes con nota entre <strong>0.0 y 2.9</strong> (reprobados).<br>
-        • Genera un archivo <code>.xlsx</code> por cada facultad encontrada.<br>
+        • Genera un archivo Excel por cada facultad encontrada.<br>
         • Cada archivo contiene hoja GENERAL + una hoja por programa académico.<br>
         • Genera adicionalmente el archivo <strong>INFORME GENERAL.xlsx</strong> con todas las facultades unidas.<br>
         • Corrige ortografía automáticamente (tildes en nombres de materias y programas).
@@ -1541,15 +1540,21 @@ if modulo == "🏛️  Facultades":
                 try:
                     archivos = fac_procesar_archivo(archivo_fac, opcion1_fac, opcion2_fac)
                     st.success(f"✅ Proceso completado. Se generaron **{len(archivos)} archivos**.")
-                    st.markdown("**📥 Descargar archivos generados:**")
-                    for nombre_archivo, contenido in archivos.items():
-                        st.download_button(
-                            label=f"⬇️  {nombre_archivo}",
-                            data=contenido,
-                            file_name=nombre_archivo,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            key=f"dl_fac_{nombre_archivo}"
-                        )
+
+                    import zipfile
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                        for nombre_archivo, contenido in archivos.items():
+                            zip_file.writestr(nombre_archivo, contenido)
+                    zip_buffer.seek(0)
+
+                    st.download_button(
+                        label="⬇️  Descargar todos los archivos (.zip)",
+                        data=zip_buffer.getvalue(),
+                        file_name="FACULTADES_PROCESADAS.zip",
+                        mime="application/zip",
+                        key="dl_fac_zip"
+                    )
                 except Exception as e:
                     st.error(f"❌ Error al procesar: {str(e)}")
     else:
@@ -1563,10 +1568,9 @@ if modulo == "🏛️  Facultades":
 # ─────────────────────────────────────────────
 #  MÓDULO 2 — MATRICULADOS
 # ─────────────────────────────────────────────
-elif modulo == "📋  Matriculados":
+elif modulo == "Matriculados":
     st.markdown("""
     <div class="module-header">
-        <span class="module-icon">📋</span>
         <h1>Procesador de Matriculados</h1>
         <p>Procesa el archivo de matriculados y genera hojas organizadas:<br>
         <strong>GENERAL · MATRICULADOS · COMUNICACION · MATEMATICAS</strong></p>
@@ -1621,10 +1625,9 @@ elif modulo == "📋  Matriculados":
 # ─────────────────────────────────────────────
 #  MÓDULO 3 — CRUCE
 # ─────────────────────────────────────────────
-elif modulo == "🔀  Cruce":
+elif modulo == "Cruce":
     st.markdown("""
     <div class="module-header">
-        <span class="module-icon">🔀</span>
         <h1>Procesador de Cruce</h1>
         <p>Cruza los archivos <strong>CRUCE</strong>, <strong>MATRICULADOS</strong> e <strong>INFORME GENERAL</strong><br>
         para generar hojas de asistencia y estudiantes que ganaron.</p>
@@ -1634,11 +1637,11 @@ elif modulo == "🔀  Cruce":
     st.markdown("""
     <div class="info-card">
         <strong>¿Qué hace este módulo?</strong><br>
-        • Filtra por AREA: Matemáticas (<code>M</code>, <code>DCB</code>) y Comunicación (<code>C</code>).<br>
+        • Filtra por AREA: Matemáticas (M, DCB) y Comunicación (C).<br>
         • Cruza con MATRICULADOS para obtener GRUPO y SEDE por estudiante.<br>
         • Genera hojas: <strong>GENERAL · ASISTENCIA MATEMÁTICAS · ASISTENCIA COMUNICACIÓN ·
         ASISTENCIA PMA · GANARON MATEMÁTICAS · GANARON COMUNICACIÓN</strong>.<br>
-        • "GANARON" = estudiantes que asistieron pero <em>no</em> aparecen en el INFORME GENERAL (no reprobaron).
+        • GANARON = estudiantes que asistieron pero no aparecen en el INFORME GENERAL (No reprobaron).
     </div>
     """, unsafe_allow_html=True)
 
@@ -1711,10 +1714,9 @@ elif modulo == "🔀  Cruce":
 # ─────────────────────────────────────────────
 #  MÓDULO 4 — INFORME GENERAL
 # ─────────────────────────────────────────────
-elif modulo == "📊  Informe General":
+elif modulo == "Informe General":
     st.markdown("""
     <div class="module-header">
-        <span class="module-icon">📊</span>
         <h1>Procesador de Informe General</h1>
         <p>Procesa el archivo de informe general y genera hojas organizadas:<br>
         <strong>GENERAL · COMUNICACION · MATEMATICAS</strong></p>
@@ -1728,7 +1730,6 @@ elif modulo == "📊  Informe General":
         • Normaliza y mapea las columnas al formato estándar.<br>
         • Genera hoja <strong>GENERAL</strong> con todas las materias.<br>
         • Filtra y genera hojas separadas de <strong>COMUNICACION</strong> y <strong>MATEMATICAS</strong>.<br>
-        • Aplica formato: encabezados en negrita, filtros automáticos, ancho de columnas.
     </div>
     """, unsafe_allow_html=True)
 
@@ -1768,10 +1769,9 @@ elif modulo == "📊  Informe General":
 # ─────────────────────────────────────────────
 #  MÓDULO 5 — ESTUDIANTES SUPABASE
 # ─────────────────────────────────────────────
-elif modulo == "🗄️  Estudiantes Supabase":
+elif modulo == "Estudiantes Supabase":
     st.markdown("""
     <div class="module-header">
-        <span class="module-icon">🗄️</span>
         <h1>Estudiantes para Supabase</h1>
         <p>Prepara los datos de estudiantes para importación a Supabase:<br>
         separa nombres, elimina tildes y genera el formato requerido.</p>
@@ -1784,9 +1784,9 @@ elif modulo == "🗄️  Estudiantes Supabase":
         • Lee las hojas <strong>COMUNICACION</strong> y <strong>MATEMATICAS</strong> del archivo.<br>
         • Filtra estudiantes con <strong>3 o 4 palabras</strong> en el nombre.<br>
         • Elimina duplicados por número de documento.<br>
-        • Separa el nombre en: <code>primer_apellido · segundo_apellido · primer_nombre · segundo_nombre</code>.<br>
-        • Elimina tildes y la letra <strong>Ñ</strong> de todos los textos (compatibilidad con Supabase).<br>
-        • Convierte el semestre: PRIMERO→1, SEGUNDO→2, TERCERO→3.
+        • Separa el nombre en: primer_apellido · segundo_apellido · primer_nombre · segundo_nombre.<br>
+        • Elimina tildes (compatibilidad con Supabase).<br>
+        • Convierte el semestre en número.
     </div>
     """, unsafe_allow_html=True)
 
