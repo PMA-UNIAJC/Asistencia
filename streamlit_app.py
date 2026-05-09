@@ -1506,23 +1506,42 @@ def vis_procesar_archivo(file_obj):
     if not sheet_names:
         raise Exception("El archivo no contiene hojas.")
 
+    COLUMNAS_GENERAL = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
+    COLUMNAS_VISITAS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
     COLUMNAS_ORIGINALES = ['SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO', 'CALENDARIO', 'JORNADA']
-    COLUMNAS_GENERAL   = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
-    COLUMNAS_VISITAS   = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
 
     hojas_unidas = []
 
     for nombre_hoja in sheet_names:
-        df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, dtype=str)
-        # Normalizar nombres de columnas
+        # Intentar leer con encabezado en fila 7 (índice 6)
+        df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=6, dtype=str)
         df_hoja.columns = [str(c).strip().upper() for c in df_hoja.columns]
+
+        # Verificar si las columnas necesarias están presentes
+        columnas_encontradas = [c for c in COLUMNAS_ORIGINALES if c in df_hoja.columns]
+        if len(columnas_encontradas) < 2:
+            # Si no se encuentran en fila 7, intentar con fila 1 (índice 0)
+            df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=0, dtype=str)
+            df_hoja.columns = [str(c).strip().upper() for c in df_hoja.columns]
+
         # Añadir columna DIA con el nombre de la hoja
         df_hoja['DIA'] = nombre_hoja
         hojas_unidas.append(df_hoja)
 
     df_general_raw = pd.concat(hojas_unidas, ignore_index=True)
 
-    # Construir df_general con las columnas en el orden correcto
+    # Eliminar filas donde SALON, GRUPO u HORARIO estén vacíos
+    for col_critica in ['SALON', 'GRUPO', 'HORARIO']:
+        if col_critica in df_general_raw.columns:
+            df_general_raw = df_general_raw[
+                df_general_raw[col_critica].notna() &
+                (df_general_raw[col_critica].astype(str).str.strip() != '') &
+                (df_general_raw[col_critica].astype(str).str.strip().str.upper() != 'NAN')
+            ]
+
+    df_general_raw = df_general_raw.reset_index(drop=True)
+
+    # Construir df_general solo con las columnas necesarias en el orden correcto
     df_general = pd.DataFrame()
     for col in COLUMNAS_GENERAL:
         if col in df_general_raw.columns:
@@ -1533,10 +1552,8 @@ def vis_procesar_archivo(file_obj):
     # Construir df_visitas: copia de general + SEMESTRE
     df_visitas = df_general.copy()
     df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(vis_determinar_semestre)
-    # Eliminar filas sin semestre determinado
     df_visitas = df_visitas[df_visitas['SEMESTRE'].notna()].copy()
     df_visitas = df_visitas.reset_index(drop=True)
-    # Reordenar columnas de visitas
     df_visitas = df_visitas[[c for c in COLUMNAS_VISITAS if c in df_visitas.columns]]
 
     output = io.BytesIO()
@@ -1553,7 +1570,6 @@ def vis_procesar_archivo(file_obj):
     workbook.save(final_output)
     final_output.seek(0)
     return final_output.getvalue()
-
 
 # ============================================================
 # ==================  INTERFAZ STREAMLIT  ====================
