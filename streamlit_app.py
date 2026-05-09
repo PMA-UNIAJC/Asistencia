@@ -1448,6 +1448,112 @@ def sup_procesar_archivo(file_obj):
     final_output.seek(0)
     return final_output.getvalue()
 
+# ============================================================
+# ==================  MÓDULO 6: VISITAS A GRUPOS  ============
+# ============================================================
+
+def vis_determinar_semestre(grupo):
+    if pd.isna(grupo):
+        return None
+    grupo_str = str(grupo).strip().upper()
+    if not grupo_str:
+        return None
+    patrones_primero = [r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)', r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)']
+    patrones_segundo = [r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2']
+    patrones_tercero = [r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3']
+    for p in patrones_primero:
+        if re.match(p, grupo_str):
+            return 'PRIMERO'
+    for p in patrones_segundo:
+        if re.match(p, grupo_str):
+            return 'SEGUNDO'
+    for p in patrones_tercero:
+        if re.match(p, grupo_str):
+            return 'TERCERO'
+    return None
+
+def vis_aplicar_formato(workbook, nombre_hoja):
+    if nombre_hoja not in workbook.sheetnames:
+        return
+    sheet = workbook[nombre_hoja]
+    columnas_nombres = {}
+    if sheet.max_row > 0:
+        for idx, cell in enumerate(sheet[1], start=1):
+            if cell.value is not None:
+                columnas_nombres[str(cell.value).upper().strip()] = idx
+    if sheet.max_row > 0:
+        for cell in sheet[1]:
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+    if sheet.max_row > 0:
+        sheet.auto_filter.ref = sheet.dimensions
+    if 'GRUPO' in columnas_nombres and sheet.max_row > 1:
+        col_grupo = columnas_nombres['GRUPO']
+        for row in range(2, sheet.max_row + 1):
+            cell = sheet.cell(row=row, column=col_grupo)
+            if cell.value is not None:
+                cell.value = str(cell.value).strip()
+                cell.number_format = '@'
+                cell.alignment = Alignment(horizontal='left', vertical='center')
+    for col in range(1, sheet.max_column + 1):
+        sheet.column_dimensions[get_column_letter(col)].width = 18
+
+def vis_procesar_archivo(file_obj):
+    validar_archivo_xlsx(file_obj)
+    excel_file = pd.ExcelFile(file_obj, engine='openpyxl')
+    sheet_names = excel_file.sheet_names
+
+    if not sheet_names:
+        raise Exception("El archivo no contiene hojas.")
+
+    COLUMNAS_ORIGINALES = ['SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO', 'CALENDARIO', 'JORNADA']
+    COLUMNAS_GENERAL   = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
+    COLUMNAS_VISITAS   = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
+
+    hojas_unidas = []
+
+    for nombre_hoja in sheet_names:
+        df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, dtype=str)
+        # Normalizar nombres de columnas
+        df_hoja.columns = [str(c).strip().upper() for c in df_hoja.columns]
+        # Añadir columna DIA con el nombre de la hoja
+        df_hoja['DIA'] = nombre_hoja
+        hojas_unidas.append(df_hoja)
+
+    df_general_raw = pd.concat(hojas_unidas, ignore_index=True)
+
+    # Construir df_general con las columnas en el orden correcto
+    df_general = pd.DataFrame()
+    for col in COLUMNAS_GENERAL:
+        if col in df_general_raw.columns:
+            df_general[col] = df_general_raw[col]
+        else:
+            df_general[col] = None
+
+    # Construir df_visitas: copia de general + SEMESTRE
+    df_visitas = df_general.copy()
+    df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(vis_determinar_semestre)
+    # Eliminar filas sin semestre determinado
+    df_visitas = df_visitas[df_visitas['SEMESTRE'].notna()].copy()
+    df_visitas = df_visitas.reset_index(drop=True)
+    # Reordenar columnas de visitas
+    df_visitas = df_visitas[[c for c in COLUMNAS_VISITAS if c in df_visitas.columns]]
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_general.to_excel(writer, sheet_name='GENERAL', index=False)
+        df_visitas.to_excel(writer, sheet_name='VISITAS', index=False)
+
+    output.seek(0)
+    workbook = openpyxl.load_workbook(output)
+    vis_aplicar_formato(workbook, 'GENERAL')
+    vis_aplicar_formato(workbook, 'VISITAS')
+
+    final_output = io.BytesIO()
+    workbook.save(final_output)
+    final_output.seek(0)
+    return final_output.getvalue()
+
 
 # ============================================================
 # ==================  INTERFAZ STREAMLIT  ====================
@@ -1466,7 +1572,8 @@ with st.sidebar:
             "Matriculados",
             "Cruce",
             "Informe General",
-            "Estudiantes Supabase"
+            "Estudiantes Supabase",
+            "Visitas a Grupos"
         ],
         label_visibility="collapsed"
     )
@@ -1812,6 +1919,80 @@ elif modulo == "Estudiantes Supabase":
                         file_name="ESTUDIANTES_SUPABASE.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         key="dl_sup"
+                    )
+                except Exception as e:
+                    st.error(f"❌ Error al procesar: {str(e)}")
+    else:
+        st.markdown("""
+        <div class="warning-card">
+            ⬆️ Sube el archivo Excel para habilitar el procesamiento.
+        </div>
+        """, unsafe_allow_html=True)
+
+
+
+# ─────────────────────────────────────────────
+#  MÓDULO 6 — VISITAS A GRUPOS
+# ─────────────────────────────────────────────
+elif modulo == "Visitas a Grupos":
+    st.markdown("""
+    <div class="module-header">
+        <h1>Visitas a Grupos</h1>
+        <p>Une todas las hojas del archivo de visitas en una hoja <strong>GENERAL</strong>,<br>
+        y genera la hoja <strong>VISITAS</strong> con semestre asignado según el grupo.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="info-card">
+        <strong>¿Qué hace este módulo?</strong><br>
+        • Lee todas las hojas del archivo Excel (Lunes, Martes, etc.).<br>
+        • Une las hojas en <strong>GENERAL</strong>, añadiendo la columna <strong>DIA</strong> con el nombre de cada hoja.<br>
+        • Genera la hoja <strong>VISITAS</strong> como copia de GENERAL con la columna <strong>SEMESTRE</strong> añadida.<br>
+        • Asigna PRIMERO, SEGUNDO o TERCERO según el patrón del grupo.<br>
+        • Elimina filas cuyo SEMESTRE no pueda determinarse.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="warning-card">
+        <strong>📋 Columnas requeridas en el archivo original:</strong><br>
+        El archivo debe tener <strong>una hoja por día</strong> (ej: Lunes, Martes…),
+        y cada hoja debe contener exactamente estas columnas:<br><br>
+        <code>SALON</code> &nbsp;·&nbsp;
+        <code>GRUPO</code> &nbsp;·&nbsp;
+        <code>ASIGNATURA</code> &nbsp;·&nbsp;
+        <code>DOCENTE</code> &nbsp;·&nbsp;
+        <code>HORARIO</code> &nbsp;·&nbsp;
+        <code>CALENDARIO</code> &nbsp;·&nbsp;
+        <code>JORNADA</code><br><br>
+        La columna <strong>DIA</strong> se genera automáticamente a partir del nombre de cada hoja.<br>
+        La columna <strong>SEMESTRE</strong> se genera automáticamente a partir del <strong>GRUPO</strong>.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="upload-label">📂 Archivo de entrada (hojas por día)</div>', unsafe_allow_html=True)
+    archivo_vis = st.file_uploader(
+        "Sube el archivo Excel de Visitas a Grupos",
+        type=["xlsx"],
+        key="uploader_vis",
+        label_visibility="collapsed"
+    )
+
+    st.markdown("---")
+
+    if archivo_vis:
+        if st.button("▶  Procesar Visitas a Grupos", key="btn_vis", use_container_width=True):
+            with st.spinner("Procesando visitas a grupos..."):
+                try:
+                    resultado = vis_procesar_archivo(archivo_vis)
+                    st.success("✅ Proceso completado exitosamente.")
+                    st.download_button(
+                        label="⬇️  Descargar archivo procesado",
+                        data=resultado,
+                        file_name="VISITAS_GRUPOS_PROCESADO.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="dl_vis"
                     )
                 except Exception as e:
                     st.error(f"❌ Error al procesar: {str(e)}")
