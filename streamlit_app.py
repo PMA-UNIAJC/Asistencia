@@ -1498,19 +1498,20 @@ def vis_aplicar_formato(workbook, nombre_hoja):
     for col in range(1, sheet.max_column + 1):
         sheet.column_dimensions[get_column_letter(col)].width = 18
 
-def vis_procesar_archivo(archivos):
+def vis_procesar_archivo(archivos, jornadas):
     """
     archivos: lista de file objects (1, 2 o 3 archivos).
-    Opción 2: GENERAL individual por archivo → unir todas → generar VISITAS una vez.
+    jornadas: lista de strings con la jornada de cada archivo ('DIURNA' o 'NOCTURNA').
     """
     DIAS_VALIDOS = {'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'}
     COLUMNAS_GENERAL = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'ASIGNATURA', 'DOCENTE']
     COLUMNAS_VISITAS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA', 'ASIGNATURA', 'DOCENTE']
-    COLUMNAS_ORIGINALES = ['SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO', 'JORNADA']
+    COLUMNAS_ORIGINALES = ['SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO']
+    FILAS_HEADER = [6, 5, 7, 0]  # fila 7, fila 6, fila 8, fila 1 (índice 0-based)
 
     generales = []
 
-    for file_obj in archivos:
+    for file_obj, jornada in zip(archivos, jornadas):
         validar_archivo_xlsx(file_obj)
         excel_file = pd.ExcelFile(file_obj, engine='openpyxl')
 
@@ -1518,18 +1519,21 @@ def vis_procesar_archivo(archivos):
             if nombre_hoja.strip().upper() not in DIAS_VALIDOS:
                 continue
 
-            # Intentar con encabezado en fila 7 (índice 6)
-            df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=6, dtype=str)
-            df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUNU')) for c in df_hoja.columns]
+            df_hoja = None
+            for header_idx in FILAS_HEADER:
+                df_temp = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=header_idx, dtype=str)
+                df_temp.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUNU')) for c in df_temp.columns]
+                columnas_encontradas = [c for c in COLUMNAS_ORIGINALES if c in df_temp.columns]
+                if len(columnas_encontradas) >= 2:
+                    df_hoja = df_temp
+                    break
 
-            columnas_encontradas = [c for c in COLUMNAS_ORIGINALES if c in df_hoja.columns]
-            if len(columnas_encontradas) < 2:
-                df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=0, dtype=str)
-                df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUNU')) for c in df_hoja.columns]
+            if df_hoja is None:
+                continue
 
             df_hoja['DIA'] = nombre_hoja.strip().upper()
+            df_hoja['JORNADA'] = jornada
 
-            # Eliminar filas con SALON, GRUPO u HORARIO vacíos
             for col_critica in ['SALON', 'GRUPO', 'HORARIO']:
                 if col_critica in df_hoja.columns:
                     df_hoja = df_hoja[
@@ -1545,7 +1549,6 @@ def vis_procesar_archivo(archivos):
 
     df_general_raw = pd.concat(generales, ignore_index=True)
 
-    # Construir GENERAL con columnas en orden
     df_general = pd.DataFrame()
     for col in COLUMNAS_GENERAL:
         if col in df_general_raw.columns:
@@ -1555,7 +1558,6 @@ def vis_procesar_archivo(archivos):
 
     df_general = df_general.reset_index(drop=True)
 
-    # Construir VISITAS desde la GENERAL unida
     df_visitas = df_general.copy()
     df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(vis_determinar_semestre)
     df_visitas = df_visitas[df_visitas['SEMESTRE'].notna()].copy()
@@ -1576,7 +1578,7 @@ def vis_procesar_archivo(archivos):
     workbook.save(final_output)
     final_output.seek(0)
     return final_output.getvalue()
-
+    
 # ============================================================
 # ==================  INTERFAZ STREAMLIT  ====================
 # ============================================================
@@ -1956,6 +1958,7 @@ elif modulo == "Estudiantes Supabase":
 # ─────────────────────────────────────────────
 #  MÓDULO 6 — VISITAS A GRUPOS
 # ─────────────────────────────────────────────
+
 elif modulo == "Visitas a Grupos":
     st.markdown("""
     <div class="module-header">
@@ -1969,6 +1972,7 @@ elif modulo == "Visitas a Grupos":
     <div class="info-card">
         <strong>¿Qué hace este módulo?</strong><br>
         • Lee únicamente las hojas llamadas <strong>LUNES, MARTES, MIERCOLES, JUEVES, VIERNES o SABADO</strong>.<br>
+        • Los encabezados se buscan automáticamente en las filas 7, 6, 8 y 1.<br>
         • Los encabezados del archivo original pueden estar en minúscula o mayúscula — se normalizan automáticamente.<br>
         • Une los archivos en una sola <strong>GENERAL</strong>, luego genera <strong>VISITAS</strong> con semestre asignado.<br>
         • Puedes subir entre <strong>1 y 3 archivos</strong>. No es obligatorio subir los 3.
@@ -1982,32 +1986,36 @@ elif modulo == "Visitas a Grupos":
         <code>GRUPO</code> &nbsp;·&nbsp;
         <code>ASIGNATURA</code> &nbsp;·&nbsp;
         <code>DOCENTE</code> &nbsp;·&nbsp;
-        <code>HORARIO</code> &nbsp;·&nbsp;
-        <code>JORNADA</code><br><br>
-        La columna <strong>DIA</strong> y <strong>SEMESTRE</strong> se generan automáticamente.
+        <code>HORARIO</code><br><br>
+        Las columnas <strong>DIA</strong>, <strong>JORNADA</strong> y <strong>SEMESTRE</strong> se generan automáticamente.
     </div>
     """, unsafe_allow_html=True)
 
     col_v1, col_v2, col_v3 = st.columns(3)
     with col_v1:
-        st.markdown('<div class="upload-label">📂 Archivo 1</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 Archivo 1 — DIURNA</div>', unsafe_allow_html=True)
         archivo_vis_1 = st.file_uploader("Archivo 1", type=["xlsx"], key="uploader_vis_1", label_visibility="collapsed")
     with col_v2:
-        st.markdown('<div class="upload-label">📂 Archivo 2 (opcional)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 Archivo 2 — DIURNA (opcional)</div>', unsafe_allow_html=True)
         archivo_vis_2 = st.file_uploader("Archivo 2", type=["xlsx"], key="uploader_vis_2", label_visibility="collapsed")
     with col_v3:
-        st.markdown('<div class="upload-label">📂 Archivo 3 (opcional)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 Archivo 3 — NOCTURNA (opcional)</div>', unsafe_allow_html=True)
         archivo_vis_3 = st.file_uploader("Archivo 3", type=["xlsx"], key="uploader_vis_3", label_visibility="collapsed")
 
     st.markdown("---")
 
-    archivos_vis = [f for f in [archivo_vis_1, archivo_vis_2, archivo_vis_3] if f is not None]
+    archivos_vis = []
+    jornadas_vis = []
+    for f, j in [(archivo_vis_1, 'DIURNA'), (archivo_vis_2, 'DIURNA'), (archivo_vis_3, 'NOCTURNA')]:
+        if f is not None:
+            archivos_vis.append(f)
+            jornadas_vis.append(j)
 
     if archivos_vis:
         if st.button("▶  Procesar Visitas a Grupos", key="btn_vis", use_container_width=True):
             with st.spinner("Procesando visitas a grupos..."):
                 try:
-                    resultado = vis_procesar_archivo(archivos_vis)
+                    resultado = vis_procesar_archivo(archivos_vis, jornadas_vis)
                     st.success(f"✅ Proceso completado. Se procesaron **{len(archivos_vis)} archivo(s)**.")
                     st.download_button(
                         label="⬇️  Descargar archivo procesado",
