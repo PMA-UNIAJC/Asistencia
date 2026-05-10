@@ -1520,12 +1520,12 @@ def vis_procesar_archivo(archivos):
 
             # Intentar con encabezado en fila 7 (índice 6)
             df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=6, dtype=str)
-            df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUSNU')) for c in df_hoja.columns]
+            df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUNU')) for c in df_hoja.columns]
 
             columnas_encontradas = [c for c in COLUMNAS_ORIGINALES if c in df_hoja.columns]
             if len(columnas_encontradas) < 2:
                 df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=0, dtype=str)
-                df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUSNU')) for c in df_hoja.columns]
+                df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUNU')) for c in df_hoja.columns]
 
             df_hoja['DIA'] = nombre_hoja.strip().upper()
 
