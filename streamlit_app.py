@@ -1498,50 +1498,54 @@ def vis_aplicar_formato(workbook, nombre_hoja):
     for col in range(1, sheet.max_column + 1):
         sheet.column_dimensions[get_column_letter(col)].width = 18
 
-def vis_procesar_archivo(file_obj):
-    validar_archivo_xlsx(file_obj)
-    excel_file = pd.ExcelFile(file_obj, engine='openpyxl')
-    sheet_names = excel_file.sheet_names
+def vis_procesar_archivo(archivos):
+    """
+    archivos: lista de file objects (1, 2 o 3 archivos).
+    Opción 2: GENERAL individual por archivo → unir todas → generar VISITAS una vez.
+    """
+    DIAS_VALIDOS = {'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'}
+    COLUMNAS_GENERAL = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'ASIGNATURA', 'DOCENTE']
+    COLUMNAS_VISITAS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA', 'ASIGNATURA', 'DOCENTE']
+    COLUMNAS_ORIGINALES = ['SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO', 'JORNADA']
 
-    if not sheet_names:
-        raise Exception("El archivo no contiene hojas.")
+    generales = []
 
-    COLUMNAS_GENERAL = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
-    COLUMNAS_VISITAS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA', 'CALENDARIO', 'ASIGNATURA', 'DOCENTE']
-    COLUMNAS_ORIGINALES = ['SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO', 'CALENDARIO', 'JORNADA']
+    for file_obj in archivos:
+        validar_archivo_xlsx(file_obj)
+        excel_file = pd.ExcelFile(file_obj, engine='openpyxl')
 
-    hojas_unidas = []
+        for nombre_hoja in excel_file.sheet_names:
+            if nombre_hoja.strip().upper() not in DIAS_VALIDOS:
+                continue
 
-    for nombre_hoja in sheet_names:
-        # Intentar leer con encabezado en fila 7 (índice 6)
-        df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=6, dtype=str)
-        df_hoja.columns = [str(c).strip().upper() for c in df_hoja.columns]
+            # Intentar con encabezado en fila 7 (índice 6)
+            df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=6, dtype=str)
+            df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUSNU')) for c in df_hoja.columns]
 
-        # Verificar si las columnas necesarias están presentes
-        columnas_encontradas = [c for c in COLUMNAS_ORIGINALES if c in df_hoja.columns]
-        if len(columnas_encontradas) < 2:
-            # Si no se encuentran en fila 7, intentar con fila 1 (índice 0)
-            df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=0, dtype=str)
-            df_hoja.columns = [str(c).strip().upper() for c in df_hoja.columns]
+            columnas_encontradas = [c for c in COLUMNAS_ORIGINALES if c in df_hoja.columns]
+            if len(columnas_encontradas) < 2:
+                df_hoja = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=0, dtype=str)
+                df_hoja.columns = [str(c).strip().upper().translate(str.maketrans('ÁÉÍÓÚÑÜ', 'AEIOUSNU')) for c in df_hoja.columns]
 
-        # Añadir columna DIA con el nombre de la hoja
-        df_hoja['DIA'] = nombre_hoja
-        hojas_unidas.append(df_hoja)
+            df_hoja['DIA'] = nombre_hoja.strip().upper()
 
-    df_general_raw = pd.concat(hojas_unidas, ignore_index=True)
+            # Eliminar filas con SALON, GRUPO u HORARIO vacíos
+            for col_critica in ['SALON', 'GRUPO', 'HORARIO']:
+                if col_critica in df_hoja.columns:
+                    df_hoja = df_hoja[
+                        df_hoja[col_critica].notna() &
+                        (df_hoja[col_critica].astype(str).str.strip() != '') &
+                        (df_hoja[col_critica].astype(str).str.strip().str.upper() != 'NAN')
+                    ]
 
-    # Eliminar filas donde SALON, GRUPO u HORARIO estén vacíos
-    for col_critica in ['SALON', 'GRUPO', 'HORARIO']:
-        if col_critica in df_general_raw.columns:
-            df_general_raw = df_general_raw[
-                df_general_raw[col_critica].notna() &
-                (df_general_raw[col_critica].astype(str).str.strip() != '') &
-                (df_general_raw[col_critica].astype(str).str.strip().str.upper() != 'NAN')
-            ]
+            generales.append(df_hoja)
 
-    df_general_raw = df_general_raw.reset_index(drop=True)
+    if not generales:
+        raise Exception("No se encontraron hojas válidas (LUNES a SABADO) en ninguno de los archivos.")
 
-    # Construir df_general solo con las columnas necesarias en el orden correcto
+    df_general_raw = pd.concat(generales, ignore_index=True)
+
+    # Construir GENERAL con columnas en orden
     df_general = pd.DataFrame()
     for col in COLUMNAS_GENERAL:
         if col in df_general_raw.columns:
@@ -1549,7 +1553,9 @@ def vis_procesar_archivo(file_obj):
         else:
             df_general[col] = None
 
-    # Construir df_visitas: copia de general + SEMESTRE
+    df_general = df_general.reset_index(drop=True)
+
+    # Construir VISITAS desde la GENERAL unida
     df_visitas = df_general.copy()
     df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(vis_determinar_semestre)
     df_visitas = df_visitas[df_visitas['SEMESTRE'].notna()].copy()
@@ -1954,7 +1960,7 @@ elif modulo == "Visitas a Grupos":
     st.markdown("""
     <div class="module-header">
         <h1>Visitas a Grupos</h1>
-        <p>Une todas las hojas del archivo de visitas en una hoja <strong>GENERAL</strong>,<br>
+        <p>Une todas las hojas válidas de los archivos subidos en una hoja <strong>GENERAL</strong>,<br>
         y genera la hoja <strong>VISITAS</strong> con semestre asignado según el grupo.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -1962,47 +1968,47 @@ elif modulo == "Visitas a Grupos":
     st.markdown("""
     <div class="info-card">
         <strong>¿Qué hace este módulo?</strong><br>
-        • Lee todas las hojas del archivo Excel (Lunes, Martes, etc.).<br>
-        • Une las hojas en <strong>GENERAL</strong>, añadiendo la columna <strong>DIA</strong> con el nombre de cada hoja.<br>
-        • Genera la hoja <strong>VISITAS</strong> como copia de GENERAL con la columna <strong>SEMESTRE</strong> añadida.<br>
-        • Asigna PRIMERO, SEGUNDO o TERCERO según el patrón del grupo.<br>
-        • Elimina filas cuyo SEMESTRE no pueda determinarse.
+        • Lee únicamente las hojas llamadas <strong>LUNES, MARTES, MIERCOLES, JUEVES, VIERNES o SABADO</strong>.<br>
+        • Los encabezados del archivo original pueden estar en minúscula o mayúscula — se normalizan automáticamente.<br>
+        • Une los archivos en una sola <strong>GENERAL</strong>, luego genera <strong>VISITAS</strong> con semestre asignado.<br>
+        • Puedes subir entre <strong>1 y 3 archivos</strong>. No es obligatorio subir los 3.
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("""
     <div class="warning-card">
-        <strong>📋 Columnas requeridas en el archivo original:</strong><br>
-        El archivo debe tener <strong>una hoja por día</strong> (ej: Lunes, Martes…),
-        y cada hoja debe contener exactamente estas columnas:<br><br>
+        <strong>📋 Columnas requeridas en cada hoja:</strong><br>
         <code>SALON</code> &nbsp;·&nbsp;
         <code>GRUPO</code> &nbsp;·&nbsp;
         <code>ASIGNATURA</code> &nbsp;·&nbsp;
         <code>DOCENTE</code> &nbsp;·&nbsp;
         <code>HORARIO</code> &nbsp;·&nbsp;
-        <code>CALENDARIO</code> &nbsp;·&nbsp;
         <code>JORNADA</code><br><br>
-        La columna <strong>DIA</strong> se genera automáticamente a partir del nombre de cada hoja.<br>
-        La columna <strong>SEMESTRE</strong> se genera automáticamente a partir del <strong>GRUPO</strong>.
+        La columna <strong>DIA</strong> y <strong>SEMESTRE</strong> se generan automáticamente.
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="upload-label">📂 Archivo de entrada (hojas por día)</div>', unsafe_allow_html=True)
-    archivo_vis = st.file_uploader(
-        "Sube el archivo Excel de Visitas a Grupos",
-        type=["xlsx"],
-        key="uploader_vis",
-        label_visibility="collapsed"
-    )
+    col_v1, col_v2, col_v3 = st.columns(3)
+    with col_v1:
+        st.markdown('<div class="upload-label">📂 Archivo 1</div>', unsafe_allow_html=True)
+        archivo_vis_1 = st.file_uploader("Archivo 1", type=["xlsx"], key="uploader_vis_1", label_visibility="collapsed")
+    with col_v2:
+        st.markdown('<div class="upload-label">📂 Archivo 2 (opcional)</div>', unsafe_allow_html=True)
+        archivo_vis_2 = st.file_uploader("Archivo 2", type=["xlsx"], key="uploader_vis_2", label_visibility="collapsed")
+    with col_v3:
+        st.markdown('<div class="upload-label">📂 Archivo 3 (opcional)</div>', unsafe_allow_html=True)
+        archivo_vis_3 = st.file_uploader("Archivo 3", type=["xlsx"], key="uploader_vis_3", label_visibility="collapsed")
 
     st.markdown("---")
 
-    if archivo_vis:
+    archivos_vis = [f for f in [archivo_vis_1, archivo_vis_2, archivo_vis_3] if f is not None]
+
+    if archivos_vis:
         if st.button("▶  Procesar Visitas a Grupos", key="btn_vis", use_container_width=True):
             with st.spinner("Procesando visitas a grupos..."):
                 try:
-                    resultado = vis_procesar_archivo(archivo_vis)
-                    st.success("✅ Proceso completado exitosamente.")
+                    resultado = vis_procesar_archivo(archivos_vis)
+                    st.success(f"✅ Proceso completado. Se procesaron **{len(archivos_vis)} archivo(s)**.")
                     st.download_button(
                         label="⬇️  Descargar archivo procesado",
                         data=resultado,
@@ -2015,6 +2021,6 @@ elif modulo == "Visitas a Grupos":
     else:
         st.markdown("""
         <div class="warning-card">
-            ⬆️ Sube el archivo Excel para habilitar el procesamiento.
+            ⬆️ Sube al menos un archivo Excel para habilitar el procesamiento.
         </div>
         """, unsafe_allow_html=True)
