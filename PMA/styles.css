@@ -1234,6 +1234,66 @@ textarea {
   font-size: 14px;
 }
 
+.tabla-tutores-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.tabla-estadisticas-tutores {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.tabla-estadisticas-tutores thead th {
+  background: #1e3c72;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 15px;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border-bottom: 2px solid #152a52;
+}
+
+.tabla-estadisticas-tutores tbody td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e8e8e8;
+  vertical-align: middle;
+}
+
+.tabla-estadisticas-tutores tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla-estadisticas-tutores tbody tr {
+  transition: background 0.2s ease;
+}
+
+.tabla-estadisticas-tutores tbody tr:hover {
+  background: #f8fafc;
+}
+
+.tabla-estadisticas-tutores .tabla-tutor-nombre {
+  color: #333;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.tabla-estadisticas-tutores .tabla-tutor-num {
+  color: #1e3c72;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .logo-footer {
   display: flex;
   align-items: center;
@@ -1952,6 +2012,16 @@ input[type="text"][id="adminContrasena"] {
     font-size: 11px !important;
   }
 
+  #pantallaAdmin .tabla-estadisticas-tutores {
+    font-size: 11px !important;
+  }
+
+  #pantallaAdmin .tabla-estadisticas-tutores thead th,
+  #pantallaAdmin .tabla-estadisticas-tutores tbody td {
+    padding: 10px 12px !important;
+    font-size: 11px !important;
+  }
+
   #pantallaAdmin .stat-card h3 {
     font-size: 18px !important;
   }
@@ -2253,6 +2323,16 @@ input[type="text"][id="adminContrasena"] {
 
   #pantallaAdmin .list-item strong,
   #pantallaAdmin .list-item span {
+    font-size: 10px !important;
+  }
+
+  #pantallaAdmin .tabla-estadisticas-tutores {
+    font-size: 10px !important;
+  }
+
+  #pantallaAdmin .tabla-estadisticas-tutores thead th,
+  #pantallaAdmin .tabla-estadisticas-tutores tbody td {
+    padding: 8px 10px !important;
     font-size: 10px !important;
   }
 

@@ -106,9 +106,9 @@
                 <label>Fecha Hasta</label>
                 <input type="date" id="fechaHasta">
               </div>
-              <button class="btn" onclick="descargarDatos()">Descargar Tutores</button>
-              <button class="btn btn-secondary" onclick="descargarDocentes()">Descargar Docentes</button>
-              <button class="btn btn-secondary" onclick="descargarTodo()">Descargar Todos los Registros</button>
+<button class="btn" onclick="descargarDatos(event)">Descargar Tutores</button>
+<button class="btn btn-secondary" onclick="descargarDocentes(event)">Descargar Docentes</button>
+<button class="btn btn-secondary" onclick="descargarTodo(event)">Descargar Todos los Registros</button>
             </div>
             <div class="chart-container chart-container-spacing">
               <h3 class="chart-title">Descargar por Facultad</h3>
@@ -134,7 +134,7 @@
                   </label>
                 </div>
               </div>
-              <button class="btn btn-descargar-facultad" onclick="descargarPorFacultad()">Descargar Registros por Facultad</button>
+              <button class="btn btn-descargar-facultad" onclick="descargarPorFacultad(event)">Descargar Registros por Facultad</button>
             </div>
 
 <div class="chart-container chart-container-spacing">
@@ -148,7 +148,7 @@
     <label>Grupo *</label>
     <input type="text" id="buscadorGrupo" placeholder="Ej: 2303A; 2303B; 1201C" autocomplete="off" class="buscador-grupo-input">
   </div>
-  <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo()">Descargar Registros por Grupo</button>
+  <button class="btn btn-descargar-grupo" onclick="descargarPorGrupo(event)">Descargar Registros por Grupo</button>
 </div>
             
 
@@ -159,7 +159,7 @@
     <label>Documento(s) *</label>
     <input type="text" id="inputDocumentos" autocomplete="off" class="buscador-grupo-input">
   </div>
-  <button class="btn btn-descargar-grupo" onclick="descargarPorDocumento()">Descargar Registros por Documento</button>
+  <button class="btn btn-descargar-grupo" onclick="descargarPorDocumento(event)">Descargar Registros por Documento</button>
 </div>
 
             
@@ -174,7 +174,7 @@
                 <label>Fecha Hasta (opcional)</label>
                 <input type="date" id="fechaHastaInforme">
               </div>
-              <button class="btn btn-descargar-informe" onclick="descargarInforme()">Descargar Informe</button>
+              <button class="btn btn-descargar-informe" onclick="descargarInforme(event)">Descargar Informe</button>
             </div>
 
           </div>

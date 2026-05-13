@@ -170,11 +170,11 @@ async function cambiarTab(event, tab) {
     
     // Verificar si el contenido HTML ya está renderizado,
     // no solo si los datos existen en memoria
-    const contenidoYaRenderizado = document.getElementById('contenidoEstadisticas');
-    if (!window.datosFormulariosGlobal || !contenidoYaRenderizado) {
+const contenidoYaRenderizado = document.getElementById('contenidoEstadisticas');
+    if (!window.datosFormulariosGlobal || !contenidoYaRenderizado || contenidoYaRenderizado.children.length === 0) {
       await cargarEstadisticas();
     } else {
-      mostrarEstadisticas('general');  // Re-renderiza usando datos ya en memoria
+      mostrarEstadisticas('general');
     }
     
   } else if (tab === 'graficas') {
@@ -333,6 +333,27 @@ async function actualizarEstadisticas() {
   }
 }
 
+function ponerMarcaUltimaActualizacionEstadisticas() {
+  const grid = elementosDOM.statsGrid || document.getElementById('statsGrid');
+  if (!grid) return;
+  const id = 'marcaUltimaActualizacionEstadisticas';
+  grid.querySelector('#' + id)?.remove();
+  const ahora = new Date().toLocaleString('es-CO', {
+    timeZone: 'America/Bogota',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const p = document.createElement('p');
+  p.id = id;
+  p.style.textAlign = 'right';
+  p.style.color = '#666';
+  p.style.fontSize = '12px';
+  p.textContent = 'Última actualización: ' + ahora;
+  grid.insertAdjacentElement('afterbegin', p);
+}
 
 async function cargarEstadisticas() {
 
@@ -358,6 +379,7 @@ async function cargarEstadisticas() {
         p.textContent = 'No hay datos disponibles aún.';
         elementosDOM.statsGrid.appendChild(p);
       }
+      ponerMarcaUltimaActualizacionEstadisticas();
       return;
     }
 
@@ -392,6 +414,7 @@ async function cargarEstadisticas() {
       invalidarCacheEstadisticas();
     }
     mostrarEstadisticas('general');
+    ponerMarcaUltimaActualizacionEstadisticas();
 
   } catch (error) {
     console.error('Error cargando estadísticas:', error);
@@ -404,21 +427,14 @@ async function cargarEstadisticas() {
       elementosDOM.statsGrid.appendChild(p);
     }
   }
+}
 
-  const ahora = new Date().toLocaleString('es-CO', {
-    timeZone: 'America/Bogota',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  
-  document.getElementById('statsGrid').insertAdjacentHTML('afterbegin', 
-    `<p style="text-align: right; color: #666; font-size: 12px;">
-      Última actualización: ${ahora}
-    </p>`
-  );
+function escapeHtmlAdmin(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function mostrarEstadisticas(tipo, botonClickeado) {
@@ -466,6 +482,28 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     sumaCalificacionesPMA: 0
   };
 
+  // Consolidado: stats + (si general) estudiantesUnicos y conteos de listas; (si tutores) tutorías y documentos por instructor — un solo forEach sobre datosFiltrados
+  let estudiantesUnicos;
+  let materiasCuenta;
+  let semestresCuenta;
+  let programasCuenta;
+  let facultadesCuenta;
+  let motivosCuenta;
+  let tutoriasPorInstructor;
+  let documentosPorInstructor;
+  if (tipo === 'general') {
+    estudiantesUnicos = new Set();
+    materiasCuenta = {};
+    semestresCuenta = {};
+    programasCuenta = {};
+    facultadesCuenta = {};
+    motivosCuenta = {};
+  }
+  if (tipo === 'tutores') {
+    tutoriasPorInstructor = {};
+    documentosPorInstructor = {};
+  }
+
   datosFiltrados.forEach(item => {
     const sede = item.sede_tutoria;
     const instructor = item.instructor;
@@ -495,6 +533,35 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     stats.sumaCalificacionesPMA += promedioPMA;
     if (tipo === 'profesores' && item.facultad_departamento) {
       stats.facultadDepartamento[item.facultad_departamento] = (stats.facultadDepartamento[item.facultad_departamento] || 0) + 1;
+    }
+
+    if (tipo === 'general') {
+      // Antes: `new Set(datosFiltrados.map(...))` y 5 forEach aparte; ahora mismo acumulado en este recorrido
+      estudiantesUnicos.add(item.documento);
+      const materia = item.asignatura || 'Sin especificar';
+      materiasCuenta[materia] = (materiasCuenta[materia] || 0) + 1;
+      const semestre = item.semestre || 'Sin especificar';
+      semestresCuenta[semestre] = (semestresCuenta[semestre] || 0) + 1;
+      const programa = item.programa || 'Sin especificar';
+      programasCuenta[programa] = (programasCuenta[programa] || 0) + 1;
+      const facultad = item.facultad || 'Sin especificar';
+      facultadesCuenta[facultad] = (facultadesCuenta[facultad] || 0) + 1;
+      const motivo = item.motivo_consulta || 'Sin especificar';
+      motivosCuenta[motivo] = (motivosCuenta[motivo] || 0) + 1;
+    }
+
+    if (tipo === 'tutores') {
+      // Antes: forEach dedicado; misma lógica de tutorías y documentos únicos por instructor
+      if (instructor) {
+        tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
+        if (!documentosPorInstructor[instructor]) {
+          documentosPorInstructor[instructor] = new Set();
+        }
+        const doc = item.documento != null && item.documento !== ''
+          ? String(item.documento).trim()
+          : '';
+        if (doc) documentosPorInstructor[instructor].add(doc);
+      }
     }
   });
 
@@ -571,7 +638,7 @@ function mostrarEstadisticas(tipo, botonClickeado) {
 
   const grid = document.getElementById('contenidoEstadisticas');
 if (tipo === 'general') {
-  const estudiantesUnicos = new Set(datosFiltrados.map(item => item.documento));
+  // Consolidado: beneficiados globales y conteos para listas (antes: map + 5 forEach separados)
   const cantidadBeneficiados = estudiantesUnicos.size;
   
   grid.innerHTML = `
@@ -591,106 +658,33 @@ if (tipo === 'general') {
       
     </div>
   `;
-  const materiasCuenta = {};
-  datosFiltrados.forEach(item => {
-    const materia = item.asignatura || 'Sin especificar';
-    materiasCuenta[materia] = (materiasCuenta[materia] || 0) + 1;
-  });
-  
+  // Consolidado: top/listas derivados de los mismos acumuladores del forEach único (antes: 5 forEach aquí)
   const top5Materias = Object.entries(materiasCuenta)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  const semestresCuenta = {};
-  datosFiltrados.forEach(item => {
-    const semestre = item.semestre || 'Sin especificar';
-    semestresCuenta[semestre] = (semestresCuenta[semestre] || 0) + 1;
-  });
-  
   const top5Semestres = Object.entries(semestresCuenta)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  const programasCuenta = {};
-  datosFiltrados.forEach(item => {
-    const programa = item.programa || 'Sin especificar';
-    programasCuenta[programa] = (programasCuenta[programa] || 0) + 1;
-  });
-  
   const top5Programas = Object.entries(programasCuenta)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  const facultadesCuenta = {};
-  datosFiltrados.forEach(item => {
-    const facultad = item.facultad || 'Sin especificar';
-    facultadesCuenta[facultad] = (facultadesCuenta[facultad] || 0) + 1;
-  });
   const todasFacultades = Object.entries(facultadesCuenta)
     .sort((a, b) => b[1] - a[1]);
-  const motivosCuenta = {};
-  datosFiltrados.forEach(item => {
-    const motivo = item.motivo_consulta || 'Sin especificar';
-    motivosCuenta[motivo] = (motivosCuenta[motivo] || 0) + 1;
-  });
   const todosMotivos = Object.entries(motivosCuenta)
     .sort((a, b) => b[1] - a[1]);
-  generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacultades, todosMotivos, stats.total);
-  
+generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacultades, todosMotivos, stats.total);
+
+  cacheEstadisticas['general'] = {
+    grid: document.getElementById('contenidoEstadisticas').innerHTML,
+    detalles: document.getElementById('detallesStats').innerHTML
+  };
+
   return;
 }
 
-function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacultades, todosMotivos, total) {
-  let detallesHTML = '';
-  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Materias con Más Tutorías</h3>';
-  if (top5Materias.length > 0) {
-    top5Materias.forEach(([materia, cantidad]) => {
-      const porcentaje = ((cantidad / total) * 100).toFixed(1);
-      detallesHTML += `<div class="list-item"><span>${materia}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
-    });
-  } else {
-    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
-  }
-  detallesHTML += '</div>';
-  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Semestres con Más Tutorías</h3>';
-  if (top5Semestres.length > 0) {
-    top5Semestres.forEach(([semestre, cantidad]) => {
-      const porcentaje = ((cantidad / total) * 100).toFixed(1);
-      const semestreTexto = semestre === 'Sin especificar' ? semestre : `Semestre ${semestre}`;
-      detallesHTML += `<div class="list-item"><span>${semestreTexto}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
-    });
-  } else {
-    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
-  }
-  detallesHTML += '</div>';
-  if (todasFacultades.length > 0) {
-    detallesHTML += '<div class="chart-container"><h3 class="chart-title">Facultades con Más Tutorías</h3>';
-    todasFacultades.forEach(([facultad, cantidad]) => {
-      const porcentaje = ((cantidad / total) * 100).toFixed(1);
-      detallesHTML += `<div class="list-item"><span>${facultad}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
-    });
-    detallesHTML += '</div>';
-  }
-  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Programas con Más Tutorías</h3>';
-  if (top5Programas.length > 0) {
-    top5Programas.forEach(([programa, cantidad]) => {
-      const porcentaje = ((cantidad / total) * 100).toFixed(1);
-      detallesHTML += `<div class="list-item"><span>${programa}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
-    });
-  } else {
-    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
-  }
-  detallesHTML += '</div>';
-  if (todosMotivos && todosMotivos.length > 0) {
-    detallesHTML += '<div class="chart-container"><h3 class="chart-title">Motivos de Consulta</h3>';
-    todosMotivos.forEach(([motivo, cantidad]) => {
-      const porcentaje = ((cantidad / total) * 100).toFixed(1);
-      detallesHTML += `<div class="list-item"><span>${motivo}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
-    });
-    detallesHTML += '</div>';
-  }
-  
-  document.getElementById('detallesStats').innerHTML = detallesHTML;
-}
-
   const tituloTipo = tipo === 'tutores' ? 'Tutorías' : 'Asesorías con Profesores';
+
+
 
   grid.innerHTML = `
     <div class="stats-grid">
@@ -721,13 +715,7 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
       detalles += `<div class="list-item"><span>${sede}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
     });
     detalles += '</div>';
-    const tutoriasPorInstructor = {};
-    datosFiltrados.forEach(item => {
-      const instructor = item.instructor;
-      tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
-    });
-
-
+    // Consolidado: tutorías y beneficiados por tutor ya calculados en el forEach único con stats
     const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
     if (datosCache.tutoresNorte.length > 0 && datosCache.tutoresSur.length > 0) {
       Object.keys(tutoriasPorInstructor).forEach(instructor => {
@@ -747,11 +735,14 @@ detalles += `<div class="chart-container">
       <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
 
       <div class="botones-sedes" style="margin-top: 24px; margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
-        <select id="filtroOrdenTutores" onchange="reordenarTutores()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
+        <select id="filtroOrdenTutores" onchange="document.getElementById('filtroOrdenBeneficiadosTutores').value=''; reordenarTutores();" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
           <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
           <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
         </select>
-        
+        <select id="filtroOrdenBeneficiadosTutores" onchange="reordenarTutores()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
+          <option value="">Ordenar por beneficiados (no activo)</option>
+          <option value="beneficiados">Ordenar por beneficiados (mayor a menor)</option>
+        </select>
         <select id="filtroAreaTutores" onchange="filtrarTutoresPorArea()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
           <option value="todas">Área: Todas</option>
           <option value="M">Matemáticas (M)</option>
@@ -774,13 +765,30 @@ detalles += `<div class="chart-container">
     const instructoresNorte = Object.entries(tutoresPorSedeOrigen.Norte)
       .sort((a, b) => b[1] - a[1]);
     if (instructoresNorte.length > 0) {
+      detalles += `
+        <div class="tabla-tutores-wrapper">
+          <table class="tabla-estadisticas-tutores">
+            <thead>
+              <tr>
+                <th scope="col">Nombre del tutor</th>
+                <th scope="col">Tutorías</th>
+                <th scope="col">Beneficiados</th>
+                <th scope="col">Calificación</th>
+              </tr>
+            </thead>
+            <tbody>`;
       instructoresNorte.forEach(([instructor, cantidad]) => {
-        const promedio = promediosPorInstructor[instructor] || 'N/A';
-        detalles += `<div class="list-item">
-          <span>${instructor}</span>
-          <strong>${cantidad} tutoría${cantidad !== 1 ? 's' : ''}<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
-        </div>`;
+        const promedioStr = promediosPorInstructor[instructor] != null ? promediosPorInstructor[instructor] : 'N/A';
+        const calSort = promedioStr === 'N/A' ? '-1' : String(parseFloat(promedioStr));
+        const beneficiados = documentosPorInstructor[instructor] ? documentosPorInstructor[instructor].size : 0;
+        detalles += `<tr data-tutor-nombre="${escapeHtmlAdmin(instructor)}" data-cantidad="${cantidad}" data-calificacion="${calSort}" data-beneficiados="${beneficiados}">
+          <td class="tabla-tutor-nombre">${escapeHtmlAdmin(instructor)}</td>
+          <td class="tabla-tutor-num">${cantidad}</td>
+          <td class="tabla-tutor-num">${beneficiados}</td>
+          <td class="tabla-tutor-num">${escapeHtmlAdmin(promedioStr)}</td>
+        </tr>`;
       });
+      detalles += `</tbody></table></div>`;
     } else {
       detalles += '<p style="text-align: center; color: #666;">No hay tutores registrados en Sede Norte</p>';
     }
@@ -793,13 +801,30 @@ detalles += `<div class="chart-container">
     const instructoresSur = Object.entries(tutoresPorSedeOrigen.Sur)
       .sort((a, b) => b[1] - a[1]);
     if (instructoresSur.length > 0) {
+      detalles += `
+        <div class="tabla-tutores-wrapper">
+          <table class="tabla-estadisticas-tutores">
+            <thead>
+              <tr>
+                <th scope="col">Nombre del tutor</th>
+                <th scope="col">Tutorías</th>
+                <th scope="col">Beneficiados</th>
+                <th scope="col">Calificación</th>
+              </tr>
+            </thead>
+            <tbody>`;
       instructoresSur.forEach(([instructor, cantidad]) => {
-        const promedio = promediosPorInstructor[instructor] || 'N/A';
-        detalles += `<div class="list-item">
-          <span>${instructor}</span>
-          <strong>${cantidad} tutoría${cantidad !== 1 ? 's' : ''}<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
-        </div>`;
+        const promedioStr = promediosPorInstructor[instructor] != null ? promediosPorInstructor[instructor] : 'N/A';
+        const calSort = promedioStr === 'N/A' ? '-1' : String(parseFloat(promedioStr));
+        const beneficiados = documentosPorInstructor[instructor] ? documentosPorInstructor[instructor].size : 0;
+        detalles += `<tr data-tutor-nombre="${escapeHtmlAdmin(instructor)}" data-cantidad="${cantidad}" data-calificacion="${calSort}" data-beneficiados="${beneficiados}">
+          <td class="tabla-tutor-nombre">${escapeHtmlAdmin(instructor)}</td>
+          <td class="tabla-tutor-num">${cantidad}</td>
+          <td class="tabla-tutor-num">${beneficiados}</td>
+          <td class="tabla-tutor-num">${escapeHtmlAdmin(promedioStr)}</td>
+        </tr>`;
       });
+      detalles += `</tbody></table></div>`;
     } else {
       detalles += '<p style="text-align: center; color: #666;">No hay tutores registrados en Sede Sur</p>';
     }
@@ -826,16 +851,28 @@ if (tipo === 'profesores') {
   detalles += `<div class="chart-container">
     <h3 class="chart-title">Cantidad de Asesorías por Profesor</h3>`;
   const profesoresPorFacultad = {};
-  
+  const documentosPorFacultadProfesor = {};
+
   datosFiltrados.forEach(item => {
     const facultad = item.facultad_departamento || 'Sin Facultad';
     const profesor = item.instructor;
-    
+    if (!profesor) return;
+
     if (!profesoresPorFacultad[facultad]) {
       profesoresPorFacultad[facultad] = {};
     }
-    
+    if (!documentosPorFacultadProfesor[facultad]) {
+      documentosPorFacultadProfesor[facultad] = {};
+    }
+    if (!documentosPorFacultadProfesor[facultad][profesor]) {
+      documentosPorFacultadProfesor[facultad][profesor] = new Set();
+    }
+
     profesoresPorFacultad[facultad][profesor] = (profesoresPorFacultad[facultad][profesor] || 0) + 1;
+    const doc = item.documento != null && item.documento !== ''
+      ? String(item.documento).trim()
+      : '';
+    if (doc) documentosPorFacultadProfesor[facultad][profesor].add(doc);
   });
 
   const facultadesConProfesores = Object.keys(profesoresPorFacultad).sort();
@@ -861,20 +898,46 @@ if (tipo === 'profesores') {
       const nombreCompletoTitulo = obtenerNombreFacultad(facultad);
       detalles += `
         <div id="profesores${facultadId}" class="horario-info hidden">
-          <h4 class="horario-titulo">${nombreCompletoTitulo}</h4>`;
-      
-      if (profesoresOrdenados.length > 0) {
-        profesoresOrdenados.forEach(([profesor, cantidad]) => {
-          const promedio = promediosPorInstructor[profesor] || 'N/A';
-          detalles += `<div class="list-item">
-            <span>${profesor}</span>
-            <strong>${cantidad} asesorías<br><span style="font-size: 12px; font-weight: normal;">Calificación: ${promedio}</span></strong>
+          <h4 class="horario-titulo">${nombreCompletoTitulo}</h4>
+          <div class="botones-sedes" style="margin-top: 12px; margin-bottom: 16px;">
+            <select class="admin-input filtro-orden-profesores-facultad" data-facultad-id="${facultadId}" onchange="reordenarProfesoresFacultad(event)" style="width: 100%; max-width: 500px; padding: 10px 14px; font-size: 12px;">
+              <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
+              <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
+              <option value="beneficiados">Ordenar por beneficiados (mayor a menor)</option>
+            </select>
           </div>`;
+
+      if (profesoresOrdenados.length > 0) {
+        detalles += `
+          <div class="tabla-tutores-wrapper">
+            <table class="tabla-estadisticas-tutores">
+              <thead>
+                <tr>
+                  <th scope="col">Nombre del profesor</th>
+                  <th scope="col">Asesorías</th>
+                  <th scope="col">Beneficiados</th>
+                  <th scope="col">Calificación</th>
+                </tr>
+              </thead>
+              <tbody>`;
+        profesoresOrdenados.forEach(([profesor, cantidad]) => {
+          const promedioStr = promediosPorInstructor[profesor] != null ? promediosPorInstructor[profesor] : 'N/A';
+          const calSort = promedioStr === 'N/A' ? '-1' : String(parseFloat(promedioStr));
+          const beneficiados = documentosPorFacultadProfesor[facultad] && documentosPorFacultadProfesor[facultad][profesor]
+            ? documentosPorFacultadProfesor[facultad][profesor].size
+            : 0;
+          detalles += `<tr data-profesor-nombre="${escapeHtmlAdmin(profesor)}" data-cantidad="${cantidad}" data-calificacion="${calSort}" data-beneficiados="${beneficiados}">
+            <td class="tabla-tutor-nombre">${escapeHtmlAdmin(profesor)}</td>
+            <td class="tabla-tutor-num">${cantidad}</td>
+            <td class="tabla-tutor-num">${beneficiados}</td>
+            <td class="tabla-tutor-num">${escapeHtmlAdmin(promedioStr)}</td>
+          </tr>`;
         });
+        detalles += `</tbody></table></div>`;
       } else {
         detalles += '<p style="text-align: center; color: #666;">No hay profesores en esta facultad</p>';
       }
-      
+
       detalles += '</div>';
     });
   } else {
@@ -901,64 +964,110 @@ if (tipo === 'profesores') {
 
 
 function reordenarTutores() {
-  const criterio = document.getElementById('filtroOrdenTutores').value;
-  
+  const prioridadBenef = document.getElementById('filtroOrdenBeneficiadosTutores')?.value;
+  const criterio = prioridadBenef === 'beneficiados'
+    ? 'beneficiados'
+    : document.getElementById('filtroOrdenTutores')?.value;
+  if (!criterio) return;
+
   ['instructoresNorteAdmin', 'instructoresSurAdmin'].forEach(seccionId => {
     const seccion = document.getElementById(seccionId);
     if (!seccion) return;
-    
-    const items = Array.from(seccion.querySelectorAll('.list-item'));
-    if (items.length === 0) return;
-    
-    items.sort((a, b) => {
-      if (criterio === 'calificacion') {
-        const calA = parseFloat(a.querySelector('span[style]')?.textContent.replace('Calificación: ', '') || '0');
-        const calB = parseFloat(b.querySelector('span[style]')?.textContent.replace('Calificación: ', '') || '0');
-        return calB - calA;
-      } else {
-        const cantA = parseInt(a.querySelector('strong')?.textContent || '0');
-        const cantB = parseInt(b.querySelector('strong')?.textContent || '0');
-        return cantB - cantA;
+
+    const tbody = seccion.querySelector('.tabla-estadisticas-tutores tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length === 0) return;
+
+    rows.sort((a, b) => {
+      if (criterio === 'beneficiados') {
+        const benA = parseInt(a.dataset.beneficiados || '0', 10);
+        const benB = parseInt(b.dataset.beneficiados || '0', 10);
+        return benB - benA;
       }
+      if (criterio === 'calificacion') {
+        const calA = parseFloat(a.dataset.calificacion || '0');
+        const calB = parseFloat(b.dataset.calificacion || '0');
+        return calB - calA;
+      }
+      const cantA = parseInt(a.dataset.cantidad || '0', 10);
+      const cantB = parseInt(b.dataset.cantidad || '0', 10);
+      return cantB - cantA;
     });
-    
-    items.forEach(item => seccion.appendChild(item));
+
+    rows.forEach(row => tbody.appendChild(row));
   });
+}
+
+
+function reordenarProfesoresFacultad(event) {
+  const select = event.target;
+  const facultadId = select?.dataset?.facultadId;
+  const criterio = select?.value;
+  if (!facultadId || !criterio) return;
+
+  const seccion = document.getElementById('profesores' + facultadId);
+  if (!seccion) return;
+
+  const tbody = seccion.querySelector('.tabla-estadisticas-tutores tbody');
+  if (!tbody) return;
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  if (rows.length === 0) return;
+
+  rows.sort((a, b) => {
+    if (criterio === 'beneficiados') {
+      const benA = parseInt(a.dataset.beneficiados || '0', 10);
+      const benB = parseInt(b.dataset.beneficiados || '0', 10);
+      return benB - benA;
+    }
+    if (criterio === 'calificacion') {
+      const calA = parseFloat(a.dataset.calificacion || '0');
+      const calB = parseFloat(b.dataset.calificacion || '0');
+      return calB - calA;
+    }
+    const cantA = parseInt(a.dataset.cantidad || '0', 10);
+    const cantB = parseInt(b.dataset.cantidad || '0', 10);
+    return cantB - cantA;
+  });
+
+  rows.forEach(row => tbody.appendChild(row));
 }
 
 
 function filtrarTutoresPorArea() {
-  const area = document.getElementById('filtroAreaTutores').value;
+  const area = document.getElementById('filtroAreaTutores')?.value;
+  if (area == null) return;
 
   ['instructoresNorteAdmin', 'instructoresSurAdmin'].forEach(seccionId => {
     const seccion = document.getElementById(seccionId);
     if (!seccion) return;
 
-    const items = Array.from(seccion.querySelectorAll('.list-item'));
-    if (items.length === 0) return;
+    const rows = seccion.querySelectorAll('.tabla-estadisticas-tutores tbody tr');
+    if (!rows.length) return;
 
-    // Determinar qué caché de tutores usar según la sección
     const cache = seccionId === 'instructoresNorteAdmin'
       ? datosCache.tutoresNorte
       : datosCache.tutoresSur;
 
-    items.forEach(item => {
-      const nombreTutor = item.querySelector('span')?.textContent?.trim();
+    rows.forEach(tr => {
+      const nombreTutor = tr.dataset.tutorNombre?.trim();
       if (!nombreTutor) return;
 
       if (area === 'todas') {
-        item.style.display = '';
+        tr.style.display = '';
       } else {
-        const tutorData = cache.find(t => t.nombre?.trim() === nombreTutor);
+        const tutorData = cache.find(t => (t.nombre || '').trim() === nombreTutor);
         const areaTutor = tutorData?.area?.trim().toUpperCase();
-        item.style.display = areaTutor === area ? '' : 'none';
+        tr.style.display = areaTutor === area ? '' : 'none';
       }
     });
   });
 }
 
 
-async function descargarDatos() {
+async function descargarDatos(event) {
   const desde = document.getElementById('fechaDesde').value;
   const hasta = document.getElementById('fechaHasta').value;
 
@@ -1006,7 +1115,7 @@ async function descargarDatos() {
 }
 
 
-async function descargarTodo() {
+async function descargarTodo(event) {
   if (!confirm('¿Descargar todos los registros?')) {
     return;
   }
@@ -1035,7 +1144,7 @@ const data = await supabaseQuerySinLimite('formularios', { order: 'fecha.asc' })
 }
 
 
-async function descargarDocentes() {
+async function descargarDocentes(event) {
   const desde = document.getElementById('fechaDesde').value;
   const hasta = document.getElementById('fechaHasta').value;
 
@@ -1083,7 +1192,7 @@ async function descargarDocentes() {
 }
 
 
-async function descargarPorFacultad() {
+async function descargarPorFacultad(event) {
   const checkboxes = document.querySelectorAll('.facultad-checkbox:checked');
 
   if (checkboxes.length === 0) {
@@ -1146,7 +1255,6 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
       'Semestre': fila.semestre || '',
       'Facultad': fila.facultad || '',
       'Programa': fila.programa || '',
-      'Grupo': fila.grupo || '',
       'Asignatura': fila.asignatura || '',
       'Tema': fila.tema || ''
     };
@@ -1161,7 +1269,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
   
   ws['!cols'] = [
     { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
-    { wch: 10 }, { wch: 35 }, { wch: 35 }, { wch: 12 }, { wch: 30 }, { wch: 30 }
+    { wch: 10 }, { wch: 35 }, { wch: 35 }, { wch: 30 }, { wch: 30 }
   ];
   
   const nombresFacultades = facultadesSeleccionadas.map(f => obtenerNombreFacultad(f)).join('_');
@@ -1172,7 +1280,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
 }
 
 
-async function descargarPorGrupo() {
+async function descargarPorGrupo(event) {
   const archivoInput = document.getElementById('archivoMatriculados');
   const grupoRaw = document.getElementById('buscadorGrupo').value.trim().toUpperCase();
 
@@ -1330,7 +1438,7 @@ function leerMatriculadosMultiple(archivo, gruposFiltro) {
 }
 
 
-async function descargarPorDocumento() {
+async function descargarPorDocumento(event) {
   const inputRaw = document.getElementById('inputDocumentos').value.trim();
 
   if (!inputRaw) {
@@ -1387,7 +1495,6 @@ function generarExcelPorDocumento(datos, documentos) {
       'Documento': parseInt(fila.documento) || '',
       'Apellidos y Nombres': apellidosYNombres,
       'Programa': fila.programa || '',
-      'Grupo': fila.grupo || '',
       'Asignatura': fila.asignatura || '',
       'Tema': fila.tema || ''
     };
@@ -1411,7 +1518,6 @@ function generarExcelPorDocumento(datos, documentos) {
     { wch: 12 },  // Documento
     { wch: 40 },  // Apellidos y Nombres
     { wch: 35 },  // Programa
-    { wch: 12 },  // Grupo
     { wch: 30 },  // Asignatura
     { wch: 30 }   // Tema
   ];
@@ -1486,7 +1592,6 @@ function generarExcelCompleto(datos, nombreArchivo) {
       'Facultad': fila.facultad,
       'Programa': fila.programa,
       'Semestre': fila.semestre,
-      'Grupo': fila.grupo,
       'Tipo Acompañamiento': fila.tipo_acompanamiento,
       'Título Curso': fila.titulo_curso || '',
       'Sede Estudiante': fila.sede_estudiante || '',
@@ -1515,7 +1620,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
 
 ws['!cols'] = [
     { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
-    { wch: 35 }, { wch: 35 }, { wch: 10 }, { wch: 10 }, { wch: 20 },
+    { wch: 35 }, { wch: 35 }, { wch: 10 }, { wch: 20 },
     { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 },
     { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 12 },
     { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 40 }
@@ -1626,13 +1731,23 @@ async function verificarSesionAdmin() {
 
 
 function toggleInstructoresSede(sede) {
-  document.getElementById('instructoresNorteAdmin').classList.add('hidden');
-  document.getElementById('instructoresSurAdmin').classList.add('hidden');
-  
+  const norte = document.getElementById('instructoresNorteAdmin');
+  const sur = document.getElementById('instructoresSurAdmin');
+
   if (sede === 'norte') {
-    document.getElementById('instructoresNorteAdmin').classList.toggle('hidden');
+    const yaAbierto = !norte.classList.contains('hidden');
+    norte.classList.add('hidden');
+    sur.classList.add('hidden');
+    if (!yaAbierto) {
+      norte.classList.remove('hidden');
+    }
   } else if (sede === 'sur') {
-    document.getElementById('instructoresSurAdmin').classList.toggle('hidden');
+    const yaAbierto = !sur.classList.contains('hidden');
+    norte.classList.add('hidden');
+    sur.classList.add('hidden');
+    if (!yaAbierto) {
+      sur.classList.remove('hidden');
+    }
   }
 }
 
@@ -2123,6 +2238,11 @@ async function supabaseQuerySinLimite(tabla, opciones = {}) {
       }
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Error de base de datos: ${errorData.message || response.status}`);
+    }
+
     const page = await response.json();
     if (!Array.isArray(page)) break;
     allData = allData.concat(page);
@@ -2244,7 +2364,7 @@ function mostrarEstadisticasAAA() {
 }
 
 
-async function descargarInforme() {
+async function descargarInforme(event) {
   const desde = document.getElementById('fechaDesdeInforme').value;
   const hasta = document.getElementById('fechaHastaInforme').value;
 
@@ -2407,7 +2527,7 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
-  aplicarFormatoExcel(ws, range, 0, 0);
+  aplicarFormatoExcel(ws, range, 0, 1);
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
   ws['!cols'] = [
@@ -2438,13 +2558,65 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
   } else if (desde && hasta) {
     const [, mesD, diaD] = desde.split('-');
     const [, mesH, diaH] = hasta.split('-');
-    sufijo = `${mesesCortos[parseInt(mesD) - 1]}_${diaD} - ${mesesCortos[parseInt(mesH) - 1]}_${diaH}`;
+    sufijo = `${mesesCortos[parseInt(mesD) - 1]} ${diaD} - ${mesesCortos[parseInt(mesH) - 1]} ${diaH}`;
   }
 
   XLSX.writeFile(wb, `INFORME_${sufijo}.xlsx`);
 }
 
 
+function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacultades, todosMotivos, total) {
+  let detallesHTML = '';
+  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Materias con Más Tutorías</h3>';
+  if (top5Materias.length > 0) {
+    top5Materias.forEach(([materia, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${materia}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+  } else {
+    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
+  }
+  detallesHTML += '</div>';
+  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Semestres con Más Tutorías</h3>';
+  if (top5Semestres.length > 0) {
+    top5Semestres.forEach(([semestre, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      const semestreTexto = semestre === 'Sin especificar' ? semestre : `Semestre ${semestre}`;
+      detallesHTML += `<div class="list-item"><span>${semestreTexto}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+  } else {
+    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
+  }
+  detallesHTML += '</div>';
+  if (todasFacultades.length > 0) {
+    detallesHTML += '<div class="chart-container"><h3 class="chart-title">Facultades con Más Tutorías</h3>';
+    todasFacultades.forEach(([facultad, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${facultad}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+    detallesHTML += '</div>';
+  }
+  detallesHTML += '<div class="chart-container"><h3 class="chart-title">Top 5 Programas con Más Tutorías</h3>';
+  if (top5Programas.length > 0) {
+    top5Programas.forEach(([programa, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${programa}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+  } else {
+    detallesHTML += '<p style="text-align: center; color: #666;">No hay datos disponibles</p>';
+  }
+  detallesHTML += '</div>';
+  if (todosMotivos && todosMotivos.length > 0) {
+    detallesHTML += '<div class="chart-container"><h3 class="chart-title">Motivos de Consulta</h3>';
+    todosMotivos.forEach(([motivo, cantidad]) => {
+      const porcentaje = ((cantidad / total) * 100).toFixed(1);
+      detallesHTML += `<div class="list-item"><span>${motivo}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
+    });
+    detallesHTML += '</div>';
+  }
+  
+  document.getElementById('detallesStats').innerHTML = detallesHTML;
+}
 
 
 (function initNavegacionAdmin() {
