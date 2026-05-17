@@ -128,42 +128,6 @@
   </select>
 </div>
 
-      <!-- CORREO -->
-      <div class="form-group">
-        <label>Correo <span class="required-asterisk">*</span></label>
-        <small style="display:block; color:#666; margin-bottom:8px;">Escribe únicamente lo que va antes del @, y luego selecciona el dominio correspondiente.</small>
-        <div class="email-container">
-          <input 
-            type="text" 
-            id="correo" 
-            required 
-            autocomplete="off"
-            oninput="this.value = this.value.replace(/[^a-zA-Z0-9._-]/g, ''); actualizarCorreoCompleto()"
-            onblur="limpiarEspacios(this)"
-            placeholder="Aquí únicamente antes del @"
-            class="email-input">
-          <span class="email-separator">@</span>
-          <select id="dominioCorreo" class="email-domain" required>
-            <option value="">Seleccione un dominio</option>
-            <option value="estudiante.uniajc.edu.co">estudiante.uniajc.edu.co</option>
-            <option value="gmail.com">gmail.com</option>
-            <option value="hotmail.com">hotmail.com</option>
-            <option value="outlook.com">outlook.com</option>
-            <option value="yahoo.com">yahoo.com</option>
-            <option value="otro">Otro</option>
-          </select>
-        </div>
-        <div class="otro-dominio-container hidden" id="otroDominioContainer">
-          <input 
-            type="text" 
-            id="otroDominio" 
-            oninput="this.value = this.value.replace(/[^a-z0-9.-]/g, ''); this.value = this.value.toLowerCase(); actualizarCorreoCompleto()"
-            onblur="limpiarEspacios(this)"
-            autocomplete="off">
-        </div>
-        <input type="hidden" id="correoCompleto">
-      </div>
-
       <!-- PROGRAMA ACADÉMICO -->
       <div class="form-group">
         <label>Programa académico al cual se inscribió <span class="required-asterisk">*</span></label>

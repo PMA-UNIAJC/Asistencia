@@ -4,12 +4,11 @@ const cacheEstadisticas = {
   profesores: null
 };
 
-
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     persistSession: false,
-    autoRefreshToken: false,
+    autoRefreshToken: true,
     detectSessionInUrl: false
   }
 });
@@ -18,6 +17,12 @@ function invalidarCacheEstadisticas() {
   cacheEstadisticas.general = null;
   cacheEstadisticas.tutores = null;
   cacheEstadisticas.profesores = null;
+}
+
+function verificarCapsLock(event) {
+  const aviso = document.getElementById('avisoCapsLock');
+  if (!aviso) return;
+  aviso.style.display = event.getModifierState('CapsLock') ? 'block' : 'none';
 }
 
 async function precargarDatosEstadisticas() {
@@ -125,8 +130,6 @@ function cambiarTabPrincipal(event, seccion) {
     if (primerTabAAA) {
       document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
       primerTabAAA.classList.add('active');
-      document.getElementById('tabEstadisticasAAA').classList.add('hidden');
-      document.getElementById('tabDescargasAAA').classList.remove('hidden');
     }
   }
 }
@@ -142,8 +145,6 @@ async function cambiarTab(event, tab) {
   if (tab === 'descargas') {
     document.getElementById('tabDescargas').classList.remove('hidden');
 
- 
- 
 } else if (tab === 'estadisticas') {
     document.getElementById('tabEstadisticas').classList.remove('hidden');
     if (datosCache.tutoresNorte.length === 0) {
@@ -167,9 +168,7 @@ async function cambiarTab(event, tab) {
         return;
       }
     }
-    
-    // Verificar si el contenido HTML ya está renderizado,
-    // no solo si los datos existen en memoria
+
 const contenidoYaRenderizado = document.getElementById('contenidoEstadisticas');
     if (!window.datosFormulariosGlobal || !contenidoYaRenderizado || contenidoYaRenderizado.children.length === 0) {
       await cargarEstadisticas();
@@ -200,7 +199,6 @@ const contenidoYaRenderizado = document.getElementById('contenidoEstadisticas');
     }
   }    
 }
-
 
 function solicitarForzarActualizacion() {
   mostrarModalConfirmacion(
@@ -296,17 +294,13 @@ async function actualizarEstadisticas() {
     
     const contenidoPMA = document.getElementById('contenidoPMA');
     const contenidoPVU = document.getElementById('contenidoPVU');
-    const contenidoAAA = document.getElementById('contenidoAAA');
     
     if (!contenidoPMA.classList.contains('hidden')) {
       await cargarEstadisticas();
     } else if (!contenidoPVU.classList.contains('hidden')) {
       window.datosPVUGlobal = null;
       await cargarEstadisticasPVU();
-    } else if (!contenidoAAA.classList.contains('hidden')) {
-      window.datosAAAGlobal = null;
-      await cargarEstadisticasAAA();
-    }
+    } 
 
     iconActualizar.style.animation = 'none';
     iconActualizar.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
@@ -383,7 +377,6 @@ async function cargarEstadisticas() {
       return;
     }
 
-    // Crear HTML con estructura correcta
     const contenidoHTML = `
       <div class="estadisticas-menu-wrapper">
         <button class="btn btn-sede activo" onclick="mostrarEstadisticas('general', this)">
@@ -482,7 +475,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     sumaCalificacionesPMA: 0
   };
 
-  // Consolidado: stats + (si general) estudiantesUnicos y conteos de listas; (si tutores) tutorías y documentos por instructor — un solo forEach sobre datosFiltrados
   let estudiantesUnicos;
   let materiasCuenta;
   let semestresCuenta;
@@ -536,7 +528,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     }
 
     if (tipo === 'general') {
-      // Antes: `new Set(datosFiltrados.map(...))` y 5 forEach aparte; ahora mismo acumulado en este recorrido
       estudiantesUnicos.add(item.documento);
       const materia = item.asignatura || 'Sin especificar';
       materiasCuenta[materia] = (materiasCuenta[materia] || 0) + 1;
@@ -551,7 +542,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
     }
 
     if (tipo === 'tutores') {
-      // Antes: forEach dedicado; misma lógica de tutorías y documentos únicos por instructor
       if (instructor) {
         tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
         if (!documentosPorInstructor[instructor]) {
@@ -638,7 +628,6 @@ function mostrarEstadisticas(tipo, botonClickeado) {
 
   const grid = document.getElementById('contenidoEstadisticas');
 if (tipo === 'general') {
-  // Consolidado: beneficiados globales y conteos para listas (antes: map + 5 forEach separados)
   const cantidadBeneficiados = estudiantesUnicos.size;
   
   grid.innerHTML = `
@@ -658,7 +647,6 @@ if (tipo === 'general') {
       
     </div>
   `;
-  // Consolidado: top/listas derivados de los mismos acumuladores del forEach único (antes: 5 forEach aquí)
   const top5Materias = Object.entries(materiasCuenta)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
@@ -715,7 +703,6 @@ generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacul
       detalles += `<div class="list-item"><span>${sede}</span><strong>${cantidad} (${porcentaje}%)</strong></div>`;
     });
     detalles += '</div>';
-    // Consolidado: tutorías y beneficiados por tutor ya calculados en el forEach único con stats
     const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
     if (datosCache.tutoresNorte.length > 0 && datosCache.tutoresSur.length > 0) {
       Object.keys(tutoriasPorInstructor).forEach(instructor => {
@@ -734,14 +721,11 @@ generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacul
 detalles += `<div class="chart-container">
       <h3 class="chart-title">Cantidad de Tutorías por Tutor</h3>
 
-      <div class="botones-sedes" style="margin-top: 24px; margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
-        <select id="filtroOrdenTutores" onchange="document.getElementById('filtroOrdenBeneficiadosTutores').value=''; reordenarTutores();" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
-          <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
-          <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
-        </select>
-        <select id="filtroOrdenBeneficiadosTutores" onchange="reordenarTutores()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
-          <option value="">Ordenar por beneficiados (no activo)</option>
-          <option value="beneficiados">Ordenar por beneficiados (mayor a menor)</option>
+      <div style="margin-top: 24px; margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+        <select id="filtroOrdenTutores" onchange="reordenarTutores();" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
+          <option value="cantidad">Ordenar por Cantidad</option>
+          <option value="calificacion">Ordenar por Calificación</option>
+          <option value="beneficiados">Ordenar por Beneficiados</option>
         </select>
         <select id="filtroAreaTutores" onchange="filtrarTutoresPorArea()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
           <option value="todas">Área: Todas</option>
@@ -961,13 +945,8 @@ if (tipo === 'profesores') {
   };
 }
 
-
-
 function reordenarTutores() {
-  const prioridadBenef = document.getElementById('filtroOrdenBeneficiadosTutores')?.value;
-  const criterio = prioridadBenef === 'beneficiados'
-    ? 'beneficiados'
-    : document.getElementById('filtroOrdenTutores')?.value;
+  const criterio = document.getElementById('filtroOrdenTutores')?.value;
   if (!criterio) return;
 
   ['instructoresNorteAdmin', 'instructoresSurAdmin'].forEach(seccionId => {
@@ -982,24 +961,17 @@ function reordenarTutores() {
 
     rows.sort((a, b) => {
       if (criterio === 'beneficiados') {
-        const benA = parseInt(a.dataset.beneficiados || '0', 10);
-        const benB = parseInt(b.dataset.beneficiados || '0', 10);
-        return benB - benA;
+        return parseInt(b.dataset.beneficiados || '0', 10) - parseInt(a.dataset.beneficiados || '0', 10);
       }
       if (criterio === 'calificacion') {
-        const calA = parseFloat(a.dataset.calificacion || '0');
-        const calB = parseFloat(b.dataset.calificacion || '0');
-        return calB - calA;
+        return parseFloat(b.dataset.calificacion || '0') - parseFloat(a.dataset.calificacion || '0');
       }
-      const cantA = parseInt(a.dataset.cantidad || '0', 10);
-      const cantB = parseInt(b.dataset.cantidad || '0', 10);
-      return cantB - cantA;
+      return parseInt(b.dataset.cantidad || '0', 10) - parseInt(a.dataset.cantidad || '0', 10);
     });
 
     rows.forEach(row => tbody.appendChild(row));
   });
 }
-
 
 function reordenarProfesoresFacultad(event) {
   const select = event.target;
@@ -1399,30 +1371,85 @@ function leerMatriculadosMultiple(archivo, gruposFiltro) {
     reader.onload = function(e) {
       try {
         const wb = XLSX.read(e.target.result, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-        if (filas.length === 0) {
-          reject(new Error('El archivo MATRICULADOS está vacío.'));
+        const hojasObjetivo = ['MATEMATICAS', 'COMUNICACION'];
+        const mapa = new Map();
+
+        hojasObjetivo.forEach(nombreHoja => {
+          const ws = wb.Sheets[nombreHoja];
+          if (!ws) return;
+
+          const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          if (filas.length === 0) return;
+
+          const keys = Object.keys(filas[0]);
+          const colDoc = keys.find(k => k.trim().toUpperCase() === 'DOCUMENTO');
+          const colGrupo = keys.find(k => k.trim().toUpperCase() === 'GRUPO');
+
+          if (!colDoc || !colGrupo) {
+            console.warn(`Hoja "${nombreHoja}" no tiene columnas DOCUMENTO y GRUPO. Columnas: ${keys.join(', ')}`);
+            return;
+          }
+
+          filas.forEach(fila => {
+            const doc = String(fila[colDoc]).trim();
+            const grupo = String(fila[colGrupo]).trim().toUpperCase();
+            if (gruposFiltro.includes(grupo) && doc && !mapa.has(doc)) {
+              mapa.set(doc, grupo);
+            }
+          });
+        });
+
+        if (mapa.size === 0) {
+          const hojasEncontradas = wb.SheetNames.join(', ');
+          reject(new Error(`No se encontraron estudiantes con los grupos indicados en las hojas MATEMATICAS y COMUNICACION. Hojas en el archivo: ${hojasEncontradas}`));
           return;
         }
 
-        const primeraFila = filas[0];
-        const keys = Object.keys(primeraFila);
+        resolve(mapa);
+      } catch (err) {
+        reject(new Error('Error leyendo el archivo Excel: ' + err.message));
+      }
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsArrayBuffer(archivo);
+  });
+}
 
+function leerMatriculadosPorHoja(archivo, nombreHoja) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[nombreHoja];
+
+        if (!ws) {
+          const hojasEncontradas = wb.SheetNames.join(', ');
+          reject(new Error(`No se encontró la hoja "${nombreHoja}". Hojas en el archivo: ${hojasEncontradas}`));
+          return;
+        }
+
+        const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (filas.length === 0) {
+          resolve(new Map());
+          return;
+        }
+
+        const keys = Object.keys(filas[0]);
         const colDoc = keys.find(k => k.trim().toUpperCase() === 'DOCUMENTO');
         const colGrupo = keys.find(k => k.trim().toUpperCase() === 'GRUPO');
 
         if (!colDoc || !colGrupo) {
-          reject(new Error(`No se encontraron las columnas DOCUMENTO y GRUPO. Columnas detectadas: ${keys.join(', ')}`));
+          reject(new Error(`La hoja "${nombreHoja}" no tiene columnas DOCUMENTO y GRUPO. Columnas encontradas: ${keys.join(', ')}`));
           return;
         }
 
         const mapa = new Map();
         filas.forEach(fila => {
           const doc = String(fila[colDoc]).trim();
-          const grupo = String(fila[colGrupo]).trim().toUpperCase();
-          if (gruposFiltro.includes(grupo) && doc) {
+          const grupo = String(fila[colGrupo]).trim();
+          if (doc && !mapa.has(doc)) {
             mapa.set(doc, grupo);
           }
         });
@@ -1438,8 +1465,11 @@ function leerMatriculadosMultiple(archivo, gruposFiltro) {
 }
 
 
+
 async function descargarPorDocumento(event) {
   const inputRaw = document.getElementById('inputDocumentos').value.trim();
+  const archivoInput = document.getElementById('archivoMatriculadosDoc');
+  const areaSeleccionada = document.querySelector('input[name="areaDoc"]:checked');
 
   if (!inputRaw) {
     alert('Por favor ingrese al menos un número de documento.');
@@ -1456,26 +1486,38 @@ async function descargarPorDocumento(event) {
     return;
   }
 
+  if (!archivoInput.files || archivoInput.files.length === 0) {
+    alert('Por favor selecciona el archivo MATRICULADOS para obtener el grupo.');
+    return;
+  }
+
+  if (!areaSeleccionada) {
+    alert('Por favor selecciona un área (Matemáticas o Comunicación).');
+    return;
+  }
+
+  const hojaObjetivo = areaSeleccionada.value;
+
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
   btnDescarga.textContent = 'Buscando y preparando descarga...';
 
   try {
+    const mapaGrupos = await leerMatriculadosPorHoja(archivoInput.files[0], hojaObjetivo);
+
     const data = await supabaseQuerySinLimite('formularios', {
       in: { field: 'documento', values: documentos },
       order: 'fecha.asc'
     });
 
-    const datosFinales = data;
-
-    if (datosFinales.length === 0) {
+    if (!data || data.length === 0) {
       alert('No se encontraron registros para los documentos ingresados.');
       return;
     }
 
-    generarExcelPorDocumento(datosFinales, documentos);
-    alert(`${datosFinales.length} registros descargados exitosamente.`);
+    generarExcelPorDocumento(data, documentos, mapaGrupos);
+    alert(`${data.length} registros descargados exitosamente.`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
     console.error(error);
@@ -1485,15 +1527,21 @@ async function descargarPorDocumento(event) {
   }
 }
 
-function generarExcelPorDocumento(datos, documentos) {
+function generarExcelPorDocumento(datos, documentos, mapaGrupos) {
   const datosExcel = datos.map(fila => {
     const apellidos = fila.apellidos || '';
     const nombres = fila.nombres || '';
     const apellidosYNombres = `${apellidos} ${nombres}`.trim();
+    const fechaColombia = convertirFechaAColombia(fila.fecha);
+    const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const doc = String(fila.documento).trim();
+    const grupo = (mapaGrupos && mapaGrupos.get(doc)) || '';
 
     return {
+      'Fecha': serialDate,
       'Documento': parseInt(fila.documento) || '',
       'Apellidos y Nombres': apellidosYNombres,
+      'Grupo': grupo,
       'Programa': fila.programa || '',
       'Asignatura': fila.asignatura || '',
       'Tema': fila.tema || ''
@@ -1504,22 +1552,21 @@ function generarExcelPorDocumento(datos, documentos) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
+  aplicarFormatoExcel(ws, range, 0, 1);
   for (let row = 1; row <= range.e.r; row++) {
-    const docCell = XLSX.utils.encode_cell({ r: row, c: 0 });
-    if (ws[docCell] && row > 0) {
-      ws[docCell].t = 'n';
-      ws[docCell].z = '0';
-    }
+    const docCell = XLSX.utils.encode_cell({ r: row, c: 1 });
+    if (ws[docCell]) { ws[docCell].t = 'n'; ws[docCell].z = '0'; }
   }
 
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
-
   ws['!cols'] = [
-    { wch: 12 },  // Documento
-    { wch: 40 },  // Apellidos y Nombres
-    { wch: 35 },  // Programa
-    { wch: 30 },  // Asignatura
-    { wch: 30 }   // Tema
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 40 },
+    { wch: 12 },
+    { wch: 35 },
+    { wch: 30 },
+    { wch: 30 }
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, 'Por Documento');
@@ -1527,7 +1574,6 @@ function generarExcelPorDocumento(datos, documentos) {
   const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
   XLSX.writeFile(wb, `PMA_PorDocumento_${fechaHoy}.xlsx`);
 }
-
 
 
 function generarExcelSimplificado(datos, desde, hasta) {
@@ -1796,7 +1842,7 @@ async function descargarAAATodo() {
   const btnDescarga = document.getElementById('btnDescargarAAATodo');
   const textoOriginal = btnDescarga.textContent;
   btnDescarga.disabled = true;
-  btnDescarga.textContent = 'Preparando descarga...';
+  btnDescarga.textContent = 'Cargando vista previa...';
 
   try {
     const data = await supabaseQuerySinLimite('acompanamiento', { order: 'fecha_hora.asc' });
@@ -1806,15 +1852,56 @@ async function descargarAAATodo() {
       return;
     }
 
-    generarExcelAAACompleto(data, 'AAA_Completo');
-    alert(`${data.length} registros de AAA descargados exitosamente`);
+    // Guardar datos para usar al confirmar
+    window.datosAAADescarga = data;
+
+    // Llenar tabla preview con los últimos 8
+    const ultimos8 = data.slice(-8);
+    const tbody = document.getElementById('cuerpoPreviewAAA');
+    tbody.innerHTML = '';
+
+    ultimos8.forEach(fila => {
+      const fechaColombia = convertirFechaAColombia(fila.fecha_hora);
+      const fechaStr = fechaColombia.toLocaleDateString('es-CO', {
+        timeZone: 'America/Bogota',
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      });
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+  <td class="tabla-tutor-num">${fechaStr}</td>
+  <td class="tabla-tutor-num">${fila.tipo_acompanamiento || ''}</td>
+  <td class="tabla-tutor-nombre">${fila.nombres_y_apellidos || ''}</td>
+  <td class="tabla-tutor-num">${fila.grupo || ''}</td>
+  <td class="tabla-tutor-nombre">${fila.profesor || ''}</td>
+  <td class="tabla-tutor-nombre">${fila.asignatura || ''}</td>
+`;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('totalPreviewAAA').textContent =
+      `Total de Registros a Descargar: ${data.length} — Mostrando los Últimos ${ultimos8.length}`;
+
+    document.getElementById('modalPreviewAAA').classList.remove('hidden');
+
   } catch (error) {
-    alert('Error al descargar datos: ' + error.message);
+    alert('Error al cargar datos: ' + error.message);
     console.error(error);
   } finally {
     btnDescarga.disabled = false;
     btnDescarga.textContent = textoOriginal;
   }
+}
+
+function confirmarDescargaAAA() {
+  cerrarModalPreviewAAA();
+  const data = window.datosAAADescarga;
+  if (!data || data.length === 0) return;
+  generarExcelAAACompleto(data, 'AAA_Completo');
+  alert(`${data.length} registros de AAA descargados exitosamente`);
+}
+
+function cerrarModalPreviewAAA() {
+  document.getElementById('modalPreviewAAA').classList.add('hidden');
 }
 
 
@@ -1967,57 +2054,36 @@ function actualizarGrafica() {
   
   const data = window.datosFormulariosGlobal;
   if (!data || data.length === 0) return;
-  let datosFiltrados = data;
-  if (tipoInstructor !== 'todos') {
-    datosFiltrados = data.filter(item => item.tipo_instructor === tipoInstructor);
+
+  let datosFiltrados = tipoInstructor !== 'todos'
+  ? data.filter(item => item.tipo_instructor === tipoInstructor)
+  : data;
+
+const filtroSedeWrapper = document.getElementById('filtroSedeWrapper');
+const sede = document.getElementById('filtroGraficaSede').value;
+
+if (tipoInstructor === 'Profesor') {
+  filtroSedeWrapper.style.display = 'none';
+} else {
+  filtroSedeWrapper.style.display = '';
+  if (sede !== 'todas') {
+    datosFiltrados = datosFiltrados.filter(item => item.sede_tutoria === sede);
   }
+}
+
   if (datosFiltrados.length === 0) {
-    if (graficoTutorias) {
-      graficoTutorias.destroy();
-    }
-    const ctx = document.getElementById('graficaTutorias').getContext('2d');
-    graficoTutorias = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Sin datos'],
-        datasets: [{
-          label: 'Cantidad de tutorías',
-          data: [0],
-          backgroundColor: 'rgba(30, 60, 114, 0.7)',
-          borderColor: 'rgba(30, 60, 114, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              stepSize: 1
-            }
-          }
-        }
-      }
-    });
+    renderGrafica(['Sin datos'], [0]);
     return;
   }
-  
+
+  const itemsConFecha = datosFiltrados.map(item => ({
+    fecha: convertirFechaAColombia(item.fecha)
+  }));
+
   let labels = [];
   let valores = [];
-  
+
   if (periodo === 'semanal') {
-    const fechas = datosFiltrados.map(item => {
-      return convertirFechaAColombia(item.fecha);
-    });
-    const fechaMin = new Date(Math.min(...fechas));
-    const fechaMax = new Date(Math.max(...fechas));
     function obtenerLunes(fecha) {
       const dia = fecha.getDay();
       const diff = dia === 0 ? -6 : 1 - dia;
@@ -2026,68 +2092,56 @@ function actualizarGrafica() {
       lunes.setHours(0, 0, 0, 0);
       return lunes;
     }
-    let lunesActual = obtenerLunes(fechaMin);
-    const semanas = {};
-    while (lunesActual <= fechaMax) {
-      const domingo = new Date(lunesActual);
-      domingo.setDate(domingo.getDate() + 6);
-      domingo.setHours(23, 59, 59, 999);
-      const diaL = String(lunesActual.getDate()).padStart(2, '0');
-      const mesL = String(lunesActual.getMonth() + 1).padStart(2, '0');
-      
-      const diaD = String(domingo.getDate()).padStart(2, '0');
-      const mesD = String(domingo.getMonth() + 1).padStart(2, '0');
-      
-      const label = `${diaL}/${mesL} - ${diaD}/${mesD}`;
-      const cantidad = datosFiltrados.filter(item => {
-        const fechaItem = convertirFechaAColombia(item.fecha);
-        return fechaItem >= lunesActual && fechaItem <= domingo;
-      }).length;
-      
-      semanas[label] = cantidad;
-      lunesActual = new Date(lunesActual);
-      lunesActual.setDate(lunesActual.getDate() + 7);
-    }
-    
-    labels = Object.keys(semanas);
-    valores = Object.values(semanas);
-    
+
+    const semanas = new Map(); 
+
+    itemsConFecha.forEach(({ fecha }) => {
+      const lunes = obtenerLunes(fecha);
+      const key = lunes.getTime();
+      if (!semanas.has(key)) {
+        const domingo = new Date(lunes);
+        domingo.setDate(domingo.getDate() + 6);
+        const fmt = d =>
+          `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+        semanas.set(key, { label: `${fmt(lunes)} - ${fmt(domingo)}`, cantidad: 0 });
+      }
+      semanas.get(key).cantidad++;
+    });
+
+    const ordenadas = [...semanas.entries()].sort((a, b) => a[0] - b[0]);
+    labels = ordenadas.map(([, v]) => v.label);
+    valores = ordenadas.map(([, v]) => v.cantidad);
+
   } else if (periodo === 'mensual') {
-    const meses = {};
-    const nombresMesesCortos = [
-      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-    ];
-    
-            datosFiltrados.forEach(item => {
-      const fecha = convertirFechaAColombia(item.fecha);
+    const meses = new Map();
+    const nombresMesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    itemsConFecha.forEach(({ fecha }) => {
       const mes = fecha.getMonth();
       const año = fecha.getFullYear();
-      const claveMes = `${año}-${String(mes + 1).padStart(2, '0')}`;
-      const labelMes = `${nombresMesesCortos[mes]} ${año}`;
-      
-      if (!meses[claveMes]) {
-        meses[claveMes] = {
-          label: labelMes,
-          cantidad: 0
-        };
+      const key = `${año}-${String(mes + 1).padStart(2, '0')}`;
+      if (!meses.has(key)) {
+        meses.set(key, { label: `${nombresMesesCortos[mes]} ${año}`, cantidad: 0 });
       }
-      
-      meses[claveMes].cantidad++;
+      meses.get(key).cantidad++;
     });
-    const clavesMesesOrdenadas = Object.keys(meses).sort();
-    
-    labels = clavesMesesOrdenadas.map(clave => meses[clave].label);
-    valores = clavesMesesOrdenadas.map(clave => meses[clave].cantidad);
+
+    const ordenadas = [...meses.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    labels = ordenadas.map(([, v]) => v.label);
+    valores = ordenadas.map(([, v]) => v.cantidad);
   }
-  if (graficoTutorias) {
-    graficoTutorias.destroy();
-  }
+
+  renderGrafica(labels, valores);
+}
+
+function renderGrafica(labels, valores) {
+  if (graficoTutorias) graficoTutorias.destroy();
+
   const ctx = document.getElementById('graficaTutorias').getContext('2d');
   graficoTutorias = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: labels,
+      labels,
       datasets: [{
         label: 'Cantidad de tutorías',
         data: valores,
@@ -2100,30 +2154,16 @@ function actualizarGrafica() {
       responsive: true,
       maintainAspectRatio: true,
       plugins: {
-        legend: {
-          display: false
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
-            label: function(context) {
-              return context.parsed.y + ' tutoría' + (context.parsed.y !== 1 ? 's' : '');
-            }
+            label: ctx => ctx.parsed.y + ' tutoría' + (ctx.parsed.y !== 1 ? 's' : '')
           }
         }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1
-          }
-        },
-        x: {
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45
-          }
-        }
+        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+        x: { ticks: { maxRotation: 45, minRotation: 45 } }
       }
     }
   });
@@ -2148,23 +2188,10 @@ async function cambiarTabPVU(event, tab) {
   }
 }
 
-async function cambiarTabAAA(event, tab) {
+function cambiarTabAAA(event, tab) {
   document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
-  
-  document.getElementById('tabEstadisticasAAA').classList.add('hidden');
-  document.getElementById('tabDescargasAAA').classList.add('hidden');
-  
-  if (tab === 'descargas') {
-    document.getElementById('tabDescargasAAA').classList.remove('hidden');
-  } else if (tab === 'estadisticas') {
-    document.getElementById('tabEstadisticasAAA').classList.remove('hidden');
-    if (!window.datosAAAGlobal) {
-      await cargarEstadisticasAAA();
-    } else {
-      mostrarEstadisticasAAA();
-    }
-  }
+  document.getElementById('tabDescargasAAA').classList.remove('hidden');
 }
 
 async function cargarEstadisticasPVU() {
@@ -2181,7 +2208,6 @@ async function cargarEstadisticasPVU() {
   }
   
   try {
-    // Cargar datos de la tabla pvu
 const data = await supabaseQuerySinLimite('pvu', { order: 'fecha.asc' });
 
     if (data.length === 0) {
@@ -2229,14 +2255,23 @@ async function supabaseQuerySinLimite(tabla, opciones = {}) {
       url.searchParams.set(field, `in.(${values.join(',')})`);
     }
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Range': `${from}-${from + pageSize - 1}`,
-        'Range-Unit': 'items'
-      }
-    });
+    const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), 15000);
+
+let response;
+try {
+  response = await fetch(url.toString(), {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Range': `${from}-${from + pageSize - 1}`,
+      'Range-Unit': 'items'
+    },
+    signal: controller.signal
+  });
+} finally {
+  clearTimeout(timeout);
+}
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -2257,7 +2292,6 @@ async function supabaseQuerySinLimite(tabla, opciones = {}) {
   return allData;
 }
 
-// MOSTRAR ESTADÍSTICAS
 function mostrarEstadisticasPVU() {
   const data = window.datosPVUGlobal;
   const statsGridPVU = document.getElementById('statsGridPVU');
@@ -2287,81 +2321,7 @@ function mostrarEstadisticasPVU() {
   }
 }
 
-async function cargarEstadisticasAAA() {
-  const statsGridAAA = document.getElementById('statsGridAAA');
-  const detallesStatsAAA = document.getElementById('detallesStatsAAA');
-  if (statsGridAAA) {
-    statsGridAAA.textContent = '';
-    const loader = document.createElement('div');
-    loader.className = 'loader';
-    statsGridAAA.appendChild(loader);
-  }
-  if (detallesStatsAAA) {
-    detallesStatsAAA.textContent = '';
-  }
-  
-  try {
-    // Usar cliente autenticado (JWT) para que RLS permita SELECT a admin
-    const { data: data, error } = await supabaseClient.from('acompanamiento').select('*').order('fecha_hora', { ascending: true });
-    if (error) throw error;
 
-    if (!data || data.length === 0) {
-      if (statsGridAAA) {
-        statsGridAAA.textContent = '';
-        const p = document.createElement('p');
-        p.style.textAlign = 'center';
-        p.style.color = '#666';
-        p.textContent = 'No hay datos disponibles aún.';
-        statsGridAAA.appendChild(p);
-      }
-      return;
-    }
-    window.datosAAAGlobal = data;
-    mostrarEstadisticasAAA();
-    
-  } catch (error) {
-    console.error('Error cargando estadísticas AAA:', error);
-    if (statsGridAAA) {
-      statsGridAAA.textContent = '';
-      const p = document.createElement('p');
-      p.style.textAlign = 'center';
-      p.style.color = '#dc3545';
-      p.textContent = 'Error al cargar estadísticas. Por favor intenta de nuevo.';
-      statsGridAAA.appendChild(p);
-    }
-  }
-}
-
-
-// MOSTRAR ESTADÍSTICAS
-function mostrarEstadisticasAAA() {
-  const data = window.datosAAAGlobal;
-  const statsGridAAA = document.getElementById('statsGridAAA');
-  const detallesStatsAAA = document.getElementById('detallesStatsAAA');
-  
-  if (!data || data.length === 0) {
-    if (statsGridAAA) {
-      statsGridAAA.innerHTML = '<p style="text-align: center; color: #666;">No hay datos disponibles aún.</p>';
-    }
-    return;
-  }
-  
-  const totalRegistros = data.length;
-  if (statsGridAAA) {
-    statsGridAAA.innerHTML = `
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h3>${totalRegistros}</h3>
-          <p>Total de Registros</p>
-        </div>
-      </div>
-    `;
-  }
-  
-  if (detallesStatsAAA) {
-    detallesStatsAAA.textContent = '';
-  }
-}
 
 
 async function descargarInforme(event) {
@@ -2617,6 +2577,8 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
   
   document.getElementById('detallesStats').innerHTML = detallesHTML;
 }
+
+
 
 
 (function initNavegacionAdmin() {

@@ -127,65 +127,6 @@ function validarConfirmacionDocumento() {
   }
 }
 
-// Función global para actualizar correo completo
-function actualizarCorreoCompleto() {
-  const correoInput = document.getElementById('correo');
-  const dominioSelect = document.getElementById('dominioCorreo');
-  const otroDominio = document.getElementById('otroDominio');
-  const correoCompleto = document.getElementById('correoCompleto');
-  
-  const correo = correoInput.value.trim().toLowerCase();
-  let dominio = dominioSelect.value.toLowerCase();
-  
-  if (dominio === 'otro') {
-    dominio = otroDominio.value.trim().toLowerCase();
-  }
-  
-  // Construir el correo completo solo si hay correo y dominio (todo en minúsculas)
-  if (correo && dominio && dominio !== '') {
-    correoCompleto.value = `${correo}@${dominio}`;
-    correoInput.setCustomValidity('');
-  } else {
-    correoCompleto.value = '';
-    if (correoInput.value.trim() && !dominio) {
-      correoInput.setCustomValidity('Seleccione un dominio de correo');
-    } else {
-      correoInput.setCustomValidity('');
-    }
-  }
-}
-
-// Manejar cambio de dominio de correo
-document.addEventListener('DOMContentLoaded', function() {
-  const dominioSelect = document.getElementById('dominioCorreo');
-  const otroDominioContainer = document.getElementById('otroDominioContainer');
-  const otroDominio = document.getElementById('otroDominio');
-  const correoInput = document.getElementById('correo');
-
-  dominioSelect.addEventListener('change', function() {
-    if (this.value === 'otro') {
-      otroDominioContainer.classList.remove('hidden');
-      otroDominio.required = true;
-    } else {
-      otroDominioContainer.classList.add('hidden');
-      otroDominio.required = false;
-      otroDominio.value = '';
-    }
-    actualizarCorreoCompleto();
-  });
-
-  otroDominio.addEventListener('input', actualizarCorreoCompleto);
-  
-  // Validar el campo de correo cuando se intenta enviar
-  correoInput.addEventListener('blur', function() {
-    actualizarCorreoCompleto();
-    const correoCompleto = document.getElementById('correoCompleto');
-    if (this.value.trim() && !correoCompleto.value) {
-      this.setCustomValidity('Seleccione un dominio de correo');
-    }
-  });
-});
-
 // Variable para controlar los reintentos
 let intentosRestantes = 3;
 
@@ -194,9 +135,7 @@ function obtenerDatosFormulario() {
   const documentoInput = document.getElementById('documento');
   const nombresInput = document.getElementById('nombres');
   const apellidosInput = document.getElementById('apellidos');
-  const correoInput = document.getElementById('correo');
   const comentarioTextarea = document.getElementById('comentario');
-  const correoCompleto = document.getElementById('correoCompleto').value.trim();
   const programa = document.getElementById('programa').value;
   const sede = document.getElementById('sede').value;
   const jornada = document.getElementById('jornada').value;
@@ -208,7 +147,6 @@ function obtenerDatosFormulario() {
   limpiarEspacios(documentoInput);
   limpiarEspacios(nombresInput);
   limpiarEspacios(apellidosInput);
-  limpiarEspacios(correoInput);
   limpiarEspacios(comentarioTextarea);
   
   // Obtener valores después de limpiar
@@ -217,22 +155,9 @@ function obtenerDatosFormulario() {
   let apellidos = apellidosInput.value.trim();
   let comentarioLimpio = comentarioTextarea.value.trim();
 
-  // Construir correo completo si no está en el campo hidden
-  let correoFinal = correoCompleto;
-  if (!correoFinal) {
-    const correo = document.getElementById('correo').value.trim();
-    const dominio = document.getElementById('dominioCorreo').value;
-    if (dominio === 'otro') {
-      const otroDom = document.getElementById('otroDominio').value.trim();
-      if (correo && otroDom) {
-        correoFinal = `${correo}@${otroDom}`;
-      }
-    } else if (correo && dominio && dominio !== '') {
-      correoFinal = `${correo}@${dominio}`;
-    }
-  }
 
-  // Convertir a mayúsculas antes de guardar (excepto correo)
+
+  // Convertir a mayúsculas antes de guardar
   nombres = nombres.toUpperCase();
   apellidos = apellidos.toUpperCase();
   comentarioLimpio = comentarioLimpio.toUpperCase();
@@ -241,14 +166,11 @@ function obtenerDatosFormulario() {
   const jornadaMayus = jornada.toUpperCase();
   const fechaAsistenciaMayus = fechaAsistencia.toUpperCase();
   
-  // Convertir correo a minúsculas
-  correoFinal = correoFinal.toLowerCase();
 
 return {
   documento,
   nombres,
   apellidos,
-  correoFinal,
   programaMayus,
   sedeMayus,
   jornadaMayus,
@@ -269,7 +191,6 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
       documento: datos.documento,
       nombres: datos.nombres,
       apellidos: datos.apellidos,
-      correo: datos.correoFinal,
       programa: datos.programaMayus,
       sede: datos.sedeMayus,
       jornada: datos.jornadaMayus,
@@ -292,8 +213,6 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
     // Limpiar formulario y regresar a pantalla principal después de 2 segundos
     setTimeout(() => {
       document.getElementById('formPVU').reset();
-      document.getElementById('correoCompleto').value = '';
-      document.getElementById('otroDominioContainer').classList.add('hidden');
       document.getElementById('errorDocumento').style.display = 'none';
       btnEnviar.disabled = false;
       btnEnviar.textContent = 'Enviar Formulario';
@@ -334,7 +253,6 @@ async function enviarFormulario(event) {
   const documentoInput = document.getElementById('documento');
   const nombresInput = document.getElementById('nombres');
   const apellidosInput = document.getElementById('apellidos');
-  const correoInput = document.getElementById('correo');
   const comentarioTextarea = document.getElementById('comentario');
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
@@ -342,7 +260,6 @@ async function enviarFormulario(event) {
   limpiarEspacios(documentoInput);
   limpiarEspacios(nombresInput);
   limpiarEspacios(apellidosInput);
-  limpiarEspacios(correoInput);
   limpiarEspacios(comentarioTextarea);
   
   // Validar documento
@@ -391,17 +308,6 @@ async function enviarFormulario(event) {
     return;
   }
 
-  // Validar correo
-  if (!datos.correoFinal || !datos.correoFinal.includes('@')) {
-    mostrarMensaje('Por favor complete el correo electrónico correctamente. Escriba su correo y seleccione un dominio.', 'error');
-    // Hacer scroll al campo de correo
-    setTimeout(() => {
-      scrollToError(correoInput);
-    }, 100);
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    return;
-  }
 
   // Deshabilitar botón mientras se envía
   btnEnviar.disabled = true;

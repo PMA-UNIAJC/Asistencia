@@ -1,14 +1,8 @@
-// ============================================================
-// Configuración de Supabase
-// ============================================================
 const SUPABASE_URL = `https://hgppzklpukgslnrynvld.supabase.co`;
 const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs`;
 
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 
-// ============================================================
-// Datos estáticos de opciones
-// ============================================================
 const ASIGNATURAS_DISPONIBLES = [
   'Comunicación y Lenguaje I - II',
   'Cálculo Diferencial',
@@ -98,41 +92,36 @@ const OPCIONES_DOMINIO_CORREO = [
   { value: 'admon.uniajc.edu.co',       text: 'admon.uniajc.edu.co' }
 ];
 
-// ============================================================
-// Textos dinámicos según tipo de acompañamiento
-// ============================================================
 const TEXTOS = {
   Individual: {
     subtitulo:       'Datos del Estudiante',
-    labelDocumento:  'Número de documento de identidad del estudiante',
-    labelContacto:   'Número de contacto del estudiante',
-    labelCorreo:     'Correo del estudiante',
-    labelGrupo:      'Grupo al que pertenece el estudiante',
-    labelFacultad:   'Facultad a la cual pertenece el estudiante',
-    labelPrograma:   'Programa académico al cual pertenece el estudiante',
-    labelConsciente: '¿El estudiante es consciente del acompañamiento académico?'
+    labelNombres:    'Nombres y apellidos del Estudiante',
+    labelDocumento:  'Número de documento de identidad del Estudiante',
+    labelContacto:   'Número de contacto del Estudiante',
+    labelCorreo:     'Correo del Estudiante',
+    labelGrupo:      'Grupo al que pertenece el Estudiante',
+    labelFacultad:   'Facultad a la cual pertenece el Estudiante',
+    labelPrograma:   'Programa académico al cual pertenece el Estudiante',
+    labelConsciente: '¿El Estudiante es consciente del acompañamiento académico?'
   },
   Grupal: {
     subtitulo:       'Datos del Grupo',
-    labelDocumento:  'Número de documento de identidad del vocero',
-    labelContacto:   'Número de contacto del vocero del grupo',
-    labelCorreo:     'Correo del vocero del grupo',
+    labelNombres:    'Nombres y apellidos del Vocero del Grupo',
+    labelDocumento:  'Número de documento de identidad del Vocero del Grupo',
+    labelContacto:   'Número de contacto del Vocero del Grupo',
+    labelCorreo:     'Correo del Vocero del Grupo',
     labelGrupo:      'Grupo al que se debe realizar el acompañamiento',
-    labelFacultad:   'Facultad a la cual pertenece el grupo',
-    labelPrograma:   'Programa académico al cual pertenece el grupo',
-    labelConsciente: '¿El grupo es consciente del acompañamiento académico?'
+    labelFacultad:   'Facultad a la cual pertenece el Grupo',
+    labelPrograma:   'Programa académico al cual pertenece el Grupo',
+    labelConsciente: '¿El Grupo es consciente del acompañamiento académico?'
   }
 };
 
-// ============================================================
-// Caché de facultades / programas
-// ============================================================
+
 let datosCacheFacultades = [];
 let facultadesData = {};
 
-// ============================================================
-// Utilidades Supabase
-// ============================================================
+
 async function supabaseQuery(table, options = {}) {
   let url = `${SUPABASE_URL}/rest/v1/${table}`;
   const params = [];
@@ -181,9 +170,7 @@ async function supabaseInsert(table, data) {
   return response.json();
 }
 
-// ============================================================
-// Fecha Colombia
-// ============================================================
+
 function obtenerFechaColombia() {
   const ahora = new Date();
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -197,9 +184,7 @@ function obtenerFechaColombia() {
   return `${g('year')}-${g('month')}-${g('day')}T${g('hour')}:${g('minute')}:${g('second')}`;
 }
 
-// ============================================================
-// Validaciones
-// ============================================================
+
 function limpiarEspacios(input) {
   input.value = input.value.trim().replace(/\s+/g, ' ');
 }
@@ -218,9 +203,7 @@ function validarContacto(input) {
   }
 }
 
-// ============================================================
-// Correos (función genérica — funciona con cualquier prefijo)
-// ============================================================
+
 function actualizarCorreoCompleto(prefijo) {
   const correoInput    = document.getElementById(prefijo);
   const dominioSelect  = document.getElementById(`dominio${prefijo.charAt(0).toUpperCase()}${prefijo.slice(1)}`);
@@ -235,9 +218,7 @@ function actualizarCorreoCompleto(prefijo) {
   correoInput.setCustomValidity('');
 }
 
-// ============================================================
-// Generadores de selects
-// ============================================================
+
 function generarSelect(selectId, opciones, placeholder, required = true) {
   const select = document.getElementById(selectId);
   if (!select) return;
@@ -284,9 +265,7 @@ function poblarSelect(selectElement, datos, opciones = {}) {
   selectElement.appendChild(fragment);
 }
 
-// ============================================================
-// Facultades y programas (desde BD)
-// ============================================================
+
 async function precargarDatosFacultades() {
   if (datosCacheFacultades.length > 0) return;
   const data = await supabaseQuery('facultades_carreras');
@@ -311,7 +290,7 @@ function cargarFacultades() {
   });
 }
 
-// Un solo select de programa, un solo select de facultad
+
 function actualizarProgramas() {
   const facultadSelect  = document.getElementById('facultad');
   const programaSelect  = document.getElementById('programa');
@@ -331,9 +310,7 @@ function actualizarProgramas() {
   }
 }
 
-// ============================================================
-// Asignaturas y motivos (un solo conjunto de elementos)
-// ============================================================
+
 function generarAsignaturasCheckboxes() {
   const container = document.getElementById('asignaturasContainer');
   if (!container) return;
@@ -364,7 +341,6 @@ function manejarAsignaturas() {
   const otroInput      = document.getElementById('otroAsignatura');
   const motivosContainer = document.getElementById('motivosContainer');
 
-  // Mostrar/ocultar "Otras"
   const tieneOtras = seleccionadas.includes('Otras');
   otroContainer.classList.toggle('hidden', !tieneOtras);
   otroInput.required = tieneOtras;
@@ -376,7 +352,6 @@ function manejarAsignaturas() {
     return;
   }
 
-  // Calcular motivos a mostrar
   const tieneMatematicas  = seleccionadas.some(a => ASIGNATURAS_MATEMATICAS.includes(a));
   const tieneComunicacion = seleccionadas.includes('Comunicación y Lenguaje I - II');
 
@@ -390,7 +365,6 @@ function manejarAsignaturas() {
     if (tieneMatematicas && tieneComunicacion) motivosAMostrar = [...new Set(motivosAMostrar)];
   }
 
-  // Orden: matemáticas primero, comunicación después
   motivosAMostrar.sort((a, b) => {
     const aM = MOTIVOS_MATEMATICAS.includes(a);
     const bM = MOTIVOS_MATEMATICAS.includes(b);
@@ -399,7 +373,6 @@ function manejarAsignaturas() {
     return 0;
   });
 
-  // Renderizar checkboxes de motivos
   const motivosCheckboxes = document.getElementById('motivosCheckboxes');
   motivosCheckboxes.innerHTML = '';
   motivosAMostrar.forEach(motivo => {
@@ -422,9 +395,7 @@ function manejarAsignaturas() {
   motivosContainer.classList.toggle('hidden', motivosAMostrar.length === 0);
 }
 
-// ============================================================
-// Manejo del tipo de acompañamiento — actualiza labels y visibilidad
-// ============================================================
+
 function manejarTipoAcompanamiento() {
   const tipo = document.getElementById('tipoAcompanamiento').value;
   const seccion = document.getElementById('seccionDinamica');
@@ -435,15 +406,16 @@ function manejarTipoAcompanamiento() {
     return;
   }
 
-  // Mostrar sección compartida
+
   seccion.classList.remove('hidden');
 
   const textos = TEXTOS[tipo];
 
-  // Actualizar subtítulo
+ 
   document.getElementById('subtituloDinamico').textContent = textos.subtitulo;
 
-  // Actualizar todos los labels dinámicos (sin tocar el asterisco)
+
+  actualizarLabel('labelNombres', textos.labelNombres);
   actualizarLabel('labelDocumento',  textos.labelDocumento);
   actualizarLabel('labelContacto',   textos.labelContacto);
   actualizarLabel('labelCorreoPersona', textos.labelCorreo);
@@ -452,33 +424,11 @@ function manejarTipoAcompanamiento() {
   actualizarLabel('labelPrograma',   textos.labelPrograma);
   actualizarLabel('labelConsciente', textos.labelConsciente);
 
-  // Campos exclusivos según tipo
-  const campoNombreIndividual = document.getElementById('campoNombresIndividual');
-  const campoNombreVocero     = document.getElementById('campoNombreVocero');
-  const nombresApellidos      = document.getElementById('nombresApellidos');
-  const nombresVocero         = document.getElementById('nombresApellidosVocero');
-
-  if (tipo === 'Individual') {
-    // Mostrar nombre del estudiante, ocultar nombre del vocero
-    campoNombreIndividual.classList.remove('hidden');
-    campoNombreVocero.classList.add('hidden');
-    nombresApellidos.required = true;
-    nombresVocero.required    = false;
-    nombresVocero.value       = '';
-  } else {
-    // Mostrar nombre del vocero, ocultar nombre del estudiante
-    campoNombreVocero.classList.remove('hidden');
-    campoNombreIndividual.classList.add('hidden');
-    nombresVocero.required    = true;
-    nombresApellidos.required = false;
-    nombresApellidos.value    = '';
-  }
-
-  // Limpiar campos comunes al cambiar de tipo para evitar datos cruzados
+ 
   limpiarCamposComunes();
 }
 
-// Actualiza el texto de un label conservando el <span> del asterisco
+
 function actualizarLabel(labelId, nuevoTexto) {
   const label = document.getElementById(labelId);
   if (!label) return;
@@ -488,21 +438,21 @@ function actualizarLabel(labelId, nuevoTexto) {
 }
 
 function limpiarCamposComunes() {
-  // Inputs de texto / tel
-  ['documento', 'nombresApellidos', 'nombresApellidosVocero', 'contacto',
-   'correoPersona', 'grupo', 'nombreSolicitante', 'correo', 'otroAsignatura', 'infoAdicional'
+
+  ['documento', 'nombresApellidos', 'contacto',
+    'correoPersona', 'grupo', 'nombreSolicitante', 'correo', 'otroAsignatura', 'infoAdicional'
   ].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
 
-  // Campos ocultos de correo
+
   ['correoPersonaCompleto', 'correoCompleto'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
 
-  // Selects — volver a primera opción
+ 
   ['sede', 'facultad', 'semestre', 'consciente', 'cargo', 'dependencia',
    'dominioCorreoPersona', 'dominioCorreo'
   ].forEach(id => {
@@ -510,44 +460,42 @@ function limpiarCamposComunes() {
     if (el) el.selectedIndex = 0;
   });
 
-  // Programa — deshabilitar y limpiar
+  
   const programa = document.getElementById('programa');
   if (programa) {
     programa.innerHTML = '<option value="">Seleccione un programa</option>';
     programa.disabled = true;
   }
 
-  // Checkboxes de asignaturas
+
   document.querySelectorAll('input[name="asignatura"]').forEach(cb => cb.checked = false);
 
-  // Motivos — ocultar y limpiar
+
   document.getElementById('motivosCheckboxes').innerHTML = '';
   document.getElementById('motivosContainer').classList.add('hidden');
   document.getElementById('otroAsignaturaContainer').classList.add('hidden');
 }
 
-// ============================================================
-// Obtener datos del formulario (estructura unificada)
-// ============================================================
+
 function obtenerDatosFormulario() {
   const tipo = document.getElementById('tipoAcompanamiento').value;
 
-  // Limpiar espacios en todos los inputs visibles
+  
   document.querySelectorAll('input[type="text"], input[type="tel"], textarea').forEach(el => {
     if (el.value.trim()) limpiarEspacios(el);
   });
 
-  // Asignaturas
+  
   const asignaturas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked')).map(cb => cb.value);
   const otraAsignatura = document.getElementById('otroAsignatura').value.trim();
   if (asignaturas.includes('Otras') && otraAsignatura) {
     asignaturas[asignaturas.indexOf('Otras')] = `Otras: ${otraAsignatura.toUpperCase()}`;
   }
 
-  // Motivos
+
   const motivos = Array.from(document.querySelectorAll('input[name="motivo"]:checked')).map(cb => cb.value);
 
-  // Campos comunes
+
   const datos = {
     tipo_acompanamiento:  tipo,
     fecha_hora:           obtenerFechaColombia(),
@@ -570,18 +518,12 @@ function obtenerDatosFormulario() {
   };
 
   // Campos exclusivos según tipo
-  if (tipo === 'Individual') {
-    datos.nombres_y_apellidos = document.getElementById('nombresApellidos').value.trim().toUpperCase();
-  } else {
-    datos.nombres_y_apellidos = document.getElementById('nombresApellidosVocero').value.trim().toUpperCase();
-  }
+datos.nombres_y_apellidos = document.getElementById('nombresApellidos').value.trim().toUpperCase();
 
   return datos;
 }
 
-// ============================================================
-// Validación antes de enviar
-// ============================================================
+
 function validarFormulario() {
   const tipo = document.getElementById('tipoAcompanamiento').value;
 
@@ -590,52 +532,44 @@ function validarFormulario() {
     return false;
   }
 
-  // Documento
+
   const docInput = document.getElementById('documento');
   validarDocumento(docInput);
   if (!docInput.validity.valid) { docInput.reportValidity(); scrollToError(docInput); return false; }
 
-  // Nombre individual
-  if (tipo === 'Individual') {
-    const nombres = document.getElementById('nombresApellidos');
-    if (!nombres.value.trim()) {
-      mostrarMensaje('Por favor ingrese los nombres y apellidos del estudiante', 'error');
-      scrollToError(nombres); return false;
-    }
-  } else {
-    const vocero = document.getElementById('nombresApellidosVocero');
-    if (!vocero.value.trim()) {
-      mostrarMensaje('Por favor ingrese los nombres y apellidos del vocero', 'error');
-      scrollToError(vocero); return false;
-    }
-  }
+  
+  const nombres = document.getElementById('nombresApellidos');
+if (!nombres.value.trim()) {
+  mostrarMensaje('Por favor ingrese los nombres y apellidos', 'error');
+  scrollToError(nombres); return false;
+}
 
-  // Contacto
+  
   const contactoInput = document.getElementById('contacto');
   validarContacto(contactoInput);
   if (!contactoInput.validity.valid) { contactoInput.reportValidity(); scrollToError(contactoInput); return false; }
 
-  // Correo de la persona (estudiante/vocero)
+  
   const correoPersonaCompleto = document.getElementById('correoPersonaCompleto').value.trim();
   if (!correoPersonaCompleto || !correoPersonaCompleto.includes('@')) {
     mostrarMensaje('Por favor complete el correo correctamente', 'error');
     scrollToError(document.getElementById('correoPersona')); return false;
   }
 
-  // Facultad
+  
   if (!document.getElementById('facultad').value) {
     mostrarMensaje('Por favor seleccione una facultad', 'error');
     scrollToError(document.getElementById('facultad')); return false;
   }
 
-  // Programa
+  
   const programaEl = document.getElementById('programa');
   if (!programaEl.value || programaEl.disabled) {
     mostrarMensaje('Por favor seleccione un programa', 'error');
     scrollToError(programaEl); return false;
   }
 
-  // Asignaturas
+  
   const asignaturas = Array.from(document.querySelectorAll('input[name="asignatura"]:checked'));
   if (asignaturas.length === 0) {
     mostrarMensaje('Por favor seleccione al menos una asignatura', 'error');
@@ -649,7 +583,7 @@ function validarFormulario() {
     }
   }
 
-  // Motivos
+  
   const motivos = Array.from(document.querySelectorAll('input[name="motivo"]:checked'));
   if (motivos.length === 0) {
     mostrarMensaje('Por favor seleccione al menos un motivo', 'error');
@@ -666,9 +600,7 @@ function validarFormulario() {
   return true;
 }
 
-// ============================================================
-// Envío del formulario
-// ============================================================
+
 let intentosRestantes = 3;
 
 async function enviarFormulario(event) {
@@ -733,9 +665,7 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
   }
 }
 
-// ============================================================
-// Resetear formulario completo
-// ============================================================
+
 function resetearFormulario(incluirTipo = true) {
   if (incluirTipo) {
     document.getElementById('tipoAcompanamiento').selectedIndex = 0;
@@ -744,9 +674,7 @@ function resetearFormulario(incluirTipo = true) {
   limpiarCamposComunes();
 }
 
-// ============================================================
-// UI helpers
-// ============================================================
+
 function scrollToError(elemento) {
   if (!elemento) return;
   elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -776,9 +704,7 @@ function mostrarModalExito() {
   setTimeout(() => modal.classList.add('hidden'), 3000);
 }
 
-// ============================================================
-// Navegación entre pantallas
-// ============================================================
+
 async function mostrarFormulario() {
   try {
     if (datosCacheFacultades.length === 0) await precargarDatosFacultades();
@@ -843,9 +769,7 @@ function mostrarConfirmacionCancelar() {
   };
 }
 
-// ============================================================
-// Reinicio automático por inactividad (3 minutos)
-// ============================================================
+
 let tiempoSalida = null;
 const MINUTOS_PARA_REINICIAR = 3;
 
@@ -859,18 +783,14 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// ============================================================
-// Inicialización al cargar el DOM
-// ============================================================
+
 document.addEventListener('DOMContentLoaded', async () => {
-  // Precargar facultades en segundo plano
   try {
     await precargarDatosFacultades();
   } catch (err) {
     console.error('Error al precargar facultades:', err);
   }
 
-  // Generar todos los selects estáticos (una sola vez)
   generarSelect('sede',       OPCIONES_SEDE,      'Seleccione una sede');
   generarSelect('semestre',   OPCIONES_SEMESTRE,  'Seleccione un semestre');
   generarSelect('consciente', OPCIONES_SI_NO,     'Seleccione una opción');
@@ -880,23 +800,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   generarSelectDominioCorreo('dominioCorreoPersona');
   generarSelectDominioCorreo('dominioCorreo');
 
-  // Programa empieza deshabilitado
   const programaEl = document.getElementById('programa');
   if (programaEl) {
     programaEl.innerHTML = '<option value="">Seleccione un programa</option>';
     programaEl.disabled  = true;
   }
 
-  // Cargar facultades en el select
   cargarFacultades();
 
-  // Event listener facultad → programa
   document.getElementById('facultad').addEventListener('change', actualizarProgramas);
 
-  // Generar checkboxes de asignaturas
   generarAsignaturasCheckboxes();
 
-  // Event listeners de correos
   [
     { input: 'correoPersona', dominio: 'dominioCorreoPersona' },
     { input: 'correo',        dominio: 'dominioCorreo'        }
