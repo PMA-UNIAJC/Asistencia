@@ -340,10 +340,22 @@ def fac_leer_excel(file_obj):
         sheet_names = [name.upper() for name in excel_file.sheet_names]
         if 'ORIGINAL' in sheet_names:
             idx = sheet_names.index('ORIGINAL')
-            df = pd.read_excel(excel_file, sheet_name=excel_file.sheet_names[idx])
+            sheet_target = excel_file.sheet_names[idx]
         else:
-            df = pd.read_excel(excel_file, sheet_name=0)
-        return df
+            sheet_target = excel_file.sheet_names[0]
+
+        # Intentar fila 2 primero (header=1), luego fila 1 (header=0)
+        for header_row in [1, 0]:
+            df = pd.read_excel(excel_file, sheet_name=sheet_target, header=header_row)
+            cols_upper = [str(c).strip().upper() for c in df.columns]
+            columnas_clave = ['DOCUMENTO', 'NOMBRE', 'PROGRAMA', 'FACULTAD', 'MATERIA', 'NOTA',
+                              'DOC', 'DOCUM', 'PEGE_DOCUMENTOIDENTIDAD', 'PROG', 'PROG_NOMBRE']
+            if any(c in cols_upper for c in columnas_clave):
+                return df
+
+        # Si ninguna funcionó, retornar con header=0 por defecto
+        return pd.read_excel(excel_file, sheet_name=sheet_target, header=0)
+
     except Exception as e:
         raise Exception(f"Error al leer el archivo Excel: {str(e)}")
 
@@ -551,14 +563,43 @@ def fac_aplicar_formato_normal(workbook, nombre_hoja):
     for col in range(1, sheet.max_column + 1):
         sheet.column_dimensions[get_column_letter(col)].width = 18
 
-def fac_procesar_archivo(file_obj, opcion1, opcion2):
-    """Procesa el archivo de facultades y retorna un dict {nombre_archivo: bytes}"""
-    df_original = fac_leer_excel(file_obj)
+
+def fac_limpiar_nombre_hoja(nombre, nombres_usados):
+    nombre_limpio = str(nombre)[:31]
+    for ch in ['/', '\\', '?', '*', '[', ']', ':']:
+        nombre_limpio = nombre_limpio.replace(ch, '_')
+    nombre_original = nombre_limpio
+    contador = 1
+    while nombre_limpio in nombres_usados:
+        nombre_limpio = f"{nombre_original[:27]}_{contador}"
+        contador += 1
+    nombres_usados.add(nombre_limpio)
+    return nombre_limpio
+
+
+def fac_procesar_archivo(file_obj1, file_obj2, opcion1, opcion2):
+    """Procesa los archivos de facultades y retorna un dict {nombre_archivo: bytes}"""
+
+    # Leer y unir los dos archivos (el segundo es opcional)
+    df1 = fac_leer_excel(file_obj1)
+    if file_obj2 is not None:
+        df2 = fac_leer_excel(file_obj2)
+        df_original = pd.concat([df1, df2], ignore_index=True)
+    else:
+        df_original = df1
+
     df_general = fac_crear_hoja_general(df_original)
     if df_general.empty:
         raise Exception("No se pudieron mapear las columnas del archivo original.")
     if 'FACULTAD' not in df_general.columns:
         raise Exception("No se encontró la columna FACULTAD en el archivo.")
+
+    # Limpiar columna PROGRAMA: eliminar " - ..." desde el guion hacia adelante
+    if 'PROGRAMA' in df_general.columns:
+        df_general['PROGRAMA'] = df_general['PROGRAMA'].apply(
+            lambda x: str(x).split(' - ')[0].strip() if pd.notna(x) else x
+        )
+
     facultades = df_general['FACULTAD'].dropna().unique()
     if len(facultades) == 0:
         raise Exception("No se encontraron facultades en el archivo.")
@@ -574,22 +615,10 @@ def fac_procesar_archivo(file_obj, opcion1, opcion2):
         nombre_facultad_limpio = "".join(c for c in str(facultad) if c.isalnum() or c in (' ', '-', '_')).strip()
         nombre_facultad_limpio = nombre_facultad_limpio.replace(' ', '_')
 
-        def limpiar_nombre_hoja(nombre, nombres_usados):
-            nombre_limpio = str(nombre)[:31]
-            for ch in ['/', '\\', '?', '*', '[', ']', ':']:
-                nombre_limpio = nombre_limpio.replace(ch, '_')
-            nombre_original = nombre_limpio
-            contador = 1
-            while nombre_limpio in nombres_usados:
-                nombre_limpio = f"{nombre_original[:27]}_{contador}"
-                contador += 1
-            nombres_usados.add(nombre_limpio)
-            return nombre_limpio
-
         nombres_hojas_usados = set(['GENERAL'])
         programa_a_nombre_hoja = {}
         for programa in programas:
-            nombre_hoja = limpiar_nombre_hoja(programa, nombres_hojas_usados)
+            nombre_hoja = fac_limpiar_nombre_hoja(programa, nombres_hojas_usados)
             programa_a_nombre_hoja[programa] = nombre_hoja
 
         output = io.BytesIO()
@@ -647,7 +676,6 @@ def fac_procesar_archivo(file_obj, opcion1, opcion2):
         archivos_resultado["INFORME GENERAL.xlsx"] = final_ig.getvalue()
 
     return archivos_resultado
-
 
 # ============================================================
 # ==================  MÓDULO 2: MATRICULADOS  ================
@@ -1634,13 +1662,23 @@ if modulo == "Facultades":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="upload-label">📂 Archivo de entrada</div>', unsafe_allow_html=True)
-    archivo_fac = st.file_uploader(
-        "Sube el archivo Excel de Facultades",
-        type=["xlsx"],
-        key="uploader_fac",
-        label_visibility="collapsed"
-    )
+    col_fac1, col_fac2 = st.columns(2)
+    with col_fac1:
+        st.markdown('<div class="upload-label">📂 Archivo 1 (obligatorio)</div>', unsafe_allow_html=True)
+        archivo_fac = st.file_uploader(
+            "Archivo Facultades 1",
+            type=["xlsx"],
+            key="uploader_fac",
+            label_visibility="collapsed"
+        )
+    with col_fac2:
+        st.markdown('<div class="upload-label">📂 Archivo 2 (opcional)</div>', unsafe_allow_html=True)
+        archivo_fac2 = st.file_uploader(
+            "Archivo Facultades 2",
+            type=["xlsx"],
+            key="uploader_fac2",
+            label_visibility="collapsed"
+        )
 
     st.markdown("---")
     st.markdown("**⚙️ Opciones de filtrado de grupos**")
@@ -1669,7 +1707,7 @@ if modulo == "Facultades":
         if st.button("▶  Procesar Facultades", key="btn_fac", use_container_width=True):
             with st.spinner("Procesando facultades..."):
                 try:
-                    archivos = fac_procesar_archivo(archivo_fac, opcion1_fac, opcion2_fac)
+                    archivos = fac_procesar_archivo(archivo_fac, archivo_fac2, opcion1_fac, opcion2_fac)
                     st.success(f"✅ Proceso completado. Se generaron **{len(archivos)} archivos**.")
 
                     import zipfile
