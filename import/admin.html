@@ -32,8 +32,7 @@
           <div class="form-group">
             <label><svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Contraseña</label>
             <div class="admin-input-wrapper">
-              <input type="password" id="adminContrasena" name="password" autocomplete="current-password" required class="admin-input" onkeyup="verificarCapsLock(event)">
-              <button type="button" id="btnTogglePassword" onclick="togglePassword()" class="admin-toggle-btn">
+<input type="password" id="adminContrasena" name="password" autocomplete="current-password" required class="admin-input" onkeydown="verificarCapsLock(event)">              <button type="button" id="btnTogglePassword" onclick="togglePassword()" class="admin-toggle-btn">
                 <svg id="iconPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
               </button>
             </div>
@@ -175,10 +174,10 @@
     <input type="file" id="archivoMatriculadosDoc" accept=".xlsx,.xls" class="buscador-grupo-input">
   </div>
   <div class="form-group">
-    <label>Buscar Grupo en *</label>
+    <label>Buscar Grupo en</label>
     <div style="display: flex; gap: 20px; margin-top: 6px;">
       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="radio" name="areaDoc" value="MATEMATICAS" checked>
+        <input type="radio" name="areaDoc" value="MATEMATICAS">
         Matemáticas
       </label>
       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
@@ -203,6 +202,12 @@
                 <input type="date" id="fechaHastaInforme">
               </div>
               <button class="btn btn-descargar-informe" onclick="descargarInforme(event)">Descargar Informe</button>
+            </div>
+
+            <div class="chart-container chart-container-spacing">
+              <h3 class="chart-title">Descargar PDF de Estadísticas</h3>
+              <p class="texto-descargas">Genera un PDF completo con todas las estadísticas generales, de tutores y de profesores, incluyendo tablas y gráficas.</p>
+              <button class="btn" onclick="descargarPDF()">Descargar PDF Estadísticas</button>
             </div>
 
           </div>
@@ -289,7 +294,8 @@
   </div>
 </div>
 
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="../PMA/script.js"></script>

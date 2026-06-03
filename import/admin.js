@@ -670,7 +670,7 @@ generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacul
   return;
 }
 
-  const tituloTipo = tipo === 'tutores' ? 'Tutorías' : 'Asesorías con Profesores';
+  const tituloTipo = tipo === 'tutores' ? 'Tutorías' : 'Tutorías con Profesores';
 
 
 
@@ -814,10 +814,43 @@ detalles += `<div class="chart-container">
     }
     
     detalles += '</div></div>';
+
+    // ── RANKING DE TUTORES ──────────────────────────────────────────
+    detalles += `
+      <div class="chart-container" id="contenedorRankingTutores">
+        <h3 class="chart-title">Ranking de Tutores</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:16px;">
+          Puntaje ponderado basado en tutorías realizadas, estudiantes beneficiados y calificación promedio.
+        </p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; align-items:flex-end;">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#333; display:block; margin-bottom:4px;">Tutorías (%)</label>
+            <input type="number" id="pesoTutorias" value="35" min="0" max="100" class="admin-input" style="width:90px; padding:8px 10px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#333; display:block; margin-bottom:4px;">Beneficiados (%)</label>
+            <input type="number" id="pesoBeneficiados" value="45" min="0" max="100" class="admin-input" style="width:90px; padding:8px 10px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#333; display:block; margin-bottom:4px;">Calificación (%)</label>
+            <input type="number" id="pesoCalificacion" value="20" min="0" max="100" class="admin-input" style="width:90px; padding:8px 10px; font-size:13px;">
+          </div>
+          <div>
+            <span id="avisoSumaPesos" style="font-size:12px; color:#dc3545; display:none;">La suma debe ser 100%</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+          <button class="btn" style="width:auto; margin:0; padding:10px 20px; font-size:13px;" onclick="calcularRankingTutores()">
+            Calcular Ranking
+          </button>
+        </div>
+        <div id="resultadoRankingTutores"></div>
+      </div>
+    `;
   }
 
 if (tipo === 'profesores') {
-  detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Asesorías por Facultad/Departamento</h3>';
+  detalles += '<div class="chart-container"><h3 class="chart-title">Cantidad de Tutorías por Facultad/Departamento</h3>';
   const facultadesOrdenadas = Object.entries(stats.facultadDepartamento)
     .sort((a, b) => b[1] - a[1]);
   
@@ -833,7 +866,14 @@ if (tipo === 'profesores') {
   
   detalles += '</div>';
   detalles += `<div class="chart-container">
-    <h3 class="chart-title">Cantidad de Asesorías por Profesor</h3>`;
+    <h3 class="chart-title">Cantidad de Tutorías por Profesor</h3>
+    <div style="margin-top: 24px; margin-bottom: 24px;">
+      <select id="filtroOrdenProfesores" onchange="reordenarTodosProfesores()" class="admin-input" style="flex: 1; min-width: 200px; max-width: 500px; padding: 10px 14px; font-size: 12px;">
+        <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
+        <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
+        <option value="beneficiados">Ordenar por beneficiados (mayor a menor)</option>
+      </select>
+    </div>`;
   const profesoresPorFacultad = {};
   const documentosPorFacultadProfesor = {};
 
@@ -883,13 +923,7 @@ if (tipo === 'profesores') {
       detalles += `
         <div id="profesores${facultadId}" class="horario-info hidden">
           <h4 class="horario-titulo">${nombreCompletoTitulo}</h4>
-          <div class="botones-sedes" style="margin-top: 12px; margin-bottom: 16px;">
-            <select class="admin-input filtro-orden-profesores-facultad" data-facultad-id="${facultadId}" onchange="reordenarProfesoresFacultad(event)" style="width: 100%; max-width: 500px; padding: 10px 14px; font-size: 12px;">
-              <option value="cantidad">Ordenar por cantidad (mayor a menor)</option>
-              <option value="calificacion">Ordenar por calificación (mayor a menor)</option>
-              <option value="beneficiados">Ordenar por beneficiados (mayor a menor)</option>
-            </select>
-          </div>`;
+          `;
 
       if (profesoresOrdenados.length > 0) {
         detalles += `
@@ -898,7 +932,7 @@ if (tipo === 'profesores') {
               <thead>
                 <tr>
                   <th scope="col">Nombre del profesor</th>
-                  <th scope="col">Asesorías</th>
+                  <th scope="col">Tutorías</th>
                   <th scope="col">Beneficiados</th>
                   <th scope="col">Calificación</th>
                 </tr>
@@ -973,38 +1007,31 @@ function reordenarTutores() {
   });
 }
 
-function reordenarProfesoresFacultad(event) {
-  const select = event.target;
-  const facultadId = select?.dataset?.facultadId;
-  const criterio = select?.value;
-  if (!facultadId || !criterio) return;
 
-  const seccion = document.getElementById('profesores' + facultadId);
-  if (!seccion) return;
+function reordenarTodosProfesores() {
+  const criterio = document.getElementById('filtroOrdenProfesores')?.value;
+  if (!criterio) return;
 
-  const tbody = seccion.querySelector('.tabla-estadisticas-tutores tbody');
-  if (!tbody) return;
+  const secciones = document.querySelectorAll('[id^="profesores"]');
+  secciones.forEach(seccion => {
+    const tbody = seccion.querySelector('.tabla-estadisticas-tutores tbody');
+    if (!tbody) return;
 
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  if (rows.length === 0) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length === 0) return;
 
-  rows.sort((a, b) => {
-    if (criterio === 'beneficiados') {
-      const benA = parseInt(a.dataset.beneficiados || '0', 10);
-      const benB = parseInt(b.dataset.beneficiados || '0', 10);
-      return benB - benA;
-    }
-    if (criterio === 'calificacion') {
-      const calA = parseFloat(a.dataset.calificacion || '0');
-      const calB = parseFloat(b.dataset.calificacion || '0');
-      return calB - calA;
-    }
-    const cantA = parseInt(a.dataset.cantidad || '0', 10);
-    const cantB = parseInt(b.dataset.cantidad || '0', 10);
-    return cantB - cantA;
+    rows.sort((a, b) => {
+      if (criterio === 'beneficiados') {
+        return parseInt(b.dataset.beneficiados || '0', 10) - parseInt(a.dataset.beneficiados || '0', 10);
+      }
+      if (criterio === 'calificacion') {
+        return parseFloat(b.dataset.calificacion || '0') - parseFloat(a.dataset.calificacion || '0');
+      }
+      return parseInt(b.dataset.cantidad || '0', 10) - parseInt(a.dataset.cantidad || '0', 10);
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
   });
-
-  rows.forEach(row => tbody.appendChild(row));
 }
 
 
@@ -1486,17 +1513,12 @@ async function descargarPorDocumento(event) {
     return;
   }
 
-  if (!archivoInput.files || archivoInput.files.length === 0) {
-    alert('Por favor selecciona el archivo MATRICULADOS para obtener el grupo.');
+  const tieneArchivo = archivoInput.files && archivoInput.files.length > 0;
+
+  if (tieneArchivo && !areaSeleccionada) {
+    alert('Por favor selecciona un área (Matemáticas o Comunicación) para buscar el grupo.');
     return;
   }
-
-  if (!areaSeleccionada) {
-    alert('Por favor selecciona un área (Matemáticas o Comunicación).');
-    return;
-  }
-
-  const hojaObjetivo = areaSeleccionada.value;
 
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
@@ -1504,7 +1526,11 @@ async function descargarPorDocumento(event) {
   btnDescarga.textContent = 'Buscando y preparando descarga...';
 
   try {
-    const mapaGrupos = await leerMatriculadosPorHoja(archivoInput.files[0], hojaObjetivo);
+    let mapaGrupos = null;
+
+    if (tieneArchivo) {
+      mapaGrupos = await leerMatriculadosPorHoja(archivoInput.files[0], areaSeleccionada.value);
+    }
 
     const data = await supabaseQuerySinLimite('formularios', {
       in: { field: 'documento', values: documentos },
@@ -1526,6 +1552,7 @@ async function descargarPorDocumento(event) {
     btnDescarga.textContent = textoOriginal;
   }
 }
+
 
 function generarExcelPorDocumento(datos, documentos, mapaGrupos) {
   const datosExcel = datos.map(fila => {
@@ -1856,16 +1883,18 @@ async function descargarAAATodo() {
     window.datosAAADescarga = data;
 
     // Llenar tabla preview con los últimos 8
-    const ultimos8 = data.slice(-8);
+    const ultimos5 = data.slice(-5);
     const tbody = document.getElementById('cuerpoPreviewAAA');
     tbody.innerHTML = '';
 
-    ultimos8.forEach(fila => {
+    ultimos5.forEach(fila => {
       const fechaColombia = convertirFechaAColombia(fila.fecha_hora);
       const fechaStr = fechaColombia.toLocaleDateString('es-CO', {
         timeZone: 'America/Bogota',
         day: '2-digit', month: '2-digit', year: 'numeric'
       });
+
+      
       const tr = document.createElement('tr');
       tr.innerHTML = `
   <td class="tabla-tutor-num">${fechaStr}</td>
@@ -1879,7 +1908,7 @@ async function descargarAAATodo() {
     });
 
     document.getElementById('totalPreviewAAA').textContent =
-      `Total de Registros a Descargar: ${data.length} — Mostrando los Últimos ${ultimos8.length}`;
+      `Total de Registros a Descargar: ${data.length} — Mostrando los Últimos ${ultimos5.length}`;
 
     document.getElementById('modalPreviewAAA').classList.remove('hidden');
 
@@ -2579,6 +2608,659 @@ function generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, t
 }
 
 
+function calcularRankingTutores() {
+  const pesoT = parseFloat(document.getElementById('pesoTutorias').value) || 0;
+  const pesoB = parseFloat(document.getElementById('pesoBeneficiados').value) || 0;
+  const pesoC = parseFloat(document.getElementById('pesoCalificacion').value) || 0;
+  const aviso = document.getElementById('avisoSumaPesos');
+  const contenedor = document.getElementById('resultadoRankingTutores');
+
+  if (Math.round(pesoT + pesoB + pesoC) !== 100) {
+    aviso.style.display = 'inline';
+    contenedor.innerHTML = '';
+    return;
+  }
+  aviso.style.display = 'none';
+
+  const cache = cacheEstadisticas['tutores'];
+  if (!cache) {
+    contenedor.innerHTML = '<p style="color:#dc3545; text-align:center;">Primero carga las estadísticas de Tutores.</p>';
+    return;
+  }
+
+  // Recopilar datos de todos los tutores (norte + sur)
+  const tutoriasPorInstructor = cache.datosFiltrados.reduce((acc, item) => {
+    const inst = item.instructor;
+    if (!inst) return acc;
+    acc[inst] = (acc[inst] || 0) + 1;
+    return acc;
+  }, {});
+
+  const documentosPorInstructor = cache.datosFiltrados.reduce((acc, item) => {
+    const inst = item.instructor;
+    if (!inst) return acc;
+    if (!acc[inst]) acc[inst] = new Set();
+    const doc = item.documento != null && item.documento !== '' ? String(item.documento).trim() : '';
+    if (doc) acc[inst].add(doc);
+    return acc;
+  }, {});
+
+  const tutores = Object.keys(tutoriasPorInstructor);
+  if (tutores.length === 0) {
+    contenedor.innerHTML = '<p style="color:#666; text-align:center;">No hay datos de tutores disponibles.</p>';
+    return;
+  }
+
+  // Construir array con los tres valores
+  const datos = tutores.map(nombre => ({
+    nombre,
+    tutorias: tutoriasPorInstructor[nombre] || 0,
+    beneficiados: documentosPorInstructor[nombre] ? documentosPorInstructor[nombre].size : 0,
+    calificacion: parseFloat(cache.promediosPorInstructor[nombre] || 0)
+  }));
+
+  // Separar datos por sede
+  const datosNorte = datos.filter(d =>
+    datosCache.tutoresNorte.some(t => t.nombre === d.nombre)
+  );
+  const datosSur = datos.filter(d =>
+    datosCache.tutoresSur.some(t => t.nombre === d.nombre)
+  );
+
+  const wT = pesoT / 100;
+  const wB = pesoB / 100;
+  const wC = pesoC / 100;
+
+  function calcularRankingPorGrupo(grupo) {
+    const maxT = Math.max(...grupo.map(d => d.tutorias));
+    const maxB = Math.max(...grupo.map(d => d.beneficiados));
+    const maxC = Math.max(...grupo.map(d => d.calificacion));
+
+    return grupo.map(d => {
+      const pT = maxT > 0 ? (d.tutorias / maxT) * 100 : 0;
+      const pB = maxB > 0 ? (d.beneficiados / maxB) * 100 : 0;
+      const pC = maxC > 0 ? (d.calificacion / maxC) * 100 : 0;
+      const puntaje = (pT * wT) + (pB * wB) + (pC * wC);
+      return { ...d, pT, pB, pC, puntaje };
+    }).sort((a, b) => b.puntaje - a.puntaje);
+  }
+
+  const rankingNorte = calcularRankingPorGrupo(datosNorte);
+  const rankingSur = calcularRankingPorGrupo(datosSur);
+
+  function generarTablaRanking(lista, titulo, sedeKey) {
+    if (lista.length === 0) return '';
+    let html = `
+      <div id="rankingSede${sedeKey}" class="horario-info hidden" style="margin-top:12px;">
+        <h4 class="horario-titulo">${titulo}</h4>
+        <div class="tabla-tutores-wrapper">
+          <table class="tabla-estadisticas-tutores">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Tutor</th>
+                <th scope="col">Puntaje</th>
+              </tr>
+            </thead>
+            <tbody>`;
+    lista.forEach((d, i) => {
+      html += `
+        <tr>
+          <td class="tabla-tutor-num">${i + 1}</td>
+          <td class="tabla-tutor-nombre">${escapeHtmlAdmin(d.nombre)}</td>
+          <td class="tabla-tutor-num" style="font-weight:700; color:#1e3c72;">${d.puntaje.toFixed(2)}%</td>
+        </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+    return html;
+  }
+
+  contenedor.innerHTML = `
+    <div class="botones-sedes">
+      <button class="btn btn-secondary btn-sede" onclick="toggleRankingSede('Norte')">
+        Sede Norte
+      </button>
+      <button class="btn btn-secondary btn-sede" onclick="toggleRankingSede('Sur')">
+        Sede Sur
+      </button>
+    </div>
+    ${generarTablaRanking(rankingNorte, 'Tutores de Sede Norte', 'Norte')}
+    ${generarTablaRanking(rankingSur, 'Tutores de Sede Sur', 'Sur')}
+  `;
+}
+
+function toggleRankingSede(sedeKey) {
+  const norte = document.getElementById('rankingSedeNorte');
+  const sur = document.getElementById('rankingSedeSur');
+
+  const objetivo = document.getElementById('rankingSede' + sedeKey);
+  const yaAbierto = objetivo && !objetivo.classList.contains('hidden');
+
+  [norte, sur].forEach(el => { if (el) el.classList.add('hidden'); });
+
+  if (!yaAbierto && objetivo) objetivo.classList.remove('hidden');
+}
+
+
+//INFORME FINAL DE SEMESTRE
+
+
+async function descargarPDF() {
+  const btn = document.querySelector('[onclick="descargarPDF()"]');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generando PDF...';
+
+  try {
+    await precargarDatosEstadisticas();
+    const dataFormularios = await obtenerFormulariosCache();
+    window.datosFormulariosGlobal = dataFormularios;
+    invalidarCacheEstadisticas();
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentW = pageW - margin * 2;
+    let y = margin;
+
+    function checkY(espacioNecesario) {
+      if (y + espacioNecesario > pageH - margin) {
+        pdf.addPage();
+        y = margin;
+      }
+    }
+
+    function dibujarSeccion(titulo) {
+  if (y + 28 > pageH - margin) {
+    pdf.addPage();
+    y = margin;
+  }
+  y += 6;
+  pdf.setFillColor(30, 60, 114);
+  pdf.rect(margin, y, contentW, 10, 'F');
+  pdf.setFontSize(13);
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text(titulo, margin + 4, y + 7);
+  pdf.setTextColor(0, 0, 0);
+  y += 16;
+}
+
+    function dibujarSubtitulo(texto) {
+  if (y + 20 > pageH - margin) {
+    pdf.addPage();
+    y = margin;
+  }
+  y += 8;
+  pdf.setFontSize(11);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(30, 60, 114);
+  pdf.text(texto, margin, y);
+  pdf.setTextColor(0, 0, 0);
+  y += 8;
+}
+
+    function dibujarTarjetas(tarjetas) {
+      checkY(22);
+      const tw = contentW / tarjetas.length;
+      tarjetas.forEach((t, i) => {
+        const x = margin + tw * i;
+        pdf.setFillColor(240, 244, 255);
+        pdf.setDrawColor(197, 208, 232);
+        pdf.roundedRect(x + 2, y, tw - 4, 18, 2, 2, 'FD');
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(30, 60, 114);
+        pdf.text(String(t.valor), x + tw / 2, y + 8, { align: 'center' });
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(80, 80, 80);
+        pdf.text(t.etiqueta, x + tw / 2, y + 14, { align: 'center' });
+      });
+      pdf.setTextColor(0, 0, 0);
+      y += 24;
+    }
+
+    function dibujarListaBarras(items, total) {
+      items.forEach(([nombre, cantidad]) => {
+        checkY(8);
+        const pct = ((cantidad / total) * 100).toFixed(1);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(50, 50, 50);
+        const nombreCorto = nombre.length > 55 ? nombre.substring(0, 52) + '...' : nombre;
+        pdf.text(nombreCorto, margin, y);
+        const barX = margin + 120;
+        const barW = 40;
+        const barH = 4;
+        pdf.setFillColor(230, 236, 245);
+        pdf.rect(barX, y - 4, barW, barH, 'F');
+        pdf.setFillColor(30, 60, 114);
+        pdf.rect(barX, y - 4, Math.max(0.5, (parseFloat(pct) / 100) * barW), barH, 'F');
+        pdf.setTextColor(30, 60, 114);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`${cantidad} (${pct}%)`, barX + barW + 3, y);
+        pdf.setTextColor(0, 0, 0);
+        y += 7;
+      });
+      y += 3;
+    }
+
+    function dibujarTabla(headers, filas, colWidths) {
+  const rowH = 7;
+  const headerH = 8;
+  const totalW = contentW;
+  const widths = colWidths || headers.map(() => totalW / headers.length);
+
+  // Detectar si hay columna "Tutor" para forzar alineación izquierda
+  const indicesTutor = headers.map((h, i) => h === 'Tutor' ? i : -1).filter(i => i !== -1);
+
+  function dibujarHeader() {
+    pdf.setFillColor(30, 60, 114);
+    pdf.rect(margin, y, totalW, headerH, 'F');
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(255, 255, 255);
+    let xPos = margin;
+    headers.forEach((h, i) => {
+      const align = (i === 0 || indicesTutor.includes(i)) ? 'left' : 'center';
+      const x = align === 'left' ? xPos + 3 : xPos + widths[i] / 2;
+      pdf.text(h, x, y + 5.5, { align });
+      xPos += widths[i];
+    });
+    y += headerH;
+  }
+
+  const espacioHeader = headerH + rowH;
+  if (y + espacioHeader > pageH - margin) {
+    pdf.addPage(); y = margin;
+  }
+  dibujarHeader();
+
+  filas.forEach((fila, ri) => {
+    if (y + rowH > pageH - margin) {
+      pdf.addPage(); y = margin;
+      dibujarHeader();
+    }
+    const bg = ri % 2 === 0 ? [248, 249, 255] : [255, 255, 255];
+    pdf.setFillColor(...bg);
+    pdf.rect(margin, y, totalW, rowH, 'F');
+    pdf.setDrawColor(224, 224, 224);
+    pdf.line(margin, y + rowH, margin + totalW, y + rowH);
+    pdf.setFontSize(8.5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(40, 40, 40);
+    let xPos = margin;
+    fila.forEach((celda, i) => {
+      const align = (i === 0 || indicesTutor.includes(i)) ? 'left' : 'center';
+      const x = align === 'left' ? xPos + 3 : xPos + widths[i] / 2;
+      const texto = String(celda);
+      const textoCorto = texto.length > 45 ? texto.substring(0, 42) + '...' : texto;
+      pdf.text(textoCorto, x, y + 5, { align });
+      xPos += widths[i];
+    });
+    y += rowH;
+  });
+
+  pdf.setDrawColor(0, 0, 0);
+  y += 6;
+}
+
+    function generarGraficaCanvas(datos, titulo) {
+      const meses = new Map();
+      const nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      datos.forEach(item => {
+        const fecha = convertirFechaAColombia(item.fecha);
+        const mes = fecha.getMonth();
+        const año = fecha.getFullYear();
+        const key = `${año}-${String(mes+1).padStart(2,'0')}`;
+        if (!meses.has(key)) meses.set(key, { label: `${nombresMeses[mes]} ${año}`, cantidad: 0 });
+        meses.get(key).cantidad++;
+      });
+      const ordenadas = [...meses.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+      const labels = ordenadas.map(([, v]) => v.label);
+      const valores = ordenadas.map(([, v]) => v.cantidad);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 820; canvas.height = 300;
+      const ctx = canvas.getContext('2d');
+      const padL = 50, padR = 20, padT = 40, padB = 70;
+      const w = canvas.width - padL - padR;
+      const h = canvas.height - padT - padB;
+      const maxVal = Math.max(...valores, 1);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#1e3c72';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(titulo, canvas.width / 2, 22);
+
+      const pasos = 5;
+      for (let i = 0; i <= pasos; i++) {
+        const yG = padT + h - (i / pasos) * h;
+        ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(padL, yG); ctx.lineTo(padL + w, yG); ctx.stroke();
+        ctx.fillStyle = '#888'; ctx.font = '10px Arial'; ctx.textAlign = 'right';
+        ctx.fillText(Math.round((maxVal / pasos) * i), padL - 6, yG + 4);
+      }
+
+      const gap = w / Math.max(labels.length, 1);
+      const barW = Math.min(40, gap * 0.6);
+      valores.forEach((val, i) => {
+        const x = padL + gap * i + gap / 2 - barW / 2;
+        const barH = (val / maxVal) * h;
+        const yB = padT + h - barH;
+        ctx.fillStyle = 'rgba(30,60,114,0.8)';
+        ctx.fillRect(x, yB, barW, barH);
+        ctx.fillStyle = '#1e3c72'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
+        ctx.fillText(val, x + barW / 2, yB - 5);
+      });
+
+      ctx.fillStyle = '#555'; ctx.font = '9px Arial';
+      labels.forEach((lbl, i) => {
+        const x = padL + gap * i + gap / 2;
+        ctx.save(); ctx.translate(x, padT + h + 12);
+        ctx.rotate(-Math.PI / 4); ctx.textAlign = 'right';
+        ctx.fillText(lbl, 0, 0); ctx.restore();
+      });
+
+      return canvas;
+    }
+
+    function agregarGraficaPDF(canvasGrafica) {
+      pdf.addPage();
+      y = margin;
+      const gW = contentW;
+      const gH = (canvasGrafica.height * gW) / canvasGrafica.width;
+      pdf.addImage(canvasGrafica.toDataURL('image/jpeg', 0.92), 'JPEG', margin, y, gW, gH);
+      y += gH + 8;
+    }
+
+    // ── CALCULAR DATOS
+    const datosTodos = dataFormularios;
+    const datosTutores = datosTodos.filter(i => i.tipo_instructor === 'Tutor');
+    const datosProfesores = datosTodos.filter(i => i.tipo_instructor === 'Profesor');
+
+    function calcularStats(datos, tipo) {
+      const stats = { total: datos.length, sedesTutorias: {}, calificacionesPorInstructor: {}, facultadDepartamento: {}, sumaCalificacionesTotal: 0, sumaCalificacionesPMA: 0 };
+      const estudiantesUnicos = new Set();
+      const materiasCuenta = {}, semestresCuenta = {}, programasCuenta = {}, facultadesCuenta = {}, motivosCuenta = {};
+      const tutoriasPorInstructor = {}, documentosPorInstructor = {};
+      const profesoresPorFacultad = {}, documentosPorFacultadProfesor = {};
+
+      datos.forEach(item => {
+        const instructor = item.instructor;
+        const sede = item.sede_tutoria;
+        stats.sedesTutorias[sede] = (stats.sedesTutorias[sede] || 0) + 1;
+        const cal = item.calificacion || 0, dud = item.dudas_resueltas || 0, dom = item.dominio_tema || 0;
+        const amb = item.ambiente || 0, rec = item.recomienda_pma || 0;
+        const promT = (cal + dud + dom) / 3;
+        const promPMA = (cal + dud + dom + amb + rec) / 5;
+        if (!stats.calificacionesPorInstructor[instructor]) stats.calificacionesPorInstructor[instructor] = { suma: 0, cantidad: 0 };
+        stats.calificacionesPorInstructor[instructor].suma += promT;
+        stats.calificacionesPorInstructor[instructor].cantidad += 1;
+        stats.sumaCalificacionesTotal += promT;
+        stats.sumaCalificacionesPMA += promPMA;
+
+        if (tipo === 'general') {
+          estudiantesUnicos.add(item.documento);
+          materiasCuenta[item.asignatura || 'Sin especificar'] = (materiasCuenta[item.asignatura || 'Sin especificar'] || 0) + 1;
+          semestresCuenta[item.semestre || 'Sin especificar'] = (semestresCuenta[item.semestre || 'Sin especificar'] || 0) + 1;
+          programasCuenta[item.programa || 'Sin especificar'] = (programasCuenta[item.programa || 'Sin especificar'] || 0) + 1;
+          facultadesCuenta[item.facultad || 'Sin especificar'] = (facultadesCuenta[item.facultad || 'Sin especificar'] || 0) + 1;
+          motivosCuenta[item.motivo_consulta || 'Sin especificar'] = (motivosCuenta[item.motivo_consulta || 'Sin especificar'] || 0) + 1;
+        }
+        if (tipo === 'tutores' && instructor) {
+          tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
+          if (!documentosPorInstructor[instructor]) documentosPorInstructor[instructor] = new Set();
+          const doc = item.documento != null ? String(item.documento).trim() : '';
+          if (doc) documentosPorInstructor[instructor].add(doc);
+        }
+        if (tipo === 'profesores') {
+          if (item.facultad_departamento) stats.facultadDepartamento[item.facultad_departamento] = (stats.facultadDepartamento[item.facultad_departamento] || 0) + 1;
+          const fac = item.facultad_departamento || 'Sin Facultad';
+          if (instructor) {
+            if (!profesoresPorFacultad[fac]) profesoresPorFacultad[fac] = {};
+            profesoresPorFacultad[fac][instructor] = (profesoresPorFacultad[fac][instructor] || 0) + 1;
+            if (!documentosPorFacultadProfesor[fac]) documentosPorFacultadProfesor[fac] = {};
+            if (!documentosPorFacultadProfesor[fac][instructor]) documentosPorFacultadProfesor[fac][instructor] = new Set();
+            const doc = item.documento != null ? String(item.documento).trim() : '';
+            if (doc) documentosPorFacultadProfesor[fac][instructor].add(doc);
+          }
+        }
+      });
+
+      const promediosPorInstructor = {};
+      Object.keys(stats.calificacionesPorInstructor).forEach(inst => {
+        const info = stats.calificacionesPorInstructor[inst];
+        promediosPorInstructor[inst] = (info.suma / info.cantidad).toFixed(2);
+      });
+
+      return { stats, estudiantesUnicos, materiasCuenta, semestresCuenta, programasCuenta, facultadesCuenta, motivosCuenta, tutoriasPorInstructor, documentosPorInstructor, profesoresPorFacultad, documentosPorFacultadProfesor, promediosPorInstructor };
+    }
+
+    function calcularRankingPDF(datosFiltrados, promediosPorInstructor) {
+      const wT = 0.35, wB = 0.45, wC = 0.20;
+      const tutoriasPorInst = {}, docsPorInst = {};
+      datosFiltrados.forEach(item => {
+        const inst = item.instructor; if (!inst) return;
+        tutoriasPorInst[inst] = (tutoriasPorInst[inst] || 0) + 1;
+        if (!docsPorInst[inst]) docsPorInst[inst] = new Set();
+        const doc = item.documento != null ? String(item.documento).trim() : '';
+        if (doc) docsPorInst[inst].add(doc);
+      });
+      const datos = Object.keys(tutoriasPorInst).map(nombre => ({
+        nombre, tutorias: tutoriasPorInst[nombre], beneficiados: docsPorInst[nombre]?.size || 0, calificacion: parseFloat(promediosPorInstructor[nombre] || 0)
+      }));
+      function rankGrupo(grupo) {
+        if (!grupo.length) return [];
+        const maxT = Math.max(...grupo.map(d => d.tutorias));
+        const maxB = Math.max(...grupo.map(d => d.beneficiados));
+        const maxC = Math.max(...grupo.map(d => d.calificacion));
+        return grupo.map(d => ({
+          ...d,
+          puntaje: ((maxT > 0 ? (d.tutorias/maxT)*100 : 0) * wT) + ((maxB > 0 ? (d.beneficiados/maxB)*100 : 0) * wB) + ((maxC > 0 ? (d.calificacion/maxC)*100 : 0) * wC)
+        })).sort((a, b) => b.puntaje - a.puntaje);
+      }
+      return {
+        norte: rankGrupo(datos.filter(d => datosCache.tutoresNorte.some(t => t.nombre === d.nombre))),
+        sur: rankGrupo(datos.filter(d => datosCache.tutoresSur.some(t => t.nombre === d.nombre)))
+      };
+    }
+
+    const stGeneral = calcularStats(datosTodos, 'general');
+    const stTutores = calcularStats(datosTutores, 'tutores');
+    const stProfesores = calcularStats(datosProfesores, 'profesores');
+
+
+    // SECCIÓN 1 — ESTADÍSTICAS GENERALES
+
+    dibujarSeccion('ESTADÍSTICAS GENERALES');
+
+    dibujarTarjetas([
+      { valor: stGeneral.stats.total, etiqueta: 'Total de Registros' },
+      { valor: stGeneral.estudiantesUnicos.size, etiqueta: 'Beneficiados' },
+      { valor: (stGeneral.stats.sumaCalificacionesPMA / stGeneral.stats.total).toFixed(2), etiqueta: 'Calificación PMA' }
+    ]);
+
+    const top5Mat = Object.entries(stGeneral.materiasCuenta).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const top5Sem = Object.entries(stGeneral.semestresCuenta).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const top5Prog = Object.entries(stGeneral.programasCuenta).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const todasFac = Object.entries(stGeneral.facultadesCuenta).sort((a,b)=>b[1]-a[1]);
+    const todosMotivos = Object.entries(stGeneral.motivosCuenta).sort((a,b)=>b[1]-a[1]);
+
+    dibujarSubtitulo('Top 5 Materias con Más Tutorías');
+    dibujarListaBarras(top5Mat, stGeneral.stats.total);
+    dibujarSubtitulo('Top 5 Semestres con Más Tutorías');
+    dibujarListaBarras(top5Sem.map(([s,c]) => [s === 'Sin especificar' ? s : `Semestre ${s}`, c]), stGeneral.stats.total);
+    dibujarSubtitulo('Facultades con Más Tutorías');
+    dibujarListaBarras(todasFac, stGeneral.stats.total);
+    dibujarSubtitulo('Top 5 Programas con Más Tutorías');
+    dibujarListaBarras(top5Prog, stGeneral.stats.total);
+    dibujarSubtitulo('Motivos de Consulta');
+    dibujarListaBarras(todosMotivos, stGeneral.stats.total);
+
+  
+    // SECCIÓN 2 — ESTADÍSTICAS DE TUTORES
+
+    pdf.addPage(); y = margin;
+    dibujarSeccion('ESTADÍSTICAS DE TUTORES');
+
+    dibujarTarjetas([
+      { valor: stTutores.stats.total, etiqueta: 'Total Tutorías' },
+      { valor: (stTutores.stats.sumaCalificacionesTotal / stTutores.stats.total).toFixed(2), etiqueta: 'Calificación Promedio' }
+    ]);
+
+    dibujarSubtitulo('Cantidad de Tutorías por Sede');
+    dibujarTabla(
+      ['Sede', 'Cantidad', '%'],
+      Object.entries(stTutores.stats.sedesTutorias).sort((a,b)=>b[1]-a[1]).map(([sede, cant]) => [
+        sede, cant, ((cant / stTutores.stats.total) * 100).toFixed(1) + '%'
+      ]),
+      [contentW * 0.5, contentW * 0.25, contentW * 0.25]
+    );
+
+    dibujarSubtitulo('Tutores de Sede Norte');
+    const tutoresNorteData = Object.entries(stTutores.tutoriasPorInstructor)
+      .filter(([inst]) => datosCache.tutoresNorte.some(t => t.nombre === inst))
+      .sort((a,b) => b[1]-a[1]);
+    dibujarTabla(
+      ['Nombre del Tutor', 'Tutorías', 'Beneficiados', 'Calificación'],
+      tutoresNorteData.map(([inst, cant]) => [
+        inst, cant,
+        stTutores.documentosPorInstructor[inst]?.size || 0,
+        stTutores.promediosPorInstructor[inst] || 'N/A'
+      ]),
+      [contentW * 0.55, contentW * 0.15, contentW * 0.15, contentW * 0.15]
+    );
+
+    pdf.addPage(); y = margin;
+    dibujarSubtitulo('Tutores de Sede Sur');
+    const tutoresSurData = Object.entries(stTutores.tutoriasPorInstructor)
+      .filter(([inst]) => datosCache.tutoresSur.some(t => t.nombre === inst))
+      .sort((a,b) => b[1]-a[1]);
+    dibujarTabla(
+      ['Nombre del Tutor', 'Tutorías', 'Beneficiados', 'Calificación'],
+      tutoresSurData.map(([inst, cant]) => [
+        inst, cant,
+        stTutores.documentosPorInstructor[inst]?.size || 0,
+        stTutores.promediosPorInstructor[inst] || 'N/A'
+      ]),
+      [contentW * 0.55, contentW * 0.15, contentW * 0.15, contentW * 0.15]
+    );
+
+    const ranking = calcularRankingPDF(datosTutores, stTutores.promediosPorInstructor);
+    pdf.addPage(); y = margin;
+    dibujarSubtitulo('Ranking Mejor Tutor');
+    checkY(8);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(80, 80, 80);
+    pdf.text(`${ranking.pesoT !== undefined ? ranking.pesoT : 35}% Cantidad de Tutorías`, margin, y); y += 5;
+    pdf.text(`${ranking.pesoB !== undefined ? ranking.pesoB : 45}% Cantidad de Beneficiados`, margin, y); y += 5;
+    pdf.text(`${ranking.pesoC !== undefined ? ranking.pesoC : 20}% Calificación`, margin, y); y += 8;
+    pdf.setTextColor(0, 0, 0);
+
+    dibujarSubtitulo('Sede Norte');
+    dibujarTabla(
+      ['#', 'Tutor', 'Puntaje'],
+      ranking.norte.map((d, i) => [i+1, d.nombre, d.puntaje.toFixed(2) + '%']),
+      [contentW * 0.08, contentW * 0.72, contentW * 0.20]
+    );
+
+    pdf.addPage(); y = margin;
+    dibujarSubtitulo('Ranking Mejor Tutor');
+    checkY(8);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(80, 80, 80);
+    pdf.text('35% Cantidad de Tutorías', margin, y); y += 5;
+    pdf.text('45% Cantidad de Beneficiados', margin, y); y += 5;
+    pdf.text('20% Calificación', margin, y); y += 8;
+    pdf.setTextColor(0, 0, 0);
+
+    dibujarSubtitulo('Sede Sur');
+    dibujarTabla(
+      ['#', 'Tutor', 'Puntaje'],
+      ranking.sur.map((d, i) => [i+1, d.nombre, d.puntaje.toFixed(2) + '%']),
+      [contentW * 0.08, contentW * 0.72, contentW * 0.20]
+    );
+
+    pdf.addPage(); y = margin;
+    const graficaNorte = generarGraficaCanvas(
+      datosTutores.filter(i => i.sede_tutoria === 'Norte'),
+      'Tutorías por Mes — Sede Norte'
+    );
+    const graficaSur = generarGraficaCanvas(
+      datosTutores.filter(i => i.sede_tutoria === 'Sur'),
+      'Tutorías por Mes — Sede Sur'
+    );
+    const gW = contentW;
+    const gH = (graficaNorte.height * gW) / graficaNorte.width;
+    pdf.addImage(graficaNorte.toDataURL('image/jpeg', 0.92), 'JPEG', margin, y, gW, gH);
+    y += gH + 6;
+    pdf.addImage(graficaSur.toDataURL('image/jpeg', 0.92), 'JPEG', margin, y, gW, gH);
+    y += gH + 6;
+
+
+
+
+    // SECCIÓN 3 — ESTADÍSTICAS DE PROFESORES
+
+    pdf.addPage(); y = margin;
+    dibujarSeccion('ESTADÍSTICAS DE PROFESORES');
+
+    dibujarTarjetas([
+      { valor: stProfesores.stats.total, etiqueta: 'Total Tutorías' },
+      { valor: (stProfesores.stats.sumaCalificacionesTotal / stProfesores.stats.total).toFixed(2), etiqueta: 'Calificación Promedio' }
+    ]);
+
+    dibujarSubtitulo('Cantidad de Tutorías por Facultad/Departamento');
+    dibujarTabla(['Facultad/Departamento', 'Cantidad', '%'],
+      Object.entries(stProfesores.stats.facultadDepartamento).sort((a,b)=>b[1]-a[1]).map(([fac, cant]) => [
+        obtenerNombreFacultad(fac), cant, ((cant / stProfesores.stats.total) * 100).toFixed(1) + '%'
+      ])
+    );
+
+    Object.keys(stProfesores.profesoresPorFacultad).sort().forEach(fac => {
+      dibujarSubtitulo('Tutorías — ' + obtenerNombreFacultad(fac));
+      dibujarTabla(['Nombre del Profesor', 'Tutorías', 'Beneficiados', 'Calificación'],
+        Object.entries(stProfesores.profesoresPorFacultad[fac]).sort((a,b)=>b[1]-a[1]).map(([prof, cant]) => [
+          prof, cant,
+          stProfesores.documentosPorFacultadProfesor[fac]?.[prof]?.size || 0,
+          stProfesores.promediosPorInstructor[prof] || 'N/A'
+        ])
+      );
+    });
+
+    agregarGraficaPDF(generarGraficaCanvas(datosProfesores, 'Tutorías por Mes — Profesores'));
+
+
+    // ── NÚMEROS DE PÁGINA 
+    const totalPaginas = pdf.internal.getNumberOfPages();
+    const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+    for (let i = 1; i <= totalPaginas; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Página ${i} de ${totalPaginas}`, pageW - margin, pageH - 6, { align: 'right' });
+      pdf.text(`Estadísticas PMA — ${fechaHoy}`, margin, pageH - 6);
+    }
+
+    pdf.save(`Estadisticas_PMA_${fechaHoy}.pdf`);
+
+  } catch (error) {
+    alert('Error al generar el PDF: ' + error.message);
+    console.error(error);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+}
 
 
 (function initNavegacionAdmin() {

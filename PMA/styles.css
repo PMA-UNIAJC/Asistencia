@@ -1255,7 +1255,7 @@ textarea {
   background: #1e3c72;
   color: #ffffff;
   font-weight: 600;
-  text-align: left;
+  text-align: center;
   padding: 12px 15px;
   font-size: 13px;
   letter-spacing: 0.3px;
@@ -1290,7 +1290,7 @@ textarea {
 .tabla-estadisticas-tutores .tabla-tutor-num {
   color: #1e3c72;
   font-weight: 600;
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 
