@@ -286,6 +286,51 @@ footer { visibility: hidden; }
 
 
 # ============================================================
+# ==================  UTILIDADES GLOBALES  ===================
+# ============================================================
+
+PATRONES_SEMESTRE = {
+    'PRIMERO': [
+        r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)',
+        r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)',
+        r'^C1(?!00)', r'^SC1(?!00)', r'^LB1(?!00)'
+    ],
+    'SEGUNDO': [
+        r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2'
+    ],
+    'TERCERO': [
+        r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3'
+    ]
+}
+
+def determinar_semestre(grupo):
+    if pd.isna(grupo):
+        return None
+    g = str(grupo).strip().upper()
+    if not g:
+        return None
+    for semestre, patrones in PATRONES_SEMESTRE.items():
+        if any(re.match(p, g) for p in patrones):
+            return semestre
+    return None
+
+def filtrar_grupo(grupo, opcion1=True, opcion2=True):
+    if pd.isna(grupo):
+        return False
+    g = str(grupo).strip().upper()
+    if not g:
+        return False
+    if opcion1 and any(re.match(p, g) for p in PATRONES_SEMESTRE['PRIMERO']):
+        return True
+    if opcion2 and any(re.match(p, g) for p in PATRONES_SEMESTRE['SEGUNDO']):
+        return True
+    if opcion2 and any(re.match(p, g) for p in PATRONES_SEMESTRE['TERCERO']):
+        return True
+    return False
+
+
+
+# ============================================================
 # ==================  MÓDULO 1: FACULTADES  ==================
 # ============================================================
 
@@ -371,34 +416,6 @@ def fac_crear_hoja_general(df_original):
         df_general['NOTA'] = df_general['NOTA'].apply(fac_normalizar_nota)
     return df_general
 
-def fac_determinar_semestre(grupo):
-    if pd.isna(grupo):
-        return None
-    grupo_str = str(grupo).strip().upper()
-    if not grupo_str:
-        return None
-    patrones_primero = [r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)', r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)']
-    patrones_segundo = [r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2']
-    patrones_tercero = [r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3']
-    for p in patrones_primero:
-        if re.match(p, grupo_str): return 'PRIMERO'
-    for p in patrones_segundo:
-        if re.match(p, grupo_str): return 'SEGUNDO'
-    for p in patrones_tercero:
-        if re.match(p, grupo_str): return 'TERCERO'
-    return None
-
-def fac_filtrar_grupos_opcion1(grupo):
-    if pd.isna(grupo): return False
-    g = str(grupo).strip().upper()
-    patrones = [r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)', r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)']
-    return any(re.match(p, g) for p in patrones)
-
-def fac_filtrar_grupos_opcion2(grupo):
-    if pd.isna(grupo): return False
-    g = str(grupo).strip().upper()
-    patrones = [r'^BS2', r'^BS3', r'^SB2', r'^SB3', r'^B2', r'^B3', r'^S2', r'^S3', r'^2', r'^3']
-    return any(re.match(p, g) for p in patrones)
 
 def fac_calcular_n_perdidas(df):
     if 'DOCUMENTO' not in df.columns:
@@ -417,14 +434,10 @@ def fac_aplicar_filtros(df, opcion1, opcion2):
         mask_nota = (df_f['NOTA'] >= 0.0) & (df_f['NOTA'] <= 2.9)
         df_f = df_f[mask_nota].copy()
     if 'GRUPO' in df_f.columns and (opcion1 or opcion2):
-        mask = pd.Series([False] * len(df_f), index=df_f.index)
-        if opcion1:
-            mask = mask | df_f['GRUPO'].apply(fac_filtrar_grupos_opcion1)
-        if opcion2:
-            mask = mask | df_f['GRUPO'].apply(fac_filtrar_grupos_opcion2)
+        mask = df_f['GRUPO'].apply(lambda g: filtrar_grupo(g, opcion1, opcion2))
         df_f = df_f[mask].copy()
     if 'GRUPO' in df_f.columns and 'SEMESTRE' in df_f.columns:
-        df_f['SEMESTRE'] = df_f['GRUPO'].apply(fac_determinar_semestre)
+        df_f['SEMESTRE'] = df_f['GRUPO'].apply(determinar_semestre)
     return df_f
 
 def fac_corregir_ortografia_celda(valor):
@@ -757,30 +770,7 @@ def mat_normalizar_sede(sede):
     elif 'SUR' in sede_str: return 'SUR'
     return sede
 
-def mat_determinar_semestre(grupo):
-    if pd.isna(grupo): return None
-    grupo_str = str(grupo).strip().upper()
-    if not grupo_str: return None
-    patrones_primero = [r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)', r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)']
-    patrones_segundo = [r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2']
-    patrones_tercero = [r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3']
-    for p in patrones_primero:
-        if re.match(p, grupo_str): return 'PRIMERO'
-    for p in patrones_segundo:
-        if re.match(p, grupo_str): return 'SEGUNDO'
-    for p in patrones_tercero:
-        if re.match(p, grupo_str): return 'TERCERO'
-    return None
 
-def mat_filtrar_grupo(grupo):
-    if pd.isna(grupo): return False
-    g = str(grupo).strip().upper()
-    if not g: return False
-    patrones_incluir = [
-        r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)', r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)',
-        r'^BS2', r'^BS3', r'^SB2', r'^SB3', r'^B2', r'^B3', r'^S2', r'^S3', r'^2', r'^3'
-    ]
-    return any(re.match(p, g) for p in patrones_incluir)
 
 def mat_leer_excel(file_obj):
     try:
@@ -815,10 +805,10 @@ def mat_crear_hoja_general(df_original):
     if 'SEDE' in df_general.columns:
         df_general['SEDE'] = df_general['SEDE'].apply(mat_normalizar_sede)
     if 'GRUPO' in df_general.columns:
-        mask = df_general['GRUPO'].apply(mat_filtrar_grupo)
+        mask = df_general['GRUPO'].apply(lambda g: filtrar_grupo(g, opcion1=True, opcion2=True))
         df_general = df_general[mask].copy()
     if 'GRUPO' in df_general.columns:
-        df_general['SEMESTRE'] = df_general['GRUPO'].apply(mat_determinar_semestre)
+        df_general['SEMESTRE'] = df_general['GRUPO'].apply(determinar_semestre)
     return df_general
 
 def mat_crear_hoja_matriculados(df_general):
@@ -992,26 +982,10 @@ def cruce_filtrar_por_area(df_general, valores_area):
         df_filtrado = df_filtrado.drop_duplicates(subset=['DOCUMENTO'], keep='first')
     return df_filtrado
 
-def cruce_filtrar_grupos_opcion1(grupo):
-    if pd.isna(grupo): return False
-    g = str(grupo).strip().upper()
-    patrones = [r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)', r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)']
-    return any(re.match(p, g) for p in patrones)
-
-def cruce_filtrar_grupos_opcion2(grupo):
-    if pd.isna(grupo): return False
-    g = str(grupo).strip().upper()
-    patrones = [r'^BS2', r'^BS3', r'^SB2', r'^SB3', r'^B2', r'^B3', r'^S2', r'^S3', r'^2', r'^3']
-    return any(re.match(p, g) for p in patrones)
-
 def cruce_aplicar_filtro_grupos(df, opcion1, opcion2):
     if 'GRUPO' not in df.columns: return df
     if not opcion1 and not opcion2: return df
-    mask = pd.Series([False] * len(df), index=df.index)
-    if opcion1:
-        mask = mask | df['GRUPO'].apply(cruce_filtrar_grupos_opcion1)
-    if opcion2:
-        mask = mask | df['GRUPO'].apply(cruce_filtrar_grupos_opcion2)
+    mask = df['GRUPO'].apply(lambda g: filtrar_grupo(g, opcion1, opcion2))
     return df[mask].copy()
 
 def cruce_cruzar_con_matriculados(df_asistencia, file_obj_matriculados, hoja_matriculados):
@@ -1223,8 +1197,8 @@ MAPEO_COLUMNAS_INF = {
     'PROGRAMA': ['PROGRAMA', 'PROG', 'PROG_NOMBRE'],
     'FACULTAD': ['FACULTAD'],
     'MATERIA': ['MATERIA'],
+    'EVALUACIÓN': ['EVALUACION', 'EVALUACIÓN'],
     'GRUPO': ['GRUPO'],
-    'EVALUACION': ['EVALUACION'],
     'NOTA': ['NOTA'],
     'N_PERDIDAS': ['N_PERDIDAS']
 }
@@ -1480,25 +1454,6 @@ def sup_procesar_archivo(file_obj):
 # ==================  MÓDULO 6: VISITAS A GRUPOS  ============
 # ============================================================
 
-def vis_determinar_semestre(grupo):
-    if pd.isna(grupo):
-        return None
-    grupo_str = str(grupo).strip().upper()
-    if not grupo_str:
-        return None
-    patrones_primero = [r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)', r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)']
-    patrones_segundo = [r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2']
-    patrones_tercero = [r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3']
-    for p in patrones_primero:
-        if re.match(p, grupo_str):
-            return 'PRIMERO'
-    for p in patrones_segundo:
-        if re.match(p, grupo_str):
-            return 'SEGUNDO'
-    for p in patrones_tercero:
-        if re.match(p, grupo_str):
-            return 'TERCERO'
-    return None
 
 def vis_aplicar_formato(workbook, nombre_hoja):
     if nombre_hoja not in workbook.sheetnames:
@@ -1587,7 +1542,7 @@ def vis_procesar_archivo(archivos, jornadas):
     df_general = df_general.reset_index(drop=True)
 
     df_visitas = df_general.copy()
-    df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(vis_determinar_semestre)
+    df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(determinar_semestre)
     df_visitas = df_visitas[df_visitas['SEMESTRE'].notna()].copy()
     df_visitas = df_visitas.reset_index(drop=True)
     df_visitas = df_visitas[[c for c in COLUMNAS_VISITAS if c in df_visitas.columns]]
