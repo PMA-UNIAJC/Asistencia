@@ -314,6 +314,12 @@ def determinar_semestre(grupo):
             return semestre
     return None
 
+BADGE_OPCION1 = "B1 · BS1 · SB1 · BR1 · BRS1 · C1 · SC1 · LB1 · 1"
+BADGE_OPCION2 = "BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3"
+HELP_OPCION1 = "Incluye grupos: B1, BS1, SB1, BR1, BRS1, C1, SC1, LB1 (sin 00), 1 (sin 0 ni 1 después)"
+HELP_OPCION2 = "Incluye grupos: BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3"
+
+
 def filtrar_grupo(grupo, opcion1=True, opcion2=True):
     if pd.isna(grupo):
         return False
@@ -1642,19 +1648,19 @@ if modulo == "Facultades":
     with col1_fac:
         opcion1_fac = st.checkbox(
             "Opción 1 — Primer semestre",
-            help="Incluye grupos: B1, BS1, SB1, BR1, BRS1 (sin 00), y grupos que empiezan con 1 (sin 0 ni 1 después)",
+            help=HELP_OPCION1,
             key="op1_fac"
         )
         if opcion1_fac:
-            st.markdown('<span class="badge badge-blue">B1 · BS1 · SB1 · BR1 · BRS1 · 1…</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION1}</span>', unsafe_allow_html=True)
     with col2_fac:
         opcion2_fac = st.checkbox(
             "Opción 2 — Segundo y tercer semestre",
-            help="Incluye grupos: BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3",
+            help=HELP_OPCION2,
             key="op2_fac"
         )
         if opcion2_fac:
-            st.markdown('<span class="badge badge-blue">BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION2}</span>', unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -1787,20 +1793,19 @@ elif modulo == "Cruce":
     with col1_c:
         opcion1_cruce = st.checkbox(
             "Opción 1 — Primer semestre",
-            help="B1, BS1, SB1, BR1, BRS1 (sin 00), 1 (sin 0 ni 1 después)",
+            help=HELP_OPCION1,
             key="op1_cruce"
         )
         if opcion1_cruce:
-            st.markdown('<span class="badge badge-blue">B1 · BS1 · SB1 · BR1 · BRS1 · 1…</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION1}</span>', unsafe_allow_html=True)
     with col2_c:
         opcion2_cruce = st.checkbox(
             "Opción 2 — Segundo y tercer semestre",
-            help="BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3",
+            help=HELP_OPCION2,
             key="op2_cruce"
         )
         if opcion2_cruce:
-            st.markdown('<span class="badge badge-blue">BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3</span>', unsafe_allow_html=True)
-
+            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION2}</span>', unsafe_allow_html=True)
     st.markdown("---")
 
     archivos_listos = archivo_cruce and archivo_mat_cruce and archivo_informe_cruce
