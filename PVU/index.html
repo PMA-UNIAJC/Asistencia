@@ -27,6 +27,15 @@
         <p>Tu opinión es muy importante para nosotros y nos ayuda a mejorar continuamente nuestros procesos educativos.</p>
       </div>
       <button class="welcome-btn" onclick="mostrarFormulario()">Empezar ahora</button>
+
+      <div style="text-align: center; margin-top: 8px;">
+  <button onclick="document.getElementById('modalQR').style.display='flex'" style="background:none; border:1.5px solid #1e3c72; color:#1e3c72; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:600; cursor:pointer; letter-spacing:0.5px;">Codigo QR</button>
+</div>
+
+<div id="modalQR" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center;" onclick="this.style.display='none'">
+  <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/QR%20ASISTENCIA%20PVU.jpeg" style="max-width:85vw; max-height:85vh; border-radius:10px; object-fit:contain;" onclick="event.stopPropagation()">
+</div>
+      
     </div>
   </div>
 </div>
