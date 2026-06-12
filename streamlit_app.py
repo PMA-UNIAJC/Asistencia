@@ -1145,15 +1145,19 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, opcion1,
 
     df_asistencia_matematicas = cruce_filtrar_por_area(df_general, ['M', 'DCB'])
     if not df_asistencia_matematicas.empty:
+        file_matriculados.seek(0)
         df_asistencia_matematicas = cruce_cruzar_con_matriculados(df_asistencia_matematicas, file_matriculados, 'MATEMATICAS')
         if not df_asistencia_matematicas.empty:
+            file_matriculados.seek(0)
             df_asistencia_matematicas = cruce_actualizar_sede_desde_matriculados(df_asistencia_matematicas, file_matriculados, 'MATEMATICAS')
             df_asistencia_matematicas = cruce_eliminar_columna_semestre(df_asistencia_matematicas)
 
     df_asistencia_comunicacion = cruce_filtrar_por_area(df_general, ['C'])
     if not df_asistencia_comunicacion.empty:
+        file_matriculados.seek(0)
         df_asistencia_comunicacion = cruce_cruzar_con_matriculados(df_asistencia_comunicacion, file_matriculados, 'COMUNICACION')
         if not df_asistencia_comunicacion.empty:
+            file_matriculados.seek(0)
             df_asistencia_comunicacion = cruce_actualizar_sede_desde_matriculados(df_asistencia_comunicacion, file_matriculados, 'COMUNICACION')
             df_asistencia_comunicacion = cruce_eliminar_columna_semestre(df_asistencia_comunicacion)
 
@@ -1166,9 +1170,11 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, opcion1,
     df_asistencia_pma = cruce_crear_hoja_asistencia_pma(df_asistencia_matematicas, df_asistencia_comunicacion)
     df_asistencia_pma = cruce_eliminar_columna_semestre(df_asistencia_pma)
 
+    file_informe.seek(0)
     df_ganaron_matematicas = cruce_filtrar_ganaron(df_asistencia_matematicas, file_informe, 'MATEMATICAS')
     df_ganaron_matematicas = cruce_eliminar_columna_semestre(df_ganaron_matematicas)
 
+    file_informe.seek(0)
     df_ganaron_comunicacion = cruce_filtrar_ganaron(df_asistencia_comunicacion, file_informe, 'COMUNICACION')
     df_ganaron_comunicacion = cruce_eliminar_columna_semestre(df_ganaron_comunicacion)
 
