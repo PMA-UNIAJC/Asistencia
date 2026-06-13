@@ -1199,20 +1199,7 @@ async function descargarPorFacultad(event) {
     return;
   }
 
-  const mapeoFacultades = {
-  'FCE': 'CIENCIAS EMPRESARIALES',
-  'FCSH': 'CIENCIAS SOCIALES Y HUMANAS',
-  'FEDV': 'EDUCACION A DISTANCIA Y VIRTUAL',
-  'FI': 'INGENIERIA'
-  };
-
-  const codigosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
-  const nombresFacultadesBD = codigosSeleccionados.map(codigo => mapeoFacultades[codigo]).filter(Boolean);
-
-  if (nombresFacultadesBD.length === 0) {
-    alert('Error al mapear las facultades seleccionadas');
-    return;
-  }
+  const nombresFacultadesBD = Array.from(checkboxes).map(cb => cb.value);
 
   const btnDescarga = event.target;
   const textoOriginal = btnDescarga.textContent;
@@ -1230,7 +1217,7 @@ async function descargarPorFacultad(event) {
       return;
     }
 
-    generarExcelPorFacultad(datosFinales, codigosSeleccionados);
+    generarExcelPorFacultad(datosFinales, nombresFacultadesBD);
     alert(`${datosFinales.length} registros descargados exitosamente`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
@@ -1271,7 +1258,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
     { wch: 10 }, { wch: 35 }, { wch: 35 }, { wch: 30 }, { wch: 30 }
   ];
   
-  const nombresFacultades = facultadesSeleccionadas.map(f => obtenerNombreFacultad(f)).join('_');
+  const nombresFacultades = facultadesSeleccionadas.join('_');
   XLSX.utils.book_append_sheet(wb, ws, "Por Facultad");
   
   const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
