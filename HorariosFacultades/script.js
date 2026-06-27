@@ -151,7 +151,7 @@ function addDocente() {
         </div>
         <div class="form-group">
           <label for="${id}-correo">Correo institucional *</label>
-          <input type="email" id="${id}-correo" placeholder="docente@profesores.uniajc.edu.co" autocomplete="off"/>
+          <input type="email" id="${id}-correo" placeholder="docente@profesores.uniajc.edu.co" autocomplete="new-password"/>
         </div>
       </div>
 
@@ -178,7 +178,7 @@ function addDocente() {
       <!-- Observaciones -->
 <div class="form-group" style="margin-top:2.5rem">
   <label for="${id}-obs">Observaciones</label>
-  <textarea id="${id}-obs" placeholder="Información adicional del docente..." maxlength="150" rows="2"
+  <textarea id="${id}-obs" placeholder="Información adicional..." maxlength="150" rows="2"
     style="resize:none"></textarea>
   <span id="${id}-obs-count" style="font-size:11px;color:var(--gris)">0 / 150</span>
 </div>
