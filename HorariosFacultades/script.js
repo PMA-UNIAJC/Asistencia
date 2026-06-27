@@ -146,12 +146,12 @@ function addDocente() {
       <div class="form-row" style="margin-bottom:.5rem">
         <div class="form-group">
           <label for="${id}-nombre">Nombre completo del docente *</label>
-          <input type="text" id="${id}-nombre" placeholder="Nombre del docente"
+          <input type="text" id="${id}-nombre" placeholder="Nombre del docente" autocomplete="off"
             oninput="updateBuilderTitle('${id}')"/>
         </div>
         <div class="form-group">
           <label for="${id}-correo">Correo institucional *</label>
-          <input type="email" id="${id}-correo" placeholder="docente@profesores.uniajc.edu.co"/>
+          <input type="email" id="${id}-correo" placeholder="docente@profesores.uniajc.edu.co" autocomplete="off"/>
         </div>
       </div>
 
