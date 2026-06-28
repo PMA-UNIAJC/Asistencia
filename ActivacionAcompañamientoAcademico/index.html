@@ -26,6 +26,22 @@
         <p>La información proporcionada será utilizada para gestionar y coordinar el proceso de acompañamiento académico de manera eficiente.</p>
       </div>
       <button class="welcome-btn" onclick="mostrarFormulario()">Empezar ahora</button>
+
+      <div class="seguimiento-section">
+        <h3 class="seguimiento-titulo">Hacer seguimiento</h3>
+        <input
+          type="text"
+          id="inputSeguimiento"
+          placeholder="Código de remisión"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="characters"
+          oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')"
+          class="seguimiento-input">
+        <p class="seguimiento-texto">Para hacer seguimiento a un caso, coloque el código de remisión en el espacio de "Hacer seguimiento".</p>
+        <p id="mensajeSeguimiento" class="hidden"></p>
+        <button class="welcome-btn seguimiento-btn" onclick="buscarSeguimiento()">Continuar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -294,8 +310,11 @@
       </svg>
     </div>
     <h2>¡Formulario Enviado!</h2>
-    <p>Gracias por completar el formulario</p>
-    <p class="small-text">Redirigiendo...</p>
+    <p>Gracias por completar el formulario.</p>
+    <p>El código de remisión asignado es:</p>
+    <p id="codigoRemisionModal" style="font-size: 2rem; font-weight: bold; letter-spacing: 4px; margin: 8px 0;"></p>
+    <p class="small-text">Para hacer seguimiento al caso, coloque el código de remisión en el espacio de "Hacer seguimiento".</p>
+    <button class="btn" style="margin-top: 16px;" onclick="location.reload()">OK</button>
   </div>
 </div>
 
@@ -310,6 +329,29 @@
     </div>
   </div>
 </div>
+
+
+<!-- Modal de seguimiento -->
+<div id="modalSeguimiento" class="modal-overlay hidden" style="display:none;">
+  <div class="modal-seguimiento-inner">
+    <h2>Información del caso</h2>
+    <table class="seguimiento-tabla">
+      <tr><td>Fecha y hora:</td><td id="seg_fecha"></td></tr>
+      <tr><td>Acompañamiento:</td><td id="seg_tipo"></td></tr>
+      <tr><td>Estudiante:</td><td id="seg_estudiante"></td></tr>
+      <tr><td>Facultad:</td><td id="seg_facultad"></td></tr>
+      <tr><td>Programa:</td><td id="seg_programa"></td></tr>
+      <tr><td>Grupo:</td><td id="seg_grupo"></td></tr>
+      <tr><td>Estado:</td><td id="seg_estado"></td></tr>
+      <tr><td>Información Adicional:</td><td id="seg_info"></td></tr>
+    </table>
+    <div class="modal-buttons" style="margin-top: 20px;">
+      <button class="btn" onclick="cerrarModalSeguimiento()">OK</button>
+    </div>
+  </div>
+</div>
+
+
 
 <script src="script.js"></script>
 </body>

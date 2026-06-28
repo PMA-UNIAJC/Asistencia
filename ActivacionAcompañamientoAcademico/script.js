@@ -134,6 +134,7 @@ async function supabaseQuery(table, options = {}) {
     const { field, values } = options.in;
     params.push(`${field}=in.(${values.map(v => encodeURIComponent(v)).join(',')})`);
   }
+  if (options.limit) params.push(`limit=${options.limit}`);
 
   if (params.length) url += `?${params.join('&')}`;
 
@@ -514,7 +515,8 @@ function obtenerDatosFormulario() {
     correo_profesor:      document.getElementById('correoCompleto').value.trim().toLowerCase(),
     asignatura:           asignaturas.join('; '),
     motivo:               motivos.join('; '),
-    comentarios:          document.getElementById('infoAdicional').value.trim().toUpperCase() || null
+    comentarios:          document.getElementById('infoAdicional').value.trim().toUpperCase() || null,
+    estado_remision: 'Enviado',
   };
 
   // Campos exclusivos según tipo
@@ -637,19 +639,40 @@ async function enviarFormulario(event) {
   }
 }
 
+
+async function generarCodigoRemision() {
+  const data = await supabaseQuery('acompanamiento', {
+    select: 'codigo_remision',
+    order: 'id.desc',
+    limit: 200
+  });
+
+  const registros = data.filter(r => r.codigo_remision && r.codigo_remision.startsWith('AA'));
+  if (registros.length === 0) return 'AA01';
+
+  const numeros = registros
+    .map(r => parseInt(r.codigo_remision.replace('AA', ''), 10))
+    .filter(n => !isNaN(n));
+
+  if (numeros.length === 0) return 'AA01';
+
+  const maximo = Math.max(...numeros);
+  const siguiente = maximo + 1;
+  return siguiente <= 9 ? `AA0${siguiente}` : `AA${siguiente}`;
+}
+
 async function intentarEnviarConReintentos(datos, intento = 1) {
   const btnEnviar = document.getElementById('btnEnviar');
   try {
+    const codigoRemision = await generarCodigoRemision();
+    datos.codigo_remision = codigoRemision;
+
     await supabaseInsert('acompanamiento', datos);
     intentosRestantes = 3;
-    mostrarModalExito();
+    mostrarModalExito(codigoRemision);
 
-    setTimeout(() => {
-      resetearFormulario(true);
-      btnEnviar.disabled    = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      regresarABienvenida();
-    }, 2000);
+    btnEnviar.disabled    = false;
+    btnEnviar.textContent = 'Enviar Formulario';
 
     return true;
   } catch (err) {
@@ -698,10 +721,10 @@ function mostrarMensaje(mensaje, tipo) {
   setTimeout(() => { el.style.display = 'none'; }, 5000);
 }
 
-function mostrarModalExito() {
+function mostrarModalExito(codigoRemision) {
   const modal = document.getElementById('modalExito');
+  document.getElementById('codigoRemisionModal').textContent = codigoRemision;
   modal.classList.remove('hidden');
-  setTimeout(() => modal.classList.add('hidden'), 3000);
 }
 
 
@@ -782,6 +805,70 @@ document.addEventListener('visibilitychange', () => {
     tiempoSalida = null;
   }
 });
+
+
+async function buscarSeguimiento() {
+  const input = document.getElementById('inputSeguimiento');
+  const codigo = input.value.trim().toUpperCase();
+
+  if (!codigo) {
+    alert('Por favor ingrese un código de remisión.');
+    return;
+  }
+
+  try {
+    const data = await supabaseQuery('acompanamiento', {
+      select: 'fecha_hora,tipo_acompanamiento,nombres_y_apellidos,facultad_estudiante,programa_estudiante,grupo,estado_remision,informacion',
+      eq: { field: 'codigo_remision', value: codigo }
+    });
+
+    if (!data || data.length === 0) {
+      document.getElementById('mensajeSeguimiento').textContent =
+        'No se encontró ningún caso asociado al código de remisión ingresado.';
+      document.getElementById('mensajeSeguimiento').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('mensajeSeguimiento').classList.add('hidden');
+
+    const r = data[0];
+    document.getElementById('seg_fecha').textContent = r.fecha_hora
+  ? (() => {
+      const d = new Date(r.fecha_hora);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const aaaa = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${dd}-${mm}-${aaaa} ${hh}:${min}`;
+    })()
+  : '—';
+
+    document.getElementById('seg_tipo').textContent           = r.tipo_acompanamiento || '—';
+    document.getElementById('seg_estudiante').textContent     = r.nombres_y_apellidos || '—';
+    document.getElementById('seg_facultad').textContent       = r.facultad_estudiante || '—';
+    document.getElementById('seg_programa').textContent       = r.programa_estudiante || '—';
+    document.getElementById('seg_grupo').textContent          = r.grupo || '—';
+    document.getElementById('seg_estado').textContent         = r.estado_remision || '—';
+    document.getElementById('seg_info').textContent           = r.informacion || 'No hay información';
+
+    const modal = document.getElementById('modalSeguimiento');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+
+  } catch (err) {
+    console.error('Error al buscar seguimiento:', err);
+    document.getElementById('mensajeSeguimiento').textContent =
+      'Ocurrió un error al buscar el código. Intente nuevamente.';
+    document.getElementById('mensajeSeguimiento').classList.remove('hidden');
+  }
+}
+
+function cerrarModalSeguimiento() {
+  const modal = document.getElementById('modalSeguimiento');
+  modal.classList.add('hidden');
+  modal.style.display = 'none';
+}
 
 
 document.addEventListener('DOMContentLoaded', async () => {

@@ -130,6 +130,8 @@ function cambiarTabPrincipal(event, seccion) {
     if (primerTabAAA) {
       document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
       primerTabAAA.classList.add('active');
+      document.getElementById('tabRemisionesAAA').classList.add('hidden');
+      document.getElementById('tabDescargasAAA').classList.remove('hidden');
     }
   }
 }
@@ -300,7 +302,10 @@ async function actualizarEstadisticas() {
     } else if (!contenidoPVU.classList.contains('hidden')) {
       window.datosPVUGlobal = null;
       await cargarEstadisticasPVU();
-    } 
+    } else if (!document.getElementById('contenidoAAA').classList.contains('hidden')) {
+      remisionesAAACache = [];
+      await cargarRemisionesAAA();
+    }
 
     iconActualizar.style.animation = 'none';
     iconActualizar.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
@@ -2207,7 +2212,17 @@ async function cambiarTabPVU(event, tab) {
 function cambiarTabAAA(event, tab) {
   document.querySelectorAll('#contenidoAAA .admin-tabs-secundario .admin-tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
-  document.getElementById('tabDescargasAAA').classList.remove('hidden');
+  document.getElementById('tabDescargasAAA').classList.add('hidden');
+  document.getElementById('tabRemisionesAAA').classList.add('hidden');
+
+  if (tab === 'descargas') {
+    document.getElementById('tabDescargasAAA').classList.remove('hidden');
+  } else if (tab === 'remisiones') {
+    document.getElementById('tabRemisionesAAA').classList.remove('hidden');
+    if (remisionesAAACache.length === 0) {
+      cargarRemisionesAAA();
+    }
+  }
 }
 
 async function cargarEstadisticasPVU() {
@@ -3249,6 +3264,199 @@ async function descargarPDF() {
   }
 }
 
+
+// ── REMISIONES AAA ──────────────────────────────────────────────────────────
+
+let remisionesAAACache = [];
+
+async function cargarRemisionesAAA() {
+  const tbody = document.getElementById('cuerpoRemisionesAAA');
+  const mensaje = document.getElementById('mensajeRemisionesAAA');
+  const loader = document.createElement('div');
+  loader.className = 'loader';
+  document.body.appendChild(loader);
+  tbody.innerHTML = '';
+  mensaje.textContent = '';
+
+  try {
+    const data = await supabaseQuerySinLimite('acompanamiento', { order: 'fecha_hora.desc' });
+    remisionesAAACache = data;
+    filtrarRemisiones();
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:#dc3545;">Error al cargar los registros.</td></tr>';
+    console.error(err);
+  } finally {
+    loader.remove();
+  }
+}
+
+function filtrarRemisiones() {
+  const textoBusqueda = (document.getElementById('buscadorCodigoRemision')?.value || '').trim().toUpperCase();
+  const estadoFiltro = document.getElementById('filtroEstadoRemision')?.value || '';
+
+  let filtrados = remisionesAAACache;
+
+  if (textoBusqueda) {
+    filtrados = filtrados.filter(r => (r.codigo_remision || '').toUpperCase().includes(textoBusqueda));
+  }
+  if (estadoFiltro) {
+    filtrados = filtrados.filter(r => (r.estado_remision || '') === estadoFiltro);
+  }
+
+  renderTablaRemisiones(filtrados);
+}
+
+function renderTablaRemisiones(datos) {
+  const tbody = document.getElementById('cuerpoRemisionesAAA');
+  const mensaje = document.getElementById('mensajeRemisionesAAA');
+  tbody.innerHTML = '';
+
+  if (!datos || datos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:#666;">No se encontraron registros.</td></tr>';
+    mensaje.textContent = '';
+    return;
+  }
+
+  mensaje.textContent = `Mostrando ${datos.length} registro${datos.length !== 1 ? 's' : ''}.`;
+
+  const ESTADOS = ['Enviado', 'Recibido', 'No fue posible', 'En atención', 'Finalizado'];
+
+  datos.forEach(fila => {
+    const fechaStr = fila.fecha_hora
+  ? (() => {
+      const d = new Date(fila.fecha_hora);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const aaaa = d.getFullYear();
+      return `${dd}/${mm}/${aaaa}`;
+    })()
+  : '—';
+
+    const estadoActual = fila.estado_remision || 'Enviado';
+    const opcionesEstado = ESTADOS.map(e =>
+      `<option value="${e}" ${e === estadoActual ? 'selected' : ''}>${e}</option>`
+    ).join('');
+
+    const tr = document.createElement('tr');
+    tr.dataset.codigo = fila.codigo_remision || '';
+    tr.innerHTML = `
+      <td class="tabla-tutor-num" style="font-weight:700; color:#1e3c72; white-space:nowrap;">${escapeHtmlAdmin(fila.codigo_remision || '—')}</td>
+      <td class="tabla-tutor-num" style="white-space:nowrap;">${fechaStr}</td>
+      <td class="tabla-tutor-num" style="white-space:nowrap;">${escapeHtmlAdmin(fila.tipo_acompanamiento || '—')}</td>
+      <td class="tabla-tutor-nombre">${escapeHtmlAdmin(fila.nombres_y_apellidos || '—')}</td>
+      <td class="tabla-tutor-num">${escapeHtmlAdmin(fila.grupo || '—')}</td>
+      <td class="tabla-tutor-nombre">${escapeHtmlAdmin(fila.programa_estudiante || '—')}</td>
+      <td class="tabla-tutor-nombre">${escapeHtmlAdmin(fila.profesor || '—')}</td>
+      <td class="tabla-tutor-nombre">${escapeHtmlAdmin(fila.asignatura || '—')}</td>
+      <td style="text-align:center; white-space:nowrap;">
+  <div class="remision-acciones">
+    <select class="remision-estado-select" data-codigo="${escapeHtmlAdmin(fila.codigo_remision || '')}" onchange="guardarEstadoRemision(this)">
+      ${opcionesEstado}
+    </select>
+    <div class="remision-botones">
+      <button class="remision-btn" title="Ver comentarios" onclick="abrirComentarioAAA('${escapeHtmlAdmin(fila.codigo_remision || '')}')">💬</button>
+      <button class="remision-btn" title="Ver/editar información" onclick="abrirInformacionAAA('${escapeHtmlAdmin(fila.codigo_remision || '')}')">📝</button>
+    </div>
+  </div>
+</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function abrirComentarioAAA(codigo) {
+  const registro = remisionesAAACache.find(r => r.codigo_remision === codigo);
+  const comentario = registro?.comentarios?.trim() || 'No hay comentarios.';
+  document.getElementById('contenidoComentarioAAA').textContent = comentario;
+  document.getElementById('modalComentarioAAA').classList.remove('hidden');
+}
+
+function cerrarModalComentarioAAA() {
+  document.getElementById('modalComentarioAAA').classList.add('hidden');
+}
+
+function abrirInformacionAAA(codigo) {
+  const registro = remisionesAAACache.find(r => r.codigo_remision === codigo);
+  document.getElementById('modalInfoCodigoAAA').value = codigo;
+  document.getElementById('contenidoInformacionAAA').value = registro?.informacion || '';
+  document.getElementById('mensajeGuardadoInfo').textContent = '';
+  document.getElementById('modalInformacionAAA').classList.remove('hidden');
+}
+
+function cerrarModalInformacionAAA() {
+  document.getElementById('modalInformacionAAA').classList.add('hidden');
+}
+
+async function guardarInformacionAAA() {
+  const codigo = document.getElementById('modalInfoCodigoAAA').value;
+  const informacion = document.getElementById('contenidoInformacionAAA').value.trim();
+  const msgEl = document.getElementById('mensajeGuardadoInfo');
+  msgEl.style.color = '#666';
+  msgEl.textContent = 'Guardando...';
+
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/acompanamiento?codigo_remision=eq.${encodeURIComponent(codigo)}`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ informacion: informacion || null })
+    });
+
+    if (!response.ok) throw new Error('Error al guardar');
+
+    const idx = remisionesAAACache.findIndex(r => r.codigo_remision === codigo);
+    if (idx !== -1) remisionesAAACache[idx].informacion = informacion || null;
+
+    msgEl.style.color = '#155724';
+    msgEl.textContent = '✓ Información guardada correctamente.';
+    setTimeout(() => cerrarModalInformacionAAA(), 1500);
+  } catch (err) {
+    msgEl.style.color = '#dc3545';
+    msgEl.textContent = 'No fue posible guardar los cambios.';
+    console.error(err);
+  }
+}
+
+async function guardarEstadoRemision(selectEl) {
+  const codigo = selectEl.dataset.codigo;
+  const nuevoEstado = selectEl.value;
+
+  selectEl.disabled = true;
+
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/acompanamiento?codigo_remision=eq.${encodeURIComponent(codigo)}`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ estado_remision: nuevoEstado })
+    });
+
+    if (!response.ok) throw new Error('Error al guardar');
+
+    const idx = remisionesAAACache.findIndex(r => r.codigo_remision === codigo);
+    if (idx !== -1) remisionesAAACache[idx].estado_remision = nuevoEstado;
+
+    selectEl.style.borderColor = '#28a745';
+    setTimeout(() => { selectEl.style.borderColor = ''; }, 1500);
+
+  } catch (err) {
+    selectEl.style.borderColor = '#dc3545';
+    setTimeout(() => { selectEl.style.borderColor = ''; }, 1500);
+    console.error(err);
+  } finally {
+    selectEl.disabled = false;
+  }
+}
 
 (function initNavegacionAdmin() {
   window.addEventListener('popstate', function() {
