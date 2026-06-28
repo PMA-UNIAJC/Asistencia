@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Panel Administrativo — Horarios Facultades</title>
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+  
+  <link rel="stylesheet" href="../RegistroHorarios/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+
+
+<body>
+
+<!-- ══ ENCABEZADO ══════════════════════════════════════════════════ -->
+<header class="site-header">
+  <a href="javascript:location.reload()" class="header-logo-link">
+    <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png"
+         alt="UNIAJC" class="header-logo-img"/>
+  </a>
+  <button class="btn admin-badge" onclick="abrirModalListado()" style="margin-left:auto;cursor:pointer">
+    Listado por facultad
+  </button>
+</header>
+
+<!-- ══ HERO ════════════════════════════════════════════════════════ -->
+<div class="page-hero">
+  <div class="container">
+    <h1>PANEL ADMINISTRATIVO — HORARIOS FACULTADES</h1>
+    <p>Gestiona, revisa, edita y publica los horarios enviados por los directores de cada facultad.</p>
+  </div>
+</div>
+
+<!-- ══ CONTENIDO PRINCIPAL ═════════════════════════════════════════ -->
+<!-- ── BARRA DE FILTROS HORIZONTAL ────────────────────────── -->
+<div class="container filtros-bar">
+  <input type="text" id="filtro-busqueda" placeholder="Buscar docente..." autocomplete="off"/>
+  <select id="filtro-estado">
+    <option value="">Todos los estados</option>
+    <option value="pendiente">Pendiente</option>
+    <option value="publicado">Publicado</option>
+  </select>
+  <select id="filtro-orden">
+    <option value="desc">Más reciente primero</option>
+    <option value="asc">Más antiguo primero</option>
+  </select>
+  <button class="btn btn-ghost" onclick="limpiarFiltros()">Limpiar</button>
+</div>
+
+<div class="container" style="padding-bottom:4rem">
+
+
+  <!-- ── PANEL PRINCIPAL: Detalle del envío ─────────────── -->
+  <main class="envio-detail" id="envio-detail">
+
+    <!-- Lista de envíos horizontal -->
+    <div id="envios-list" class="envios-list">
+      <div class="loading-state">
+        <div class="spinner-dark"></div>
+        <p>Cargando envíos...</p>
+      </div>
+    </div>
+
+    <!-- Estado vacío -->
+    <div class="empty-state" id="empty-detail">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <h3>Selecciona un envío</h3>
+      <p>Elige un envío de la lista para ver y gestionar los horarios de sus docentes.</p>
+    </div>
+
+    <!-- Contenido del envío seleccionado -->
+    <div id="detail-content" style="display:none">
+
+      <!-- Cabecera del envío -->
+      <div class="card envio-header-card" id="envio-header">
+        <!-- Se rellena dinámicamente -->
+      </div>
+
+      <!-- Alertas -->
+      <div class="alert alert-error" id="err-detail" role="alert"></div>
+      <div class="alert alert-info" id="info-detail" role="alert"></div>
+
+      <!-- Acciones del envío -->
+      <div class="envio-actions card">
+        <p class="section-label">Acciones del envío</p>
+        <div class="action-row">
+          <button class="btn btn-primary" id="btn-publicar" onclick="togglePublicar()"></button>
+          <button class="btn btn-ghost" onclick="abrirModalDocente(null)">+ Agregar docente</button>
+          <button class="btn btn-ghost btn-danger" onclick="confirmarEliminarEnvio()">Eliminar envío</button>
+        </div>
+      </div>
+
+      <!-- Lista de docentes -->
+      <div id="docentes-list">
+        <!-- Se rellena dinámicamente -->
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<!-- ══ MODAL: Editar / Agregar docente ════════════════════════════ -->
+<div class="modal-overlay" id="modal-docente" style="display:none" onclick="cerrarModalDocente(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="modal-docente-titulo">Editar docente</h2>
+      <button class="modal-close" onclick="cerrarModalDocente()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-docente-body">
+      <!-- Se rellena dinámicamente -->
+    </div>
+    <div class="modal-footer">
+      <div class="alert alert-error" id="err-modal" role="alert"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="cerrarModalDocente()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-docente" onclick="guardarDocente()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Listado por facultad ═══════════════════════════════ -->
+<div class="modal-overlay" id="modal-listado" style="display:none" onclick="cerrarModalListado(event)">
+  <div class="modal-box modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Listado de docentes por facultad</h2>
+      <button class="modal-close" onclick="cerrarModalListado()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-listado-body">
+      <div class="loading-state">
+        <div class="spinner-dark"></div>
+        <p>Generando listado...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Confirmación eliminar ══════════════════════════════ -->
+<div class="modal-overlay" id="modal-confirm" style="display:none" onclick="cerrarModalConfirm(event)">
+  <div class="modal-box modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="confirm-titulo">Confirmar eliminación</h2>
+      <button class="modal-close" onclick="cerrarModalConfirm()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-msg" style="font-size:14px;color:var(--gris);line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="cerrarModalConfirm()">Cancelar</button>
+        <button class="btn btn-danger" id="btn-confirm-ok">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast de notificación -->
+<div class="toast" id="toast"></div>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>

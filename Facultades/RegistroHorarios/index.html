@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Horarios Facultades PMA</title>
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+
+
+<body>
+
+<!-- ENCABEZADO -->
+<header class="site-header">
+  <a href="javascript:location.reload()" class="header-logo-link">
+    <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png"
+         alt="UNIAJC" class="header-logo-img"/>
+  </a>
+  <nav class="nav-links">
+<p style="margin-top: 10px;">
+  <a href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/MANUAL%20DE%20USO%20-%20HORARIOS%20FACULTADES%20PMA.pdf"
+     target="_blank"
+     rel="noopener noreferrer"
+     style="color: #ffffff; font-weight: 500; text-decoration: none;">
+    Ver Manual de Usuario
+  </a>
+</p>
+  </nav>
+</header>
+
+
+<div class="page-hero">
+  <div class="container">
+    <h1>HORARIOS DE TUTORÍAS PMA - FACULTADES</h1>
+    <p>Ingresa los horarios de todos los docentes de tu facultad en un solo formulario.</p>
+
+
+<p>
+  ¿Necesitas ayuda? Comunícate al correo:
+  <a href="mailto:pma@admon.uniajc.edu.co" style="color: #ffffff; font-weight: 500; text-decoration: none;">
+    pma@admon.uniajc.edu.co
+  </a>
+</p>
+
+
+
+  </div>
+</div>
+
+<div class="container" style="padding-bottom:3rem">
+
+  <!-- ═══ PASO 1: Información general ═══ -->
+  <div id="step1">
+    <div class="stepper">
+      <div class="step active"><div class="step-num">1</div> Información general</div>
+      <div class="step-line"></div>
+      <div class="step"><div class="step-num">2</div> Docentes y horarios</div>
+      <div class="step-line"></div>
+      <div class="step"><div class="step-num">3</div> Revisar y enviar</div>
+    </div>
+
+    <div class="card">
+      <p class="section-label">Información del director</p>
+      <div class="form-group">
+  <label for="director-nombre">Nombre del Director de la Facultad *</label>
+  <input type="text" id="director-nombre" autocomplete="off"/>
+</div>
+<div class="form-group">
+  <label for="director-correo">Correo Institucional del Director *</label>
+  <input type="email" id="director-correo" placeholder="Ej: director@admon.uniajc.edu.co" autocomplete="off"/>
+</div>
+      <div class="form-group">
+        <label for="director-facultad">Facultad *</label>
+        <select id="director-facultad">
+          <option value="">Seleccionar facultad...</option>
+          <option value="CIENCIAS EMPRESARIALES">CIENCIAS EMPRESARIALES</option>
+          <option value="CIENCIAS SOCIALES Y HUMANAS">CIENCIAS SOCIALES Y HUMANAS</option>
+          <option value="EDUCACION A DISTANCIA Y VIRTUAL">EDUCACION A DISTANCIA Y VIRTUAL</option>
+          <option value="INGENIERIA">INGENIERIA</option>
+        </select>
+      </div>
+      <div class="alert alert-error" id="err-step1" role="alert"></div>
+      <button class="btn btn-primary" onclick="goStep2()">
+        Continuar →
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ PASO 2: Docentes y horarios ═══ -->
+  <div id="step2" style="display:none">
+    <div class="stepper">
+      <div class="step done"><div class="step-num">✓</div> Información general</div>
+      <div class="step-line"></div>
+      <div class="step active"><div class="step-num">2</div> Docentes y horarios</div>
+      <div class="step-line"></div>
+      <div class="step"><div class="step-num">3</div> Revisar y enviar</div>
+    </div>
+
+    <div class="alert alert-info" id="info-facultad" style="display:block"></div>
+    <div class="alert alert-error" id="err-step2" role="alert"></div>
+
+    <div id="docentes-container"></div>
+
+    <button class="btn-add" onclick="addDocente()">
+      + Agregar docente
+    </button>
+
+    <div style="display:flex;gap:10px;margin-top:1.5rem">
+      <button class="btn btn-ghost" onclick="goStep1()">← Volver</button>
+      <button class="btn btn-primary" onclick="goStep3()">Revisar y enviar →</button>
+    </div>
+  </div>
+
+  <!-- ═══ PASO 3: Resumen ═══ -->
+  <div id="step3" style="display:none">
+    <div class="stepper">
+      <div class="step done"><div class="step-num">✓</div> Información general</div>
+      <div class="step-line"></div>
+      <div class="step done"><div class="step-num">✓</div> Docentes y horarios</div>
+      <div class="step-line"></div>
+      <div class="step active"><div class="step-num">3</div> Revisar y enviar</div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem">
+      <p class="section-label">Resumen del envío</p>
+      <!-- Resumen vertical, un dato por línea -->
+      <div id="resumen-header" class="resumen-header-bloque"></div>
+      <div id="resumen-lista"></div>
+    </div>
+
+    <div class="alert alert-error" id="err-step3" role="alert"></div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" onclick="goStep2Edit()">← Editar</button>
+      <button class="btn btn-primary btn-submit-full" id="submit-btn" onclick="submitTodo()">
+        Enviar todos los horarios
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ PASO 4: Éxito ═══ -->
+  <div id="step4" style="display:none">
+    <div class="success-state">
+      <div class="success-icon-wrap">
+        <svg viewBox="0 0 24 24">
+          <polyline points="4 12 9 17 20 6"/>
+        </svg>
+      </div>
+      <h2>¡Horarios enviados!</h2>
+      <p id="success-msg-text">Los horarios fueron recibidos.<br>El administrador los revisará y publicará pronto.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Horarios de Tutorías Facultades - PMA</title>
+  <link rel="icon" type="image/png"
+        href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+  
+  
+  <link rel="stylesheet" href="../RegistroHorarios/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     ENCABEZADO
+════════════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <a href="javascript:location.reload()" class="header-logo-link">
+    <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png"
+         alt="UNIAJC" class="header-logo-img"/>
+  </a>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════════ -->
+<div class="page-hero">
+  <div class="container">
+    <h1>FACULTADES - HORARIOS DE TUTORÍAS PMA</h1>
+    <p>Consulta los horarios de atención de los docentes de tu facultad.</p>
+    <p>
+      ¿Dudas? Comunícate al correo:
+      <a href="mailto:pma@admon.uniajc.edu.co"
+         style="color:#ffffff;font-weight:500;text-decoration:none;">
+        pma@admon.uniajc.edu.co
+      </a>
+    </p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     CUERPO PRINCIPAL
+════════════════════════════════════════════════════════════ -->
+<div class="container" style="padding-bottom:3rem">
+
+  <!-- ─── TOOLBAR: selector + búsqueda + botón PDF ─────────── -->
+  <div class="consulta-toolbar">
+
+    <!-- Selector de facultad -->
+    <div class="form-group">
+      <label for="sel-facultad">Facultad *</label>
+      <select id="sel-facultad" onchange="onFacultadChange()">
+        <option value="">Seleccionar facultad...</option>
+        <option value="CIENCIAS EMPRESARIALES">CIENCIAS EMPRESARIALES</option>
+        <option value="CIENCIAS SOCIALES Y HUMANAS">CIENCIAS SOCIALES Y HUMANAS</option>
+        <option value="EDUCACION A DISTANCIA Y VIRTUAL">EDUCACIÓN A DISTANCIA Y VIRTUAL</option>
+        <option value="INGENIERIA">INGENIERÍA</option>
+      </select>
+    </div>
+
+    <!-- Barra de búsqueda -->
+    <div class="search-bar-wrap">
+      <label for="input-busqueda">Buscar Docente o Materia</label>
+      <span class="search-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+      <input
+        id="input-busqueda"
+        class="search-input"
+        type="search"
+        placeholder="Escribe para filtrar..."
+        disabled
+        oninput="onBusquedaInput()"
+        autocomplete="off"
+      />
+    </div>
+
+    <!-- Botón descargar PDF -->
+    <button id="btn-pdf" class="btn-pdf" disabled onclick="descargarPDF()">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Descargar PDF
+    </button>
+
+  </div>
+
+  <!-- ─── ÁREA DE RESULTADOS ────────────────────────────────── -->
+  <div id="area-resultados">
+
+    <!-- Estado inicial: ninguna facultad seleccionada -->
+    <div id="estado-inicial" class="estado-vacio">
+      
+      <strong>Selecciona la Facultad</strong>
+      <p>Elige una Facultad en el selector para ver los horarios de tutoría disponibles.</p>
+    </div>
+
+    <!-- Estado: cargando datos -->
+    <div id="estado-cargando" style="display:none" class="loading-state">
+      <div class="spinner-wrap"><div class="spinner-lg"></div></div>
+      <p>Cargando Horarios de la Facultad...</p>
+    </div>
+
+    <!-- Estado: error de red / Supabase -->
+    <div id="estado-error" class="alert alert-error" style="display:none;margin:0"></div>
+
+    <!-- Estado: facultad sin horarios cargados -->
+    <div id="estado-sin-horarios" style="display:none" class="estado-vacio">
+      <strong>Aún no hay horarios disponibles</strong>
+      <p>Los horarios de esta Facultad todavía no han sido ingresados. Vuelve a consultar más tarde.</p>
+    </div>
+
+    <!-- Estado: búsqueda sin resultados -->
+    <div id="estado-sin-busqueda" style="display:none" class="estado-sin-resultados">
+      <strong>Sin resultados</strong>
+      <p>No se encontró ningún Docente ni Materia que coincida con "<span id="texto-busqueda-vacia"></span>".</p>
+    </div>
+
+    <!-- Listado de docentes -->
+    <div id="listado-docentes" style="display:none">
+      <div class="resultados-header">
+        <div id="chip-facultad" class="facultad-chip"></div>
+        <span class="resultados-count" id="count-resultados"></span>
+      </div>
+      <div id="cards-container"></div>
+    </div>
+
+  </div><!-- /area-resultados -->
+
+</div><!-- /container -->
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="script.js"></script>
+
+
+</body>
+</html>

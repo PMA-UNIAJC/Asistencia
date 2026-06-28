@@ -1,0 +1,304 @@
+
+.consulta-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+.consulta-toolbar .form-group {
+  margin-bottom: 0;
+  flex: 1 1 200px;
+}
+
+/* ── Barra de búsqueda ─────────────────────────────────────────── */
+.search-bar-wrap {
+  position: relative;
+  flex: 1 1 220px;
+}
+
+.search-bar-wrap .search-icon {
+  position: absolute;
+  left: 10px;
+  top: 42px;
+  transform: translateY(-50%);
+  color: var(--gris);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar-wrap label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--azul);
+  margin-bottom: 4px;
+  letter-spacing: .02em;
+}
+
+.search-input {
+  width: 100%;
+  padding: 9px 11px 9px 34px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--texto);
+  background: var(--gris-light);
+  transition: border-color .18s, box-shadow .18s, opacity .18s;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--azul-med);
+  box-shadow: 0 0 0 3px rgba(29,78,107,.1);
+  background: var(--blanco);
+}
+
+.search-input:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  background: var(--arena-dark);
+}
+
+/* ── Botón descargar PDF ───────────────────────────────────────── */
+.btn-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: var(--verde);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(21,92,58,0.18);
+  transition: all .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+.btn-pdf:hover  { background: #0f4a2d; }
+
+.btn-pdf:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  background: var(--gris);
+  box-shadow: none;
+}
+
+.btn-pdf svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+
+/* ── Chip de facultad activa ───────────────────────────────────── */
+.facultad-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--azul-light);
+  color: var(--azul);
+  border: 1px solid rgba(15,42,61,.12);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  margin-bottom: 1rem;
+  letter-spacing: .02em;
+}
+
+/* ── Cabecera de resultados ────────────────────────────────────── */
+.resultados-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resultados-count {
+  font-size: 13px;
+  color: var(--gris);
+}
+
+.resultados-count strong {
+  color: var(--azul);
+  font-weight: 500;
+}
+
+/* ── Tarjeta docente — modo consulta ──────────────────────────── */
+.docente-card-consulta {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: .85rem;
+  box-shadow: var(--shadow);
+  animation: slideIn .22s ease;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.docente-card-consulta .card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Nombre del docente en la tarjeta de consulta */
+.docente-card-consulta .docente-nombre {
+  font-size: 15px;
+}
+
+/* Badge de sede dentro de la fila de horario */
+.horario-sede-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 0;
+  border-radius: 10px;
+  background: var(--arena-dark);
+  color: var(--gris);
+  letter-spacing: .03em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 90px;
+}
+
+.horario-sede-badge.sede-virtual {
+  background: #e8f5ee;
+  color: var(--verde);
+}
+
+/* Enlace de tutoría virtual */
+.docente-link-virtual {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--verde);
+  text-decoration: none;
+  margin-top: 8px;
+  font-weight: 500;
+  border: 1px solid var(--verde-borde);
+  background: var(--verde-bg);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  transition: background .15s;
+  word-break: break-all;
+}
+
+.docente-link-virtual:hover {
+  background: #d2eedd;
+}
+
+.docente-link-virtual svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* ── Estados vacíos y de carga ─────────────────────────────────── */
+.estado-vacio,
+.estado-sin-resultados,
+.loading-state {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  color: var(--gris);
+}
+
+.estado-vacio .estado-icon,
+.estado-sin-resultados .estado-icon,
+.loading-state .estado-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: .55;
+}
+
+.estado-vacio p,
+.estado-sin-resultados p,
+.loading-state p {
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.estado-vacio strong,
+.estado-sin-resultados strong {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-size: 1.1rem;
+  color: var(--azul);
+  margin-bottom: .4rem;
+}
+
+/* Spinner de carga */
+.loading-state .spinner-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.loading-state .spinner-lg {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(15,42,61,.12);
+  border-top-color: var(--azul-med);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .consulta-toolbar {
+    padding: 1rem;
+    gap: 10px;
+  }
+
+  .btn-pdf {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .docente-card-consulta {
+    flex-direction: column;
+    gap: 10px;
+    padding: 1rem;
+  }
+
+  .resultados-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 400px) {
+  .consulta-toolbar { padding: .75rem; }
+}
