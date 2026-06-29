@@ -1,3 +1,4 @@
+
 .consulta-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -346,13 +347,24 @@
   }
 
   .horario-row {
-    flex-wrap: wrap;
-    gap: 4px 8px;
+    flex-wrap: nowrap;
+    gap: 4px 6px;
+    justify-content: center;
   }
 
   .horario-sede-badge {
     width: auto;
     padding: 3px 8px;
+    flex-shrink: 0;
+  }
+
+  .horario-dia {
+    flex-shrink: 0;
+  }
+
+  .horario-hora {
+    flex-shrink: 0;
+    margin: 0;
   }
 
   .docente-link-virtual {
@@ -380,11 +392,12 @@
   }
 
   .horario-row {
-    flex-direction: column;
-    gap: 3px;
+    flex-wrap: wrap;
+    gap: 3px 6px;
+    justify-content: center;
   }
 
   .horario-sede-badge {
-    align-self: flex-start;
+    align-self: center;
   }
 }
