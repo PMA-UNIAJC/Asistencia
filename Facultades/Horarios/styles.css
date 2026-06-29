@@ -169,6 +169,17 @@
   font-size: 15px;
 }
 
+/* Fila de horario individual */
+.horario-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  flex-wrap: nowrap;
+  min-height: 32px;
+}
+
+
 /* Badge de sede dentro de la fila de horario */
 .horario-sede-badge {
   display: inline-flex;
@@ -275,16 +286,48 @@
   animation: spin .75s linear infinite;
 }
 
-/* ── Responsive ────────────────────────────────────────────────── */
+/* ── Responsive tablets (641px – 1024px) ──────────────────────── */
+@media (max-width: 1024px) and (min-width: 641px) {
+  .consulta-toolbar {
+    gap: 10px;
+  }
+
+  .consulta-toolbar .form-group {
+    flex: 1 1 180px;
+  }
+
+  .search-bar-wrap {
+    flex: 1 1 200px;
+  }
+
+  .btn-pdf {
+    min-height: 44px;
+  }
+}
+
+/* ── Responsive móvil (≤ 640px) ──────────────────────────────── */
 @media (max-width: 640px) {
   .consulta-toolbar {
     padding: 1rem;
     gap: 10px;
+    flex-direction: column;
+  }
+
+  .consulta-toolbar .form-group,
+  .search-bar-wrap {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .search-input {
+    font-size: 16px; /* evita zoom automático en iOS */
   }
 
   .btn-pdf {
     width: 100%;
     justify-content: center;
+    min-height: 44px;
+    font-size: 15px;
   }
 
   .docente-card-consulta {
@@ -297,8 +340,52 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .facultad-chip {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .horario-row {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
+  .horario-sede-badge {
+    width: auto;
+    padding: 3px 8px;
+  }
+
+  .docente-link-virtual {
+    padding: 8px 12px;
+    min-height: 44px;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  .estado-vacio,
+  .estado-sin-resultados,
+  .loading-state {
+    padding: 2.5rem 1rem;
+  }
 }
 
+/* ── Responsive móvil pequeño (≤ 400px) ──────────────────────── */
 @media (max-width: 400px) {
-  .consulta-toolbar { padding: .75rem; }
+  .consulta-toolbar {
+    padding: .75rem;
+  }
+
+  .docente-card-consulta {
+    padding: .85rem;
+  }
+
+  .horario-row {
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .horario-sede-badge {
+    align-self: flex-start;
+  }
 }
