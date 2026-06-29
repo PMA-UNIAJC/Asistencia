@@ -4,17 +4,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ════════════════════════════════════════════════════════════
-   ESTADO DE LA APLICACIÓN
-════════════════════════════════════════════════════════════ */
+/* ESTADO DE LA APLICACIÓN*/
 let todosLosDocentes = [];   // datos completos traídos de Supabase
 let docentesFiltrados = [];  // subconjunto activo según la búsqueda
 
 const ORDEN_DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-/* ════════════════════════════════════════════════════════════
-   HELPERS DE VISIBILIDAD DE ESTADOS
-════════════════════════════════════════════════════════════ */
+/* HELPERS DE VISIBILIDAD DE ESTADOS */
 function mostrarSolo(idVisible) {
   const ids = [
     'estado-inicial',
@@ -35,9 +31,7 @@ function ocultarTodos() {
     .forEach(id => { document.getElementById(id).style.display = 'none'; });
 }
 
-/* ════════════════════════════════════════════════════════════
-   CAMBIO DE FACULTAD
-════════════════════════════════════════════════════════════ */
+
 async function onFacultadChange() {
   const facultad = document.getElementById('sel-facultad').value;
 
@@ -132,7 +126,6 @@ async function onFacultadChange() {
     renderDocentes(facultad);
 
     inputBusqueda.disabled = false;
-    inputBusqueda.focus();
     document.getElementById('btn-pdf').disabled = false;
 
   } catch (err) {
