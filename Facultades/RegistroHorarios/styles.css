@@ -608,6 +608,7 @@ h3 { font-size: 1.05rem; color: var(--azul); }
   color: var(--texto);
   flex: none;
   width: 160px;
+  max-width: 100%;
 }
 
 .horario-lugar { font-size: 11px; color: var(--gris); margin-top: 1px; }
@@ -744,36 +745,102 @@ h3 { font-size: 1.05rem; color: var(--azul); }
 .step.active .step-num { background: var(--azul-light); border-color: var(--azul); }
 .step-line { flex: 1; height: 1px; background: var(--arena-dark); margin: 0 8px; }
 
-/* ── Responsive ──────────────────────────────── */
-@media (max-width: 640px) {
-  .form-row { grid-template-columns: 1fr; }
+/* ── Responsive ──────────────────────────────────── */
+
+/* Tablets (641px – 900px) */
+@media (min-width: 641px) and (max-width: 900px) {
+  .container { padding: 0 1.25rem; }
+
+  .page-hero { padding: 2rem 0 1.75rem; }
 
   .horario-builder-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr 1fr 1fr auto;
+  }
+  .horario-builder-row .col-dia  { grid-column: 1 / -1; }
+  .horario-builder-row .col-sede { grid-column: 1 / 3; }
+  .horario-builder-row .col-btn  { align-self: flex-end; }
+
+  .time-picker select.sel-hora { width: 60px; }
+  .time-picker select.sel-min  { width: 58px; }
+  .time-picker select.sel-ampm { width: 63px; }
+}
+
+/* Móviles (≤ 640px) */
+@media (max-width: 640px) {
+  /* Tipografía */
+  h1 { font-size: 1.35rem; }
+
+  /* Hero */
+  .page-hero { padding: 1.75rem 0 1.5rem; margin-bottom: 1.5rem; }
+  .page-hero h1 { font-size: 22px; margin-bottom: 12px; }
+  .page-hero p  { font-size: 13px; }
+
+  /* Header */
+  .site-header { padding: .75rem 1rem; }
+  .nav-links   { display: none; }
+  .header-logo-img { height: 36px; }
+
+  /* Layout */
+  .container { padding: 0 1rem; }
+
+  /* Formularios */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* Stepper — compacto */
+  .stepper     { margin-bottom: 1.25rem; }
+  .step        { font-size: 0; gap: 4px; }   /* oculta el texto, conserva el círculo */
+  .step.active { font-size: 11px; }           /* solo el paso activo muestra texto */
+  .step-num    { width: 24px; height: 24px; font-size: 11px; flex-shrink: 0; }
+  .step-line   { margin: 0 4px; }
+
+  /* Horario builder: una columna por fila */
+  .horario-builder-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .horario-builder-row .col-dia  { grid-column: 1; }
+  .horario-builder-row .col-sede { grid-column: 1; }
+  .horario-builder-row .col-btn  {
+    grid-column: 1;
+    display: flex;
+    justify-content: flex-end;
   }
 
-  /* Día y sede ocupan columna completa en móvil */
-  .horario-builder-row .col-dia  { grid-column: 1 / -1; }
-  .horario-builder-row .col-sede { grid-column: 1 / -1; }
-  .horario-builder-row .col-btn  { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+  /* Time-pickers: tamaño táctil cómodo */
+  .time-picker { gap: 6px; }
+  .time-picker select          { padding: 10px 6px; font-size: 15px; }
+  .time-picker select.sel-hora { width: 62px; }
+  .time-picker select.sel-min  { width: 60px; }
+  .time-picker select.sel-ampm { width: 70px; font-size: 13px; }
+  .time-picker .colon          { font-size: 18px; }
 
-  h1 { font-size: 1.5rem; }
+  /* Resumen (paso 3) */
+  .summary-card    { flex-direction: column; }
+  .resumen-dato    { flex-direction: column; gap: 2px; }
+  .resumen-dato strong { min-width: unset; }
 
-  .site-header { padding: .9rem 1rem; }
-  .nav-links   { display: none; }
+  /* Horario-hora: ancho fijo → automático */
+  .horario-hora { width: auto; }
 
-  .step { font-size: 11px; gap: 5px; }
-  .step-num { width: 22px; height: 22px; font-size: 11px; }
-  .step-line { margin: 0 4px; }
+  /* Botones de navegación: apilados en pantallas muy angostas */
+  .btn-submit-full { font-size: 13px; padding: 9px 14px; }
 
-  .summary-card { flex-direction: column; }
+  /* Cards y builders */
+  .card            { padding: 1.1rem; }
+  .docente-builder { padding: 1rem; }
+}
 
-  .time-picker select.sel-hora { width: 56px; }
-  .time-picker select.sel-min  { width: 54px; }
-  .time-picker select.sel-ampm { width: 60px; }
+/* Móviles muy pequeños (≤ 390px) */
+@media (max-width: 390px) {
+  .container { padding: 0 .75rem; }
+  .page-hero h1 { font-size: 19px; }
+  .step.active  { font-size: 10px; }
 
-  .resumen-dato strong { min-width: 140px; }
+  /* Botones de acción: columna completa */
+  #step3 > div[style*="flex"] {
+    flex-direction: column;
+  }
+  #step3 .btn { width: 100%; justify-content: center; }
 }
 
 @media (max-width: 400px) {
