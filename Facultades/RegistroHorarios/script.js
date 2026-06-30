@@ -162,8 +162,8 @@ function addDocente() {
       <p style="font-size:12px;color:var(--gris);margin:4px 0 8px 0">
       Separa cada materia con coma o punto y coma. <br> Ej: Cálculo, Álgebra; Física
       </p>
-      <textarea id="${id}-materias-input" rows="2" style="resize:none"
-      placeholder="Cálculo, Álgebra lineal; Física..."></textarea>
+      <textarea id="${id}-materias-input" rows="2" style="resize:vertical;min-height:54px"
+placeholder="Cálculo, Álgebra lineal; Física..."></textarea>
       </div>
 
       <!-- Horarios -->
@@ -201,7 +201,7 @@ function addDocente() {
 
   const matEl = document.getElementById(`${id}-materias-input`);
   matEl.addEventListener('input', function() {
-    this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s,;\/]/g, '');
+    this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s,;:\/]/g, '');
   });
   matEl.addEventListener('blur', function() {
     this.value = reemplazarNumerosRomanos(this.value);

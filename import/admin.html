@@ -237,13 +237,20 @@
     <button class="admin-tab active" onclick="cambiarTabAAA(event, 'descargas')">Descargar Datos</button>
     <button class="admin-tab" onclick="cambiarTabAAA(event, 'remisiones')">Remisiones</button>
   </div>
+
   <div id="tabDescargasAAA">
     <div class="chart-container">
       <h3 class="chart-title">Descargar Reportes AAA</h3>
       <p class="texto-descargas">Descargue los registros del programa Activación y Acompañamiento Académico.</p>
-      <button class="btn" onclick="descargarAAATodo()" id="btnDescargarAAATodo">Vista Previa</button>
+      <button class="btn" onclick="descargarAAATodo()" id="btnDescargarAAATodo">Descargar Registros</button>
+    </div>
+    <div class="chart-container chart-container-spacing">
+      <h3 class="chart-title">Descargar PDF</h3>
+      <p class="texto-descargas">Descargue toda la información del programa AAA en formato PDF.</p>
+      <button class="btn" onclick="descargarPDFAAA()" id="btnDescargarPDFAAA">Descargar PDF</button>
     </div>
   </div>
+
   <div id="tabRemisionesAAA" class="hidden">
     <div class="chart-container">
       <h3 class="chart-title">Remisiones AAA</h3>
@@ -260,7 +267,6 @@
             <option value="">Todos los estados</option>
             <option value="Enviado">Enviado</option>
             <option value="Recibido">Recibido</option>
-            <option value="No fue posible">No fue posible</option>
             <option value="En atención">En atención</option>
             <option value="Finalizado">Finalizado</option>
           </select>
@@ -313,34 +319,6 @@
     </div>
   </div>
 
-<div id="modalPreviewAAA" class="modal-overlay hidden">
-  <div class="modal-confirmacion" style="max-width: 1200px; width: 95%;">
-    <h2>Vista Previa — Registros AAA</h2>
-    <p id="totalPreviewAAA" style="color: #666; font-size: 13px; margin-bottom: 12px;"></p>
-    <div style="overflow-x: auto; max-height: 250px; overflow-y: auto; margin-bottom: 20px;">
-      <table class="tabla-estadisticas-tutores" id="tablaPreviewAAA" style="width: 100%; font-size: 12px;">
-        <thead>
-  <tr>
-    <th style="text-align: center;">Fecha</th>
-    <th style="text-align: center;">Tipo</th>
-    <th style="text-align: center;">Nombre</th>
-    <th style="text-align: center;">Grupo</th>
-    <th style="text-align: center;">Profesor</th>
-    <th style="text-align: center;">Asignatura</th>
-</tr>
-</thead>
-        <tbody id="cuerpoPreviewAAA"></tbody>
-      </table>
-    </div>
-    <div class="modal-buttons">
-      <button class="btn" onclick="confirmarDescargaAAA()">Descargar</button>
-      <button class="btn btn-secondary" onclick="cerrarModalPreviewAAA()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-
-
 <!-- Modal comentario AAA -->
 <div id="modalComentarioAAA" class="modal-overlay hidden">
   <div class="modal-confirmacion" style="max-width:500px; width:95%;">
@@ -352,7 +330,6 @@
   </div>
 </div>
 
-
 <!-- Modal información AAA -->
 <div id="modalInformacionAAA" class="modal-overlay hidden">
   <div class="modal-confirmacion" style="max-width:520px; width:95%;">
@@ -361,6 +338,9 @@
     <textarea id="contenidoInformacionAAA" rows="6"
       style="width:100%; padding:10px; border:1.5px solid #d0d7de; border-radius:6px; font-size:14px; font-family:inherit; resize:vertical; line-height:1.5;"
       placeholder="Escriba información adicional del caso..."></textarea>
+
+<p id="fechaActualizacionInfo" style="font-size:12px; color:#888; margin-top:6px; min-height:16px;"></p>
+
     <p id="mensajeGuardadoInfo" style="font-size:13px; font-weight:500; margin-top:8px; min-height:18px;"></p>
     <div class="modal-buttons" style="margin-top:12px;">
       <button class="btn" onclick="guardarInformacionAAA()">Guardar</button>

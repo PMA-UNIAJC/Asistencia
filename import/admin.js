@@ -1857,11 +1857,12 @@ function togglePassword() {
 }
 
 
+
 async function descargarAAATodo() {
-  const btnDescarga = document.getElementById('btnDescargarAAATodo');
-  const textoOriginal = btnDescarga.textContent;
-  btnDescarga.disabled = true;
-  btnDescarga.textContent = 'Cargando vista previa...';
+  const btn = document.getElementById('btnDescargarAAATodo');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Descargando...';
 
   try {
     const data = await supabaseQuerySinLimite('acompanamiento', { order: 'fecha_hora.asc' });
@@ -1871,59 +1872,18 @@ async function descargarAAATodo() {
       return;
     }
 
-    // Guardar datos para usar al confirmar
-    window.datosAAADescarga = data;
-
-    // Llenar tabla preview con los últimos 8
-    const ultimos5 = data.slice(-5);
-    const tbody = document.getElementById('cuerpoPreviewAAA');
-    tbody.innerHTML = '';
-
-    ultimos5.forEach(fila => {
-      const fechaColombia = convertirFechaAColombia(fila.fecha_hora);
-      const fechaStr = fechaColombia.toLocaleDateString('es-CO', {
-        timeZone: 'America/Bogota',
-        day: '2-digit', month: '2-digit', year: 'numeric'
-      });
-
-      
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-  <td class="tabla-tutor-num">${fechaStr}</td>
-  <td class="tabla-tutor-num">${fila.tipo_acompanamiento || ''}</td>
-  <td class="tabla-tutor-nombre">${fila.nombres_y_apellidos || ''}</td>
-  <td class="tabla-tutor-num">${fila.grupo || ''}</td>
-  <td class="tabla-tutor-nombre">${fila.profesor || ''}</td>
-  <td class="tabla-tutor-nombre">${fila.asignatura || ''}</td>
-`;
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById('totalPreviewAAA').textContent =
-      `Total de Registros a Descargar: ${data.length} — Mostrando los Últimos ${ultimos5.length}`;
-
-    document.getElementById('modalPreviewAAA').classList.remove('hidden');
-
+    generarExcelAAACompleto(data, 'AAA_');
+    alert(`${data.length} registros de AAA descargados exitosamente`);
   } catch (error) {
     alert('Error al cargar datos: ' + error.message);
     console.error(error);
   } finally {
-    btnDescarga.disabled = false;
-    btnDescarga.textContent = textoOriginal;
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
   }
 }
 
-function confirmarDescargaAAA() {
-  cerrarModalPreviewAAA();
-  const data = window.datosAAADescarga;
-  if (!data || data.length === 0) return;
-  generarExcelAAACompleto(data, 'AAA_Completo');
-  alert(`${data.length} registros de AAA descargados exitosamente`);
-}
 
-function cerrarModalPreviewAAA() {
-  document.getElementById('modalPreviewAAA').classList.add('hidden');
-}
 
 
 function generarExcelAAACompleto(datos, nombreArchivo) {
@@ -1935,6 +1895,7 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
     return {
       'Fecha': serialDate,
       'Hora': horaFormateada,
+      'Codigo': fila.codigo_remision || '',
       'Tipo Acompañamiento': fila.tipo_acompanamiento || '',
       'Documento': fila.documento ? parseInt(fila.documento) : '',
       'Nombres y Apellidos': fila.nombres_y_apellidos || '',
@@ -1952,7 +1913,9 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
       'Correo Profesor': fila.correo_profesor || '',
       'Asignatura': fila.asignatura || '',
       'Motivo': fila.motivo || '',
-      'Comentarios': fila.comentarios || ''
+      'Comentarios': fila.comentarios || '',
+      'Estado': fila.estado_remision || '',
+      'Informacion': fila.informacion || ''
     };
   });
 
@@ -1960,12 +1923,13 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
-  aplicarFormatoExcel(ws, range, 0, 3);
+  aplicarFormatoExcel(ws, range, 0, 4);
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
   ws['!cols'] = [
     { wch: 12 },  // Fecha
     { wch: 8 },   // Hora
+    { wch: 15 },  // Codigo
     { wch: 18 },  // Tipo Acompañamiento
     { wch: 12 },  // Documento
     { wch: 30 },  // Nombres y Apellidos
@@ -1983,13 +1947,162 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
     { wch: 35 },  // Correo Profesor
     { wch: 40 },  // Asignatura
     { wch: 50 },  // Motivo
-    { wch: 50 }   // Comentarios
+    { wch: 50 },  // Comentarios
+    { wch: 18 },  // Estado
+    { wch: 50 }   // Informacion
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "Todos");
 
   const fechaHoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
+}
+
+
+async function descargarPDFAAA() {
+  const btn = document.getElementById('btnDescargarPDFAAA');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generando PDF...';
+
+  try {
+    const data = await supabaseQuerySinLimite('acompanamiento', { order: 'fecha_hora.asc' });
+
+    if (!data || data.length === 0) {
+      alert('No hay registros de AAA para descargar');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const contentW = pageW - margin * 2;
+    let y = margin;
+
+    // Encabezado
+    pdf.setFillColor(30, 60, 114);
+    pdf.rect(0, 0, pageW, 18, 'F');
+    pdf.setFontSize(13);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Remisiones - Activación Acompañamiento Académico', pageW / 2, 12, { align: 'center' });
+    pdf.setTextColor(0, 0, 0);
+    y = 24;
+
+    const fechaHoy = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', year: 'numeric' });
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+    pdf.text(`Total de registros: ${data.length}   |   Generado: ${fechaHoy}`, margin, y);
+    pdf.setTextColor(0, 0, 0);
+    y += 8;
+
+    // Columnas
+    const cols = [
+      { header: 'Fecha',        key: 'fecha_hora',          w: 0.07 },
+      { header: 'Tipo',         key: 'tipo_acompanamiento', w: 0.09 },
+      { header: 'Nombres y Apellidos', key: 'nombres_y_apellidos', w: 0.14 },
+      { header: 'Grupo',        key: 'grupo',               w: 0.05 },
+      { header: 'Programa',     key: 'programa_estudiante', w: 0.12 },
+      { header: 'Profesor',     key: 'profesor',            w: 0.10 },
+      { header: 'Asignatura',   key: 'asignatura',          w: 0.10 },
+      { header: 'Motivo',       key: 'motivo',              w: 0.09 },
+      { header: 'Codigo',       key: 'codigo_remision',     w: 0.06 },
+      { header: 'Estado',       key: 'estado_remision',     w: 0.07 },
+      { header: 'Informacion',  key: 'informacion',         w: 0.08 },
+    ];
+    const widths = cols.map(c => c.w * contentW);
+    const rowH = 7;
+    const headerH = 8;
+
+    function checkY(h) {
+      if (y + h > pageH - 12) {
+        // Pie de página
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`Registros AAA — ${fechaHoy}`, margin, pageH - 4);
+        pdf.addPage();
+        y = margin;
+        dibujarHeaderTabla();
+      }
+    }
+
+    function dibujarHeaderTabla() {
+      pdf.setFillColor(30, 60, 114);
+      pdf.rect(margin, y, contentW, headerH, 'F');
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(255, 255, 255);
+      let xPos = margin;
+      cols.forEach((col, i) => {
+        pdf.text(col.header, xPos + 2, y + 5.5);
+        xPos += widths[i];
+      });
+      pdf.setTextColor(0, 0, 0);
+      y += headerH;
+    }
+
+    dibujarHeaderTabla();
+
+    data.forEach((fila, idx) => {
+      checkY(rowH);
+
+      // Fondo alternado
+      if (idx % 2 === 0) {
+        pdf.setFillColor(245, 247, 252);
+        pdf.rect(margin, y, contentW, rowH, 'F');
+      }
+
+      pdf.setFontSize(6.5);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(40, 40, 40);
+
+      let xPos = margin;
+      cols.forEach((col, i) => {
+        let valor = '';
+        if (col.key === 'fecha_hora' && fila.fecha_hora) {
+          const d = new Date(fila.fecha_hora);
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const aaaa = d.getFullYear();
+          valor = `${dd}/${mm}/${aaaa}`;
+        } else {
+          valor = String(fila[col.key] || '');
+        }
+        const maxChars = Math.floor(widths[i] / 1.8);
+        const textoCorto = valor.length > maxChars ? valor.substring(0, maxChars - 1) + '…' : valor;
+        pdf.text(textoCorto, xPos + 2, y + 4.8);
+        xPos += widths[i];
+      });
+
+      // Línea separadora
+      pdf.setDrawColor(220, 220, 220);
+      pdf.line(margin, y + rowH, margin + contentW, y + rowH);
+
+      y += rowH;
+    });
+
+    // Números de página
+    const totalPaginas = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPaginas; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Página ${i} de ${totalPaginas}`, pageW - margin, pageH - 4, { align: 'right' });
+    }
+
+    const fechaArchivo = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+    pdf.save(`AAA_${fechaArchivo}.pdf`);
+
+  } catch (error) {
+    alert('Error al generar el PDF: ' + error.message);
+    console.error(error);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
 }
 
 
@@ -3319,7 +3432,7 @@ function renderTablaRemisiones(datos) {
 
   mensaje.textContent = `Mostrando ${datos.length} registro${datos.length !== 1 ? 's' : ''}.`;
 
-  const ESTADOS = ['Enviado', 'Recibido', 'No fue posible', 'En atención', 'Finalizado'];
+  const ESTADOS = ['Enviado', 'Recibido', 'En atención', 'Finalizado'];
 
   datos.forEach(fila => {
     const fechaStr = fila.fecha_hora
@@ -3380,6 +3493,19 @@ function abrirInformacionAAA(codigo) {
   document.getElementById('modalInfoCodigoAAA').value = codigo;
   document.getElementById('contenidoInformacionAAA').value = registro?.informacion || '';
   document.getElementById('mensajeGuardadoInfo').textContent = '';
+
+  const fechaEl = document.getElementById('fechaActualizacionInfo');
+  if (registro?.fecha_actualizacion_info) {
+    const fechaFormateada = new Date(registro.fecha_actualizacion_info).toLocaleString('es-CO', {
+      timeZone: 'America/Bogota',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+    fechaEl.textContent = `Última actualización: ${fechaFormateada}`;
+  } else {
+    fechaEl.textContent = 'Sin actualizaciones registradas.';
+  }
+
   document.getElementById('modalInformacionAAA').classList.remove('hidden');
 }
 
@@ -3394,6 +3520,8 @@ async function guardarInformacionAAA() {
   msgEl.style.color = '#666';
   msgEl.textContent = 'Guardando...';
 
+  const ahora = new Date().toISOString();
+
   try {
     const url = `${SUPABASE_URL}/rest/v1/acompanamiento?codigo_remision=eq.${encodeURIComponent(codigo)}`;
     const response = await fetch(url, {
@@ -3404,13 +3532,26 @@ async function guardarInformacionAAA() {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({ informacion: informacion || null })
+      body: JSON.stringify({ 
+        informacion: informacion || null,
+        fecha_actualizacion_info: ahora
+      })
     });
 
     if (!response.ok) throw new Error('Error al guardar');
 
     const idx = remisionesAAACache.findIndex(r => r.codigo_remision === codigo);
-    if (idx !== -1) remisionesAAACache[idx].informacion = informacion || null;
+    if (idx !== -1) {
+      remisionesAAACache[idx].informacion = informacion || null;
+      remisionesAAACache[idx].fecha_actualizacion_info = ahora;
+    }
+
+    const fechaFormateada = new Date(ahora).toLocaleString('es-CO', {
+      timeZone: 'America/Bogota',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+    document.getElementById('fechaActualizacionInfo').textContent = `Última actualización: ${fechaFormateada}`;
 
     msgEl.style.color = '#155724';
     msgEl.textContent = '✓ Información guardada correctamente.';
@@ -3428,6 +3569,8 @@ async function guardarEstadoRemision(selectEl) {
 
   selectEl.disabled = true;
 
+  const ahora = new Date().toISOString();
+
   try {
     const url = `${SUPABASE_URL}/rest/v1/acompanamiento?codigo_remision=eq.${encodeURIComponent(codigo)}`;
     const response = await fetch(url, {
@@ -3438,13 +3581,16 @@ async function guardarEstadoRemision(selectEl) {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({ estado_remision: nuevoEstado })
+      body: JSON.stringify({ estado_remision: nuevoEstado, fecha_actualizacion_info: ahora })
     });
 
     if (!response.ok) throw new Error('Error al guardar');
 
     const idx = remisionesAAACache.findIndex(r => r.codigo_remision === codigo);
-    if (idx !== -1) remisionesAAACache[idx].estado_remision = nuevoEstado;
+    if (idx !== -1) {
+      remisionesAAACache[idx].estado_remision = nuevoEstado;
+      remisionesAAACache[idx].fecha_actualizacion_info = ahora;
+    }
 
     selectEl.style.borderColor = '#28a745';
     setTimeout(() => { selectEl.style.borderColor = ''; }, 1500);

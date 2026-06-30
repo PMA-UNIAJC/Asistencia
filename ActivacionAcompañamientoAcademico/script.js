@@ -818,7 +818,7 @@ async function buscarSeguimiento() {
 
   try {
     const data = await supabaseQuery('acompanamiento', {
-      select: 'fecha_hora,tipo_acompanamiento,nombres_y_apellidos,facultad_estudiante,programa_estudiante,grupo,estado_remision,informacion',
+      select: 'fecha_hora,tipo_acompanamiento,nombres_y_apellidos,facultad_estudiante,programa_estudiante,grupo,estado_remision,informacion,fecha_actualizacion_info',
       eq: { field: 'codigo_remision', value: codigo }
     });
 
@@ -840,7 +840,7 @@ async function buscarSeguimiento() {
       const aaaa = d.getFullYear();
       const hh = String(d.getHours()).padStart(2, '0');
       const min = String(d.getMinutes()).padStart(2, '0');
-      return `${dd}-${mm}-${aaaa} ${hh}:${min}`;
+      return `${dd}/${mm}/${aaaa} ${hh}:${min}`;
     })()
   : '—';
 
@@ -850,7 +850,18 @@ async function buscarSeguimiento() {
     document.getElementById('seg_programa').textContent       = r.programa_estudiante || '—';
     document.getElementById('seg_grupo').textContent          = r.grupo || '—';
     document.getElementById('seg_estado').textContent         = r.estado_remision || '—';
-    document.getElementById('seg_info').textContent           = r.informacion || 'No hay información';
+    document.getElementById('seg_info').textContent           = r.informacion || 'No hay información. Aquí se mostrarán las observaciones de PMA';
+    document.getElementById('seg_fecha_info').textContent = r.fecha_actualizacion_info
+  ? (() => {
+      const d = new Date(r.fecha_actualizacion_info);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const aaaa = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `Última actualización: ${dd}/${mm}/${aaaa} ${hh}:${min}`;
+    })()
+  : '';
 
     const modal = document.getElementById('modalSeguimiento');
     modal.classList.remove('hidden');

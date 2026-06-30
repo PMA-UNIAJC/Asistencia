@@ -280,7 +280,7 @@
 
           <!-- INFORMACIÓN ADICIONAL -->
           <div class="form-group">
-            <label>Añade información adicional (Opcional)</label>
+            <label>Añade Observaciones (Opcional)</label>
             <textarea
               id="infoAdicional"
               placeholder="Escriba aquí información adicional del caso"
@@ -343,8 +343,15 @@
       <tr><td>Programa:</td><td id="seg_programa"></td></tr>
       <tr><td>Grupo:</td><td id="seg_grupo"></td></tr>
       <tr><td>Estado:</td><td id="seg_estado"></td></tr>
-      <tr><td>Información Adicional:</td><td id="seg_info"></td></tr>
+      <tr>
+        <td colspan="2" class="seguimiento-info-celda">
+          <h3 class="seguimiento-info-titulo">Información Adicional</h3>
+          <p id="seg_info" class="seguimiento-info-valor"></p>
+          <p id="seg_fecha_info" class="seguimiento-info-fecha"></p>
+        </td>
+      </tr>
     </table>
+    
     <div class="modal-buttons" style="margin-top: 20px;">
       <button class="btn" onclick="cerrarModalSeguimiento()">OK</button>
     </div>

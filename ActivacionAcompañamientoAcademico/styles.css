@@ -1438,6 +1438,37 @@ textarea {
   border-bottom: none;
 }
 
+.seguimiento-info-celda {
+  padding-top: 18px !important;
+  white-space: normal !important;
+}
+
+.seguimiento-info-titulo {
+  text-align: center;
+  color: #1e3c72;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  margin: 0 0 10px 0;
+}
+
+.seguimiento-info-valor {
+  text-align: left;
+  color: #444;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 8px 0;
+}
+
+.seguimiento-info-fecha {
+  text-align: right;
+  color: #888;
+  font-size: 12px;
+  font-style: italic;
+  margin: 0;
+}
+
+
 /* ===================================
    RESPONSIVE - SEGUIMIENTO
    =================================== */

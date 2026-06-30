@@ -470,7 +470,7 @@ h3 { font-size: 1.05rem; color: var(--azul); }
   grid-template-columns: 1.2fr 1fr 1fr 1fr auto;
   gap: 8px;
   align-items: end;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .horario-builder-row .form-group {
@@ -775,9 +775,10 @@ h3 { font-size: 1.05rem; color: var(--azul); }
   .page-hero h1 { font-size: 22px; margin-bottom: 12px; }
   .page-hero p  { font-size: 13px; }
 
-  /* Header */
-  .site-header { padding: .75rem 1rem; }
-  .nav-links   { display: none; }
+  
+/* Header */
+  .site-header { padding: .75rem 1rem; flex-wrap: wrap; row-gap: .5rem; }
+  .nav-links   { margin-left: 0; width: 100%; justify-content: center; }
   .header-logo-img { height: 36px; }
 
   /* Layout */

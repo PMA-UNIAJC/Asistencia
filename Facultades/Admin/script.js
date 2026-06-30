@@ -1,15 +1,9 @@
-/* ══════════════════════════════════════════════════════════════════
-   admin.js — Lógica completa del panel administrativo PMA
-   ══════════════════════════════════════════════════════════════════ */
-
-// ── Configuración Supabase ────────────────────────────────────────
 const SUPABASE_URL      = 'https://imagipcgbptyjwpmpakd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltYWdpcGNnYnB0eWp3cG1wYWtkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MTI1NTQsImV4cCI6MjA5Nzk4ODU1NH0.fB61FNWsCqVm6HFvGRIqtZx3RI_pTjYL5TtLGZLAgmE';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ── Constantes del dominio ────────────────────────────────────────
 const DIAS  = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const SEDES = ['Norte', 'Sur', 'Virtual'];
 const HORAS_OPTS   = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -44,6 +38,12 @@ function normalizarBusqueda(str) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+}
+
+const ROMANOS = { 1:'I', 2:'II', 3:'III', 4:'IV', 5:'V', 6:'VI', 7:'VII', 8:'VIII', 9:'IX', 10:'X' };
+
+function reemplazarNumerosRomanos(texto) {
+  return texto.replace(/\b(10|[1-9])\b/g, n => ROMANOS[n] || n);
 }
 
 function formatearFechaBogota(isoStr) {
@@ -183,7 +183,7 @@ function renderEnviosList() {
     const estadoBadge = e.estado === 'publicado'
       ? `<span class="badge badge-publicado">● Publicado</span>`
       : `<span class="badge badge-pendiente">◑ Pendiente</span>`;
-    const director = e.decano || e.director || '—';
+    const director = e.director || e.director || '—';
 
     return `
       <div class="envio-item ${sel}" onclick="seleccionarEnvio('${e.id}')" data-id="${e.id}">
@@ -224,8 +224,8 @@ async function seleccionarEnvio(envioId) {
 
 function renderEnvioHeader() {
   const e = envioActual;
-  const director  = e.decano || e.director || '—';
-  const correoDir = e.correo_decano || e.correo_director || '—';
+  const director  = e.director || e.director || '—';
+  const correoDir = e.correo_director || e.correo_director || '—';
   const fecha     = formatearFechaBogota(e.creado_en);
   const estadoBadge = e.estado === 'publicado'
     ? `<span class="badge badge-publicado">● Publicado</span>`
@@ -592,13 +592,9 @@ function renderModalDocente() {
   const correo  = esNuevo ? '' : d.correo_docente;
   const obs     = esNuevo ? '' : (d.observaciones || '');
   const enlace  = esNuevo ? '' : (d.enlace || '');
-  const materias = esNuevo ? [] : d.materias;
+  const materiasTexto = esNuevo ? '' : (d.materias || []).map(m => m.materia).join(', ');
   const horarios = esNuevo ? [] : d.horarios;
 
-  // Materias HTML
-  const materiasHtml = materias.length > 0
-    ? materias.map((m, i) => buildMateriaRow(m.materia, i)).join('')
-    : buildMateriaRow('', 0);
 
   // Horarios HTML
   const horariosHtml = horarios.length > 0
@@ -620,11 +616,12 @@ function renderModalDocente() {
     <hr class="modal-divider"/>
 
     <div class="form-group">
-      <label style="margin-bottom:.5rem;display:block">Materias *</label>
-      <div id="m-materias-container">
-        ${materiasHtml}
-      </div>
-      <button class="btn-add-inline" type="button" onclick="addMateriaRow()">+ Agregar materia</button>
+      <label for="m-materias-input">Materias que atiende *</label>
+      <p style="font-size:12px;color:var(--gris);margin:4px 0 8px 0">
+        Separa cada materia con coma o punto y coma. <br> Ej: Cálculo, Álgebra; Física
+      </p>
+      <textarea id="m-materias-input" rows="2" style="resize:none"
+        placeholder="Cálculo, Álgebra lineal; Física...">${materiasTexto}</textarea>
     </div>
 
     <hr class="modal-divider"/>
@@ -656,7 +653,20 @@ function renderModalDocente() {
   document.getElementById('m-obs').addEventListener('input', function() {
     document.getElementById('m-obs-count').textContent = `${this.value.length} / 150`;
   });
+
+
+// Filtro y normalización de materias (misma lógica que en registro)
+  const matEl = document.getElementById('m-materias-input');
+  matEl.addEventListener('input', function() {
+    this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s,;\/]/g, '');
+  });
+  matEl.addEventListener('blur', function() {
+    this.value = reemplazarNumerosRomanos(this.value);
+  });
+
 }
+
+
 
 
 // ── Builders de filas ──────────────────────────────────────────────
@@ -664,24 +674,7 @@ function renderModalDocente() {
 let _matCounter = 0;
 let _horCounter = 0;
 
-function buildMateriaRow(valor, idx) {
-  _matCounter++;
-  const rid = `mat-${_matCounter}`;
-  return `
-    <div class="modal-materia-row" id="${rid}">
-      <input type="text" placeholder="Nombre de la materia" value="${valor}"
-             oninput="this.value=this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\\s\\/]/g,'')"/>
-      <button class="btn-remove" onclick="document.getElementById('${rid}').remove()" title="Eliminar">×</button>
-    </div>`;
-}
 
-function addMateriaRow() {
-  const c = document.getElementById('m-materias-container');
-  const tmp = document.createElement('div');
-  tmp.innerHTML = buildMateriaRow('', 0);
-  c.appendChild(tmp.firstElementChild);
-  c.lastElementChild.querySelector('input').focus();
-}
 
 function buildHorarioRow(dia, horaIni, horaFin, sede, idx) {
   _horCounter++;
@@ -756,10 +749,13 @@ async function guardarDocente() {
   if (!nombre) return showErr('err-modal', 'El nombre del docente es obligatorio.');
   if (!correo || !correo.includes('@')) return showErr('err-modal', 'Ingresa un correo institucional válido.');
 
-  // Recolectar materias
-  const materias = Array.from(
-    document.querySelectorAll('#m-materias-container .modal-materia-row input')
-  ).map(i => i.value.trim().toUpperCase()).filter(Boolean);
+  // Recolectar materias (separadas por coma o punto y coma, normalizadas y ordenadas)
+  const materiasRaw = document.getElementById('m-materias-input')?.value || '';
+  const materias = materiasRaw
+    .split(/[,;]/)
+    .map(m => normalizar(m))
+    .filter(Boolean)
+    .sort();
 
   if (materias.length === 0) return showErr('err-modal', 'Agrega al menos una materia.');
 
@@ -813,8 +809,8 @@ async function guardarDocente() {
           facultad:       envioActual.facultad,
           observaciones:  obs || null,
           enlace,
-          decano:         envioActual.decano || null,
-          correo_decano:  envioActual.correo_decano || null,
+          director:         envioActual.director || null,
+          correo_director:  envioActual.correo_director || null,
           envio_id:       envioActual.id
         })
         .select()
@@ -829,11 +825,13 @@ async function guardarDocente() {
       const { error: eUpd } = await db
         .from('docentes')
         .update({
-          docente:        nombre,
-          correo_docente: correo,
-          observaciones:  obs || null,
-          enlace
-        })
+  docente:        nombre,
+  correo_docente: correo,
+  observaciones:  obs || null,
+  enlace,
+  director:         envioActual.director || null,
+  correo_director:  envioActual.correo_director || null
+})
         .eq('id', docenteId);
 
       if (eUpd) throw eUpd;
