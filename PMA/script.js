@@ -656,7 +656,7 @@ function volverInicio() {
   const btnRegistro = elementosDOM.btnConfirmarRegistro || document.getElementById('btnConfirmarRegistro');
   if (btnRegistro) {
     btnRegistro.disabled = false;
-    btnRegistro.textContent = 'Confirmar y Registrarme';
+    btnRegistro.textContent = 'Continuar';
     btnRegistro.style.opacity = '1';
     btnRegistro.style.cursor = 'pointer';
   }
@@ -958,7 +958,7 @@ async function registrarEstudiante(event) {
   
   // Desactivar botón para evitar doble click
   btnRegistro.disabled = true;
-  btnRegistro.textContent = '⏳ Registrando...';
+  btnRegistro.textContent = 'Continuando...';
   btnRegistro.style.opacity = '0.6';
   btnRegistro.style.cursor = 'not-allowed';
   
@@ -982,21 +982,16 @@ const datos = {
     
     if (resultado && resultado.length > 0) {
       document.getElementById('mensajeRegistro').innerHTML = '';
-      
-      const modal = document.getElementById('modalExitoRegistro');
-      modal.style.display = 'flex';
-      modal.classList.remove('hidden');
-      
-      setTimeout(() => {
-        modal.style.display = 'none';
-        modal.classList.add('hidden');
-        location.reload(); // Recargar página para limpiar todo
-      }, 3000);
+
+      // Continuar directo al formulario principal, sin modal ni pausas:
+      // el estudiante todavía debe llenar el formulario de asistencia,
+      // así que no debe parecer que el proceso ya terminó.
+      mostrarFormularioParaEstudiante(datos);
     } else {
       mostrarMensaje('mensajeRegistro', 'Error: No se pudo completar el registro', 'error');
       // Reactivar botón si falla
       btnRegistro.disabled = false;
-      btnRegistro.textContent = 'Confirmar y Registrarme';
+      btnRegistro.textContent = 'Continuar';
       btnRegistro.style.opacity = '1';
       btnRegistro.style.cursor = 'pointer';
     }
@@ -1004,11 +999,12 @@ const datos = {
     mostrarMensaje('mensajeRegistro', error.message, 'error');
     // Reactivar botón si hay error
     btnRegistro.disabled = false;
-    btnRegistro.textContent = 'Confirmar y Registrarme';
+    btnRegistro.textContent = 'Continuar';
     btnRegistro.style.opacity = '1';
     btnRegistro.style.cursor = 'pointer';
   }
 }
+
 
 // ===================================
 // LOGIN
@@ -1020,6 +1016,61 @@ function censurarNombre(nombreCompleto) {
     return parte.substring(0, 2) + '*'.repeat(parte.length - 2);
   }).join(' ');
 }
+
+
+function mostrarFormularioParaEstudiante(estudiante) {
+  const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
+  const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
+  const nombreCompleto = `${nombres} ${apellidos}`;
+
+  datosEstudiante = {
+    documento: estudiante.documento,
+    nombres: nombres,
+    apellidos: apellidos,
+    nombreCensurado: censurarNombre(nombreCompleto),
+    facultad: estudiante.facultad,
+    programa: estudiante.programa,
+    sede: estudiante.sede || '',
+    semestre: estudiante.semestre
+  };
+
+  formularioEnviandose = false;
+  mostrarPantalla('pantallaFormulario');
+  // Usar caché DOM
+  if (elementosDOM.nombreUsuario) {
+    elementosDOM.nombreUsuario.textContent = 'Bienvenido(a): ' + datosEstudiante.nombreCensurado;
+  }
+  if (elementosDOM.mensajeFormulario) {
+    elementosDOM.mensajeFormulario.textContent = '';
+  }
+  actualizarBotonCerrarSesion();
+}
+
+
+async function iniciarRegistroDesdeFormulario(documento) {
+  try {
+    await precargarDatosRegistro();
+  } catch (error) {
+    mostrarMensaje('mensajeLogin', 'Error al cargar los datos. Por favor intenta de nuevo.', 'error');
+    return;
+  }
+
+  mostrarPantalla('pantallaRegistro');
+
+  if (elementosDOM.mensajeRegistro) elementosDOM.mensajeRegistro.textContent = '';
+  if (elementosDOM.confirmacionDatos) elementosDOM.confirmacionDatos.classList.add('hidden');
+  if (elementosDOM.btnConfirmarRegistro) elementosDOM.btnConfirmarRegistro.classList.add('hidden');
+  if (elementosDOM.btnContinuar) elementosDOM.btnContinuar.classList.remove('hidden');
+
+  document.getElementById('formRegistro').classList.add('hidden');
+  document.getElementById('pasoDocumento').classList.remove('hidden');
+  document.getElementById('regDocumento').value = documento;
+  document.getElementById('regDocumentoConfirmar').value = '';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
 
 async function iniciarSesion(event) {
   event.preventDefault();
@@ -1052,7 +1103,7 @@ async function iniciarSesion(event) {
     });
 
     if (data.length === 0) {
-      mostrarMensaje('mensajeLogin', 'Documento no encontrado. Por favor regístrese primero.', 'error');
+      await iniciarRegistroDesdeFormulario(documento);
       return;
     }
 
@@ -1068,31 +1119,7 @@ async function iniciarSesion(event) {
     }
 
     // Continuar con el flujo normal
-    const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
-    const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
-    const nombreCompleto = `${nombres} ${apellidos}`;
-
-    datosEstudiante = {
-      documento: estudiante.documento,
-      nombres: nombres,
-      apellidos: apellidos,
-      nombreCensurado: censurarNombre(nombreCompleto),
-      facultad: estudiante.facultad,
-      programa: estudiante.programa,
-      sede: estudiante.sede || '',
-      semestre: estudiante.semestre
-    };
-
-    formularioEnviandose = false;
-    mostrarPantalla('pantallaFormulario');
-    // Usar caché DOM
-    if (elementosDOM.nombreUsuario) {
-      elementosDOM.nombreUsuario.textContent = 'Bienvenido(a): ' + datosEstudiante.nombreCensurado;
-    }
-    if (elementosDOM.mensajeFormulario) {
-      elementosDOM.mensajeFormulario.textContent = '';
-    }
-    actualizarBotonCerrarSesion();
+    mostrarFormularioParaEstudiante(estudiante);
 
   } catch (error) {
     mostrarMensaje('mensajeLogin', 'Error de conexión: ' + error.message, 'error');
@@ -1100,9 +1127,7 @@ async function iniciarSesion(event) {
 }
 
 
-// ===================================
-// VERIFICAR REGISTRO RECIENTE CON INSTRUCTOR ESPECÍFICO (3 HORAS)
-// ===================================
+
 async function verificarRegistroRecenteConInstructor(documento, instructorSeleccionado) {
   try {
     const ahoraColombia = obtenerFechaActualColombia();
@@ -1631,7 +1656,7 @@ async function guardarFormulario(event) {
   
   // Desactivar botón para evitar doble envío
   btnEnviar.disabled = true;
-  btnEnviar.textContent = '⏳ Enviando...';
+  btnEnviar.textContent = 'Enviando...';
   btnEnviar.style.opacity = '0.6';
   btnEnviar.style.cursor = 'not-allowed';
   

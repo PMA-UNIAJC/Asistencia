@@ -22,11 +22,12 @@ function invalidarCacheEstadisticas() {
 function verificarCapsLock(event) {
   const aviso = document.getElementById('avisoCapsLock');
   if (!aviso) return;
+  if (typeof event.getModifierState !== 'function') return;
   aviso.style.display = event.getModifierState('CapsLock') ? 'block' : 'none';
 }
 
 async function precargarDatosEstadisticas() {
-  if (datosCache.tutoresNorte.length > 0 && datosCache.profesores.length > 0) return;
+  if (datosCache.tutoresNorte.length > 0 && datosCache.tutoresSur.length > 0 && datosCache.profesores.length > 0) return;
   try {
     const [tutoresNorte, tutoresSur, profesores] = await Promise.all([
       supabaseQuery('tutores_norte'),
@@ -149,7 +150,7 @@ async function cambiarTab(event, tab) {
 
 } else if (tab === 'estadisticas') {
     document.getElementById('tabEstadisticas').classList.remove('hidden');
-    if (datosCache.tutoresNorte.length === 0) {
+    if (datosCache.tutoresNorte.length === 0 || datosCache.tutoresSur.length === 0) {
       if (elementosDOM.statsGrid) {
         elementosDOM.statsGrid.textContent = '';
         const loader = document.createElement('div');
@@ -709,7 +710,7 @@ generarListasEstadisticas(top5Materias, top5Semestres, top5Programas, todasFacul
     });
     detalles += '</div>';
     const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
-    if (datosCache.tutoresNorte.length > 0 && datosCache.tutoresSur.length > 0) {
+    if (datosCache.tutoresNorte.length > 0 || datosCache.tutoresSur.length > 0) {
       Object.keys(tutoriasPorInstructor).forEach(instructor => {
         const cantidadTotal = tutoriasPorInstructor[instructor];
         const esTutorNorte = datosCache.tutoresNorte.some(t => t.nombre === instructor);

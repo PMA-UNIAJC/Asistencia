@@ -13,10 +13,9 @@
   <link rel="stylesheet" href="styles.css"/>
 </head>
 
-
 <body>
 
-<!-- ══ ENCABEZADO ══════════════════════════════════════════════════ -->
+
 <header class="site-header">
   <a href="javascript:location.reload()" class="header-logo-link">
     <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png"
@@ -24,6 +23,9 @@
   </a>
   <button class="btn admin-badge" onclick="abrirModalListado()" style="margin-left:auto;cursor:pointer">
     Listado por facultad
+  </button>
+  <button class="btn admin-badge" onclick="abrirModalEnlaces()" style="margin-left:8px;cursor:pointer">
+    Enlaces Becarios
   </button>
 </header>
 
@@ -135,7 +137,7 @@
 <div class="modal-overlay" id="modal-listado" style="display:none" onclick="cerrarModalListado(event)">
   <div class="modal-box modal-wide" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <h2>Listado de docentes por facultad</h2>
+      <h2>Listado de Docentes por Facultad</h2>
       <button class="modal-close" onclick="cerrarModalListado()">&times;</button>
     </div>
     <div class="modal-body" id="modal-listado-body">
@@ -143,6 +145,33 @@
         <div class="spinner-dark"></div>
         <p>Generando listado...</p>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Enlaces virtuales de Becarios ═══════════════════════ -->
+<div class="modal-overlay" id="modal-enlaces" style="display:none" onclick="cerrarModalEnlaces(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Enlaces Virtuales — Becarios</h2>
+      <button class="modal-close" onclick="cerrarModalEnlaces()">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="enlace-form-nuevo">
+        <p class="section-label">Agregar nuevo enlace</p>
+        <div class="enlace-form-row">
+          <input type="text" id="nuevo-enlace-nombre" placeholder="Nombre (ej. Matemáticas)"/>
+          <input type="url" id="nuevo-enlace-url" placeholder="https://..."/>
+          <button class="btn btn-primary" id="btn-agregar-enlace" onclick="agregarEnlaceBecario()">+ Agregar</button>
+        </div>
+        <div class="alert alert-error" id="err-enlace" role="alert"></div>
+      </div>
+
+      <div id="enlaces-list" style="margin-top:1.25rem">
+        <div class="loading-state"><div class="spinner-dark"></div><p>Cargando enlaces...</p></div>
+      </div>
+
     </div>
   </div>
 </div>

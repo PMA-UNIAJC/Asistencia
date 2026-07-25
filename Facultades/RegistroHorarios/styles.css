@@ -881,3 +881,42 @@ h3 { font-size: 1.05rem; color: var(--azul); }
   margin: 0 0 20px 0;
   text-shadow: none;
 }
+
+
+/* ── Header: logo izq / PMA centrado / QR derecha ─────────────── */
+.header-grid {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.header-col-left {
+  justify-self: start;
+}
+
+.header-col-center {
+  justify-self: center;
+}
+
+.header-col-right {
+  justify-self: end;
+}
+
+@media (max-width: 640px) {
+  .header-grid {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+  }
+}
+
+/* ── Botón "Inicio" fuera del fondo azul (page-hero) ──────────── */
+.btn-volver-inicio--fuera {
+  border-color: var(--azul-med);
+  color: var(--azul-med);
+  margin-top: 1.25rem;
+  margin-bottom: 0;
+}
+
+.btn-volver-inicio--fuera:hover {
+  background: var(--azul-light);
+}

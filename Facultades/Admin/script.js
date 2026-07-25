@@ -17,10 +17,8 @@ let docenteEditando  = null;     // docente en el modal (null = nuevo)
 let callbackConfirm  = null;     // función a ejecutar al confirmar
 
 
-// ══════════════════════════════════════════════════════════════════
-//  UTILIDADES
-// ══════════════════════════════════════════════════════════════════
 
+//  UTILIDADES
 function normalizar(str) {
   if (!str) return '';
   return str
@@ -969,6 +967,184 @@ function cerrarModalConfirm(event) {
   if (event && event.target !== document.getElementById('modal-confirm')) return;
   document.getElementById('modal-confirm').style.display = 'none';
   callbackConfirm = null;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  MODAL ENLACES VIRTUALES — BECARIOS
+// ══════════════════════════════════════════════════════════════════
+
+let enlacesBecarios   = [];
+let enlaceEditandoId  = null;
+
+async function abrirModalEnlaces() {
+  document.getElementById('modal-enlaces').style.display = 'flex';
+  document.getElementById('nuevo-enlace-nombre').value = '';
+  document.getElementById('nuevo-enlace-url').value = '';
+  hideErr('err-enlace');
+  enlaceEditandoId = null;
+  await cargarEnlacesBecarios();
+}
+
+function cerrarModalEnlaces(event) {
+  if (event && event.target !== document.getElementById('modal-enlaces')) return;
+  document.getElementById('modal-enlaces').style.display = 'none';
+  enlaceEditandoId = null;
+}
+
+async function cargarEnlacesBecarios() {
+  const contenedor = document.getElementById('enlaces-list');
+  contenedor.innerHTML = `<div class="loading-state"><div class="spinner-dark"></div><p>Cargando enlaces...</p></div>`;
+
+  try {
+    const { data, error } = await db
+      .from('becarios_virtual')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    enlacesBecarios = data || [];
+    renderEnlacesBecarios();
+
+  } catch (err) {
+    console.error(err);
+    contenedor.innerHTML = `<div class="no-results">Error al cargar los enlaces.</div>`;
+  }
+}
+
+function renderEnlacesBecarios() {
+  const contenedor = document.getElementById('enlaces-list');
+
+  if (enlacesBecarios.length === 0) {
+    contenedor.innerHTML = `<div class="no-results">No hay enlaces registrados aún.</div>`;
+    return;
+  }
+
+  contenedor.innerHTML = enlacesBecarios.map(e => {
+    if (enlaceEditandoId === e.id) {
+      return `
+        <div class="enlace-item enlace-item-editando" id="enlace-${e.id}">
+          <input type="text" id="edit-nombre-${e.id}" value="${e.nombre.replace(/"/g,'&quot;')}" placeholder="Nombre"/>
+          <input type="url" id="edit-url-${e.id}" value="${e.enlace.replace(/"/g,'&quot;')}" placeholder="https://..."/>
+          <div class="enlace-item-actions">
+            <button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="guardarEdicionEnlace('${e.id}')">Guardar</button>
+            <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="cancelarEdicionEnlace()">Cancelar</button>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="enlace-item" id="enlace-${e.id}">
+        <div class="enlace-item-info">
+          <div class="enlace-item-nombre">${e.nombre}</div>
+          <a href="${e.enlace}" target="_blank" rel="noopener noreferrer" class="enlace-item-url">${e.enlace}</a>
+        </div>
+        <div class="enlace-item-actions">
+          <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="editarEnlaceInline('${e.id}')">Editar</button>
+          <button class="btn-danger" style="padding:5px 12px;font-size:12px" onclick="confirmarEliminarEnlace('${e.id}', '${e.nombre.replace(/'/g,"\\'")}')">Eliminar</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function editarEnlaceInline(id) {
+  enlaceEditandoId = id;
+  renderEnlacesBecarios();
+}
+
+function cancelarEdicionEnlace() {
+  enlaceEditandoId = null;
+  renderEnlacesBecarios();
+}
+
+async function guardarEdicionEnlace(id) {
+  const nombre = document.getElementById(`edit-nombre-${id}`).value.trim();
+  const enlace = document.getElementById(`edit-url-${id}`).value.trim();
+
+  if (!nombre) return mostrarToast('Ingresa un nombre para el enlace.', 'error');
+  if (!enlace || !/^https?:\/\//i.test(enlace)) return mostrarToast('Ingresa una URL válida (debe empezar con http:// o https://).', 'error');
+
+  try {
+    const { error } = await db
+      .from('becarios_virtual')
+      .update({ nombre, enlace })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    enlaceEditandoId = null;
+    mostrarToast('Enlace actualizado correctamente.', 'ok');
+    await cargarEnlacesBecarios();
+
+  } catch (err) {
+    console.error(err);
+    mostrarToast('Error al guardar el enlace.', 'error');
+  }
+}
+
+async function agregarEnlaceBecario() {
+  const nombreEl = document.getElementById('nuevo-enlace-nombre');
+  const urlEl    = document.getElementById('nuevo-enlace-url');
+  const nombre   = nombreEl.value.trim();
+  const enlace   = urlEl.value.trim();
+
+  hideErr('err-enlace');
+
+  if (!nombre) return showErr('err-enlace', 'Ingresa un nombre para el enlace.');
+  if (!enlace || !/^https?:\/\//i.test(enlace)) return showErr('err-enlace', 'Ingresa una URL válida (debe empezar con http:// o https://).');
+
+  const btn = document.getElementById('btn-agregar-enlace');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const { error } = await db
+      .from('becarios_virtual')
+      .insert({ nombre, enlace });
+
+    if (error) throw error;
+
+    nombreEl.value = '';
+    urlEl.value = '';
+    mostrarToast('Enlace agregado correctamente.', 'ok');
+    await cargarEnlacesBecarios();
+
+  } catch (err) {
+    console.error(err);
+    showErr('err-enlace', 'Error al agregar el enlace. Inténtalo de nuevo.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '+ Agregar';
+  }
+}
+
+function confirmarEliminarEnlace(id, nombre) {
+  document.getElementById('confirm-titulo').textContent = 'Eliminar enlace';
+  document.getElementById('confirm-msg').textContent =
+    `¿Estás seguro de que deseas eliminar el enlace "${nombre}"? Esta acción no se puede deshacer.`;
+
+  callbackConfirm = () => eliminarEnlaceBecario(id);
+  abrirModalConfirm();
+}
+
+async function eliminarEnlaceBecario(id) {
+  cerrarModalConfirm();
+
+  try {
+    const { error } = await db
+      .from('becarios_virtual')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    mostrarToast('Enlace eliminado.', 'ok');
+    await cargarEnlacesBecarios();
+
+  } catch (err) {
+    console.error(err);
+    mostrarToast('Error al eliminar el enlace.', 'error');
+  }
 }
 
 

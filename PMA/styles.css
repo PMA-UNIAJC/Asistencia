@@ -493,10 +493,6 @@
     font-size: 13px;
   }
   
-  .registro-unico {
-    font-size: 12px;
-    margin: 12px 0;
-  }
   
   .horarios-wrapper {
     margin-top: 20px;
@@ -661,15 +657,6 @@ body.welcome-active {
   color: #555;
   font-size: 14px;
 }
-
-.registro-unico {
-  text-align: center;
-  margin: 15px 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ff6b35;
-}
-
 
 .alert-box {
   background: linear-gradient(to right, #fff3cd 0%, #fff9e6 100%);

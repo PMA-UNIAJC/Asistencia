@@ -1,4 +1,3 @@
-
 .consulta-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -264,7 +263,7 @@
 .estado-vacio strong,
 .estado-sin-resultados strong {
   display: block;
-  font-family: 'Fraunces', serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 1.1rem;
   color: var(--azul);
   margin-bottom: .4rem;
@@ -400,4 +399,416 @@
   .horario-sede-badge {
     align-self: center;
   }
+}
+
+
+
+.app-vista { animation: fadeInVista .25s ease; }
+
+@keyframes fadeInVista {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+
+
+/* Tarjetas de opciones */
+.inicio-opciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  padding-top: .5rem;
+  padding-bottom: 3rem;
+}
+
+.opcion-card {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 2.25rem 1.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+
+.opcion-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(15,42,61,.14);
+}
+
+/* Icono en círculo, estilo profesional */
+.opcion-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--azul-light);
+  color: var(--azul);
+  margin-bottom: 1.1rem;
+}
+
+.opcion-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.opcion-icon--virtual {
+  background: var(--verde-bg);
+  color: var(--verde);
+}
+
+.opcion-card h2 {
+  font-size: 1.15rem;
+  color: var(--azul);
+  margin: 0 0 .5rem 0;
+}
+
+.opcion-desc {
+  font-size: 13px;
+  color: var(--gris);
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.opcion-facultades {
+  list-style: none;
+  margin: 0 0 1.25rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.opcion-facultades li {
+  font-size: 12.5px;
+  color: var(--azul-med);
+  background: var(--azul-light);
+  border-radius: 20px;
+  padding: 5px 12px;
+  width: fit-content;
+}
+
+.opcion-cta {
+  margin-top: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--verde);
+}
+
+
+.inicio-logo-pma {
+  height: 35px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.2));
+}
+
+/* Botón volver al inicio (mismo estilo que el botón QR del header) */
+.btn-volver-inicio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: .03em;
+  margin-bottom: 1rem;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.btn-volver-inicio:hover {
+  background: rgba(255,255,255,.12);
+}
+
+/* Responsive */
+/* Responsive */
+@media (max-width: 768px) {
+  .inicio-opciones {
+    gap: .85rem;
+  }
+
+  .opcion-card {
+    padding: 1.25rem .85rem;
+  }
+
+  .opcion-icon {
+    width: 44px;
+    height: 44px;
+    margin-bottom: .75rem;
+  }
+
+  .opcion-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .opcion-card h2 {
+    font-size: .95rem;
+  }
+
+  .opcion-desc {
+    font-size: 12px;
+  }
+
+  .opcion-facultades li {
+    font-size: 11px;
+    padding: 4px 9px;
+  }
+
+  .opcion-cta {
+    font-size: 12px;
+  }
+}
+
+/* Tipografía sencilla para TODOS los H2 de la página */
+h2 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   VISTA: HORARIO DE TUTORÍAS BECARIOS (Sede Norte / Sur / Virtual)
+══════════════════════════════════════════════════════════════ */
+
+.becarios-section {
+  margin-bottom: 2.5rem;
+}
+
+.becarios-section-header {
+  margin-bottom: 1.25rem;
+}
+
+.becarios-section-header h2 {
+  font-size: 1.2rem;
+  color: var(--azul);
+  margin: 0 0 .35rem 0;
+}
+
+.becarios-section-desc {
+  font-size: 13px;
+  color: var(--gris);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.becarios-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.becarios-card {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.becarios-horario-bloque {
+  margin-top: 1.1rem;
+}
+
+.becarios-dia-grupo {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--azul-med);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.becarios-card-ubicacion {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.becarios-ubicacion-texto {
+  font-size: 14px;
+  color: var(--texto);
+  margin: .85rem 0 0 0;
+  line-height: 1.5;
+}
+
+.becarios-ubicacion-botones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: .85rem;
+}
+
+.becarios-ubicacion-botones .docente-link-virtual {
+  justify-content: center;
+  margin-top: 0;
+}
+
+.facultad-chip--virtual {
+  background: var(--verde-bg);
+  color: var(--verde);
+  border-color: var(--verde-borde);
+}
+
+/* Responsive tablets (641px – 1024px) */
+@media (max-width: 1024px) and (min-width: 641px) {
+  .becarios-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive móvil (≤ 640px) */
+@media (max-width: 640px) {
+  .becarios-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .becarios-card {
+    padding: 1.1rem;
+  }
+}
+
+
+.becarios-sedes-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+/* ── Tarjetas parejas: Horario + Ubicaciones ─────────────────── */
+.becarios-flex-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.becarios-card-equal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.becarios-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.1rem;
+  padding-bottom: .85rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+.becarios-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--azul-light);
+  color: var(--azul);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.becarios-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.becarios-card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--azul);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+}
+
+.becarios-ubicacion-item {
+  margin-bottom: 1.1rem;
+}
+
+.becarios-ubicacion-item:last-child {
+  margin-bottom: 0;
+}
+
+.becarios-ubicacion-item .becarios-ubicacion-texto {
+  margin: .5rem 0 0 0;
+  text-align: left;
+}
+
+/* Responsive tablets */
+@media (max-width: 900px) {
+  .becarios-flex-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive móvil */
+@media (max-width: 640px) {
+  .becarios-card-equal {
+    padding: 1.1rem;
+  }
+}
+
+
+.btn-volver-inicio--fuera {
+  border-color: var(--azul-med);
+  color: var(--azul-med);
+  margin-top: 0rem;
+  margin-bottom: 0;
+}
+
+.btn-volver-inicio--fuera:hover {
+  background: var(--azul-light);
+}
+
+/* ── Header: ajuste fluido en pantallas pequeñas ── */
+.header-col-left,
+.header-col-right {
+  min-width: 0; /* permite que el contenido se comprima dentro de la columna */
+}
+
+.header-grid {
+  gap: clamp(6px, 2.5vw, 16px) !important;
+}
+
+.header-logo-img {
+  height: clamp(28px, 9vw, 44px) !important;
+  max-width: 100%;
+}
+
+.inicio-logo-pma {
+  height: clamp(24px, 7vw, 35px) !important;
+  max-width: 100%;
+}
+
+.btn-header-qr {
+  background: none;
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: clamp(4px, 1.2vw, 5px) clamp(8px, 2.5vw, 12px);
+  font-size: clamp(10px, 2.4vw, 12px);
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }

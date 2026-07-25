@@ -4,13 +4,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ESTADO DE LA APLICACIÓN*/
-let todosLosDocentes = [];   // datos completos traídos de Supabase
-let docentesFiltrados = [];  // subconjunto activo según la búsqueda
+let todosLosDocentes = [];   
+let docentesFiltrados = [];  
+const cacheFacultades = {};  
 
 const ORDEN_DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-/* HELPERS DE VISIBILIDAD DE ESTADOS */
 function mostrarSolo(idVisible) {
   const ids = [
     'estado-inicial',
@@ -35,7 +34,6 @@ function ocultarTodos() {
 async function onFacultadChange() {
   const facultad = document.getElementById('sel-facultad').value;
 
-  // Resetear búsqueda
   const inputBusqueda = document.getElementById('input-busqueda');
   inputBusqueda.value = '';
   inputBusqueda.disabled = true;
@@ -47,10 +45,25 @@ async function onFacultadChange() {
     return;
   }
 
+  // ── Si la facultad ya fue cargada antes, usar caché
+  if (cacheFacultades.hasOwnProperty(facultad)) {
+    todosLosDocentes = cacheFacultades[facultad];
+    docentesFiltrados = [...todosLosDocentes];
+
+    if (todosLosDocentes.length === 0) {
+      mostrarSolo('estado-sin-horarios');
+      return;
+    }
+
+    renderDocentes(facultad);
+    inputBusqueda.disabled = false;
+    document.getElementById('btn-pdf').disabled = false;
+    return;
+  }
+
   mostrarSolo('estado-cargando');
 
   try {
-    // 0. Obtener IDs de envíos publicados para esta facultad
     const { data: enviosPublicados, error: e0 } = await db
       .from('envios')
       .select('id')
@@ -61,6 +74,7 @@ async function onFacultadChange() {
 
     if (!enviosPublicados || enviosPublicados.length === 0) {
       todosLosDocentes = [];
+      cacheFacultades[facultad] = [];
       mostrarSolo('estado-sin-horarios');
       return;
     }
@@ -77,6 +91,7 @@ async function onFacultadChange() {
 
     if (!docentes || docentes.length === 0) {
       todosLosDocentes = [];
+      cacheFacultades[facultad] = [];
       mostrarSolo('estado-sin-horarios');
       return;
     }
@@ -121,6 +136,8 @@ async function onFacultadChange() {
       )
     }));
 
+    cacheFacultades[facultad] = todosLosDocentes;
+
     // ── 5. Mostrar resultados ─────────────────────────────────
     docentesFiltrados = [...todosLosDocentes];
     renderDocentes(facultad);
@@ -136,9 +153,7 @@ async function onFacultadChange() {
   }
 }
 
-/* ════════════════════════════════════════════════════════════
-   BÚSQUEDA EN TIEMPO REAL
-════════════════════════════════════════════════════════════ */
+
 function onBusquedaInput() {
   const query = normalizar(document.getElementById('input-busqueda').value.trim());
 
@@ -170,9 +185,7 @@ function normalizar(str) {
   renderDocentes(facultad);
 }
 
-/* ════════════════════════════════════════════════════════════
-   RENDER DE TARJETAS
-════════════════════════════════════════════════════════════ */
+
 function renderDocentes(facultad) {
   const container = document.getElementById('cards-container');
   const countEl   = document.getElementById('count-resultados');
@@ -253,12 +266,7 @@ function buildCard(d) {
     </div>`;
 }
 
-/* ════════════════════════════════════════════════════════════
-   GENERACIÓN DE PDF
-   Usa jsPDF (sin dependencias de servidor ni instalaciones).
-   El PDF muestra la facultad como título, y cada docente
-   con sus materias y horarios organizados limpiamente.
-════════════════════════════════════════════════════════════ */
+/* GENERACIÓN DE PDF */
 function descargarPDF() {
   if (!todosLosDocentes.length) return;
 
@@ -301,8 +309,7 @@ function descargarPDF() {
     doc.rect(ML, y - 4, CW, 0.4, 'F');
   }
 
-  // ── Cabecera principal ────────────────────────────────────
-  // Franja de título
+  // ── Cabecera principal 
   doc.setFillColor(...AZUL);
   doc.rect(0, 0, PW, 36, 'F');
 
@@ -313,7 +320,7 @@ function descargarPDF() {
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Universidad Antonio José Camacho', ML, 21);
+  doc.text('Institución Universitaria Antonio José Camacho', ML, 21);
 
   // Nombre de facultad
   doc.setFont('helvetica', 'bold');
@@ -492,9 +499,6 @@ function descargarPDF() {
   doc.save(nombreArchivo);
 }
 
-/* ════════════════════════════════════════════════════════════
-   UTILIDADES
-════════════════════════════════════════════════════════════ */
 function toTitleCase(str) {
   const minusculas = new Set([
     'de','del','la','las','el','los','y','en','con','por','a','al','un','una'
@@ -505,3 +509,42 @@ function toTitleCase(str) {
     .map((w, i) => (i === 0 || !minusculas.has(w)) ? w.charAt(0).toUpperCase() + w.slice(1) : w)
     .join(' ');
 }
+
+
+/* ENLACES VIRTUALES DE BECARIOS (desde Supabase) */
+async function cargarEnlacesBecarios() {
+  const cont = document.getElementById('becarios-enlaces-virtuales');
+  if (!cont) return;
+
+  try {
+    const { data: enlaces, error } = await db
+      .from('becarios_virtual')
+      .select('nombre, enlace')
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    if (!enlaces || enlaces.length === 0) {
+      cont.innerHTML = `<p style="font-size:12px;color:var(--gris)">No hay enlaces disponibles.</p>`;
+      return;
+    }
+
+    cont.innerHTML = enlaces.map(e => `
+      <a href="${e.enlace}" target="_blank" rel="noopener noreferrer" class="docente-link-virtual">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        ${e.nombre}
+      </a>
+    `).join('');
+
+  } catch (err) {
+    console.error('Error al cargar enlaces de becarios:', err);
+    cont.innerHTML = `<p style="font-size:12px;color:var(--gris)">Error al cargar los enlaces.</p>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', cargarEnlacesBecarios);
+
