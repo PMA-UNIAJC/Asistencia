@@ -314,26 +314,42 @@ def determinar_semestre(grupo):
             return semestre
     return None
 
-BADGE_OPCION1 = "B1 · BS1 · SB1 · BR1 · BRS1 · C1 · SC1 · LB1 · 1"
-BADGE_OPCION2 = "BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3"
-HELP_OPCION1 = "Incluye grupos: B1, BS1, SB1, BR1, BRS1, C1, SC1, LB1 (sin 00), 1 (sin 0 ni 1 después)"
-HELP_OPCION2 = "Incluye grupos: BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3"
+PATRONES_CALENDARIO = {
+    'A': [
+        r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2',
+        r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3'
+    ],
+    'B': [
+        r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)',
+        r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)',
+        r'^LB1(?!00)'
+    ],
+    'C': [
+        r'^C1(?!00)', r'^SC1(?!00)'
+    ]
+}
+
+BADGE_CALENDARIO_A = "BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3"
+BADGE_CALENDARIO_B = "B1 · BS1 · SB1 · BR1 · BRS1 · LB1 · 1"
+BADGE_CALENDARIO_C = "C1 · SC1"
+HELP_CALENDARIO_A = "Incluye grupos: BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3"
+HELP_CALENDARIO_B = "Incluye grupos: B1, BS1, SB1, BR1, BRS1, LB1 (sin 00), 1 (sin 0 ni 1 después)"
+HELP_CALENDARIO_C = "Incluye grupos: C1, SC1 (sin 00)"
 
 
-def filtrar_grupo(grupo, opcion1=True, opcion2=True):
+def filtrar_grupo(grupo, calendario_a=True, calendario_b=True, calendario_c=True):
     if pd.isna(grupo):
         return False
     g = str(grupo).strip().upper()
     if not g:
         return False
-    if opcion1 and any(re.match(p, g) for p in PATRONES_SEMESTRE['PRIMERO']):
+    if calendario_a and any(re.match(p, g) for p in PATRONES_CALENDARIO['A']):
         return True
-    if opcion2 and any(re.match(p, g) for p in PATRONES_SEMESTRE['SEGUNDO']):
+    if calendario_b and any(re.match(p, g) for p in PATRONES_CALENDARIO['B']):
         return True
-    if opcion2 and any(re.match(p, g) for p in PATRONES_SEMESTRE['TERCERO']):
+    if calendario_c and any(re.match(p, g) for p in PATRONES_CALENDARIO['C']):
         return True
     return False
-
 
 
 # ============================================================
@@ -434,18 +450,18 @@ def fac_calcular_n_perdidas(df):
     df_resultado['N_PERDIDAS'] = df_resultado['N_PERDIDAS'].fillna(0).astype(int)
     return df_resultado
 
-def fac_aplicar_filtros(df, opcion1, opcion2):
+def fac_aplicar_filtros(df, calendario_a, calendario_b, calendario_c):
     df_f = df.copy()
     if 'NOTA' in df_f.columns:
         mask_nota = (df_f['NOTA'] >= 0.0) & (df_f['NOTA'] <= 2.9)
         df_f = df_f[mask_nota].copy()
-    if 'GRUPO' in df_f.columns and (opcion1 or opcion2):
-        mask = df_f['GRUPO'].apply(lambda g: filtrar_grupo(g, opcion1, opcion2))
+    if 'GRUPO' in df_f.columns and (calendario_a or calendario_b or calendario_c):
+        mask = df_f['GRUPO'].apply(lambda g: filtrar_grupo(g, calendario_a, calendario_b, calendario_c))
         df_f = df_f[mask].copy()
     if 'GRUPO' in df_f.columns and 'SEMESTRE' in df_f.columns:
         df_f['SEMESTRE'] = df_f['GRUPO'].apply(determinar_semestre)
     return df_f
-
+    
 def fac_corregir_ortografia_celda(valor):
     if valor is None or not isinstance(valor, str):
         return valor
@@ -596,7 +612,7 @@ def fac_limpiar_nombre_hoja(nombre, nombres_usados):
     return nombre_limpio
 
 
-def fac_procesar_archivo(file_obj1, file_obj2, opcion1, opcion2):
+def fac_procesar_archivo(file_obj1, file_obj2, calendario_a, calendario_b, calendario_c):
     """Procesa los archivos de facultades y retorna un dict {nombre_archivo: bytes}"""
 
     # Leer y unir los dos archivos (el segundo es opcional)
@@ -628,7 +644,7 @@ def fac_procesar_archivo(file_obj1, file_obj2, opcion1, opcion2):
 
     for facultad in facultades:
         df_facultad = df_general[df_general['FACULTAD'] == facultad].copy()
-        df_facultad = fac_aplicar_filtros(df_facultad, opcion1, opcion2)
+        df_facultad = fac_aplicar_filtros(df_facultad, calendario_a, calendario_b, calendario_c)
         programas = df_facultad['PROGRAMA'].dropna().unique() if 'PROGRAMA' in df_facultad.columns else []
 
         nombre_facultad_limpio = "".join(c for c in str(facultad) if c.isalnum() or c in (' ', '-', '_')).strip()
@@ -811,7 +827,7 @@ def mat_crear_hoja_general(df_original):
     if 'SEDE' in df_general.columns:
         df_general['SEDE'] = df_general['SEDE'].apply(mat_normalizar_sede)
     if 'GRUPO' in df_general.columns:
-        mask = df_general['GRUPO'].apply(lambda g: filtrar_grupo(g, opcion1=True, opcion2=True))
+        mask = df_general['GRUPO'].apply(lambda g: filtrar_grupo(g, calendario_a=True, calendario_b=True, calendario_c=True))
         df_general = df_general[mask].copy()
     if 'GRUPO' in df_general.columns:
         df_general['SEMESTRE'] = df_general['GRUPO'].apply(determinar_semestre)
@@ -988,10 +1004,10 @@ def cruce_filtrar_por_area(df_general, valores_area):
         df_filtrado = df_filtrado.drop_duplicates(subset=['DOCUMENTO'], keep='first')
     return df_filtrado
 
-def cruce_aplicar_filtro_grupos(df, opcion1, opcion2):
+def cruce_aplicar_filtro_grupos(df, calendario_a, calendario_b, calendario_c):
     if 'GRUPO' not in df.columns: return df
-    if not opcion1 and not opcion2: return df
-    mask = df['GRUPO'].apply(lambda g: filtrar_grupo(g, opcion1, opcion2))
+    if not calendario_a and not calendario_b and not calendario_c: return df
+    mask = df['GRUPO'].apply(lambda g: filtrar_grupo(g, calendario_a, calendario_b, calendario_c))
     return df[mask].copy()
 
 def cruce_cruzar_con_matriculados(df_asistencia, file_obj_matriculados, hoja_matriculados):
@@ -1136,7 +1152,7 @@ def cruce_aplicar_formato(workbook, nombre_hoja):
     for col in range(1, sheet.max_column + 1):
         sheet.column_dimensions[get_column_letter(col)].width = 18
 
-def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, opcion1, opcion2):
+def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, calendario_a, calendario_b, calendario_c):
     df_original = cruce_leer_excel(file_cruce)
     df_general = cruce_crear_hoja_general(df_original)
     df_general = cruce_eliminar_columna_semestre(df_general)
@@ -1161,11 +1177,11 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, opcion1,
             df_asistencia_comunicacion = cruce_actualizar_sede_desde_matriculados(df_asistencia_comunicacion, file_matriculados, 'COMUNICACION')
             df_asistencia_comunicacion = cruce_eliminar_columna_semestre(df_asistencia_comunicacion)
 
-    if opcion1 or opcion2:
+    if calendario_a or calendario_b or calendario_c:
         if not df_asistencia_matematicas.empty:
-            df_asistencia_matematicas = cruce_aplicar_filtro_grupos(df_asistencia_matematicas, opcion1, opcion2)
+            df_asistencia_matematicas = cruce_aplicar_filtro_grupos(df_asistencia_matematicas, calendario_a, calendario_b, calendario_c)
         if not df_asistencia_comunicacion.empty:
-            df_asistencia_comunicacion = cruce_aplicar_filtro_grupos(df_asistencia_comunicacion, opcion1, opcion2)
+            df_asistencia_comunicacion = cruce_aplicar_filtro_grupos(df_asistencia_comunicacion, calendario_a, calendario_b, calendario_c)
 
     df_asistencia_pma = cruce_crear_hoja_asistencia_pma(df_asistencia_matematicas, df_asistencia_comunicacion)
     df_asistencia_pma = cruce_eliminar_columna_semestre(df_asistencia_pma)
@@ -1650,23 +1666,31 @@ if modulo == "Facultades":
     st.markdown("---")
     st.markdown("**⚙️ Opciones de filtrado de grupos**")
 
-    col1_fac, col2_fac = st.columns(2)
+    col1_fac, col2_fac, col3_fac = st.columns(3)
     with col1_fac:
-        opcion1_fac = st.checkbox(
-            "Opción 1 — Primer semestre",
-            help=HELP_OPCION1,
-            key="op1_fac"
+        calendario_a_fac = st.checkbox(
+            "Calendario A",
+            help=HELP_CALENDARIO_A,
+            key="cal_a_fac"
         )
-        if opcion1_fac:
-            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION1}</span>', unsafe_allow_html=True)
+        if calendario_a_fac:
+            st.markdown(f'<span class="badge badge-blue">{BADGE_CALENDARIO_A}</span>', unsafe_allow_html=True)
     with col2_fac:
-        opcion2_fac = st.checkbox(
-            "Opción 2 — Segundo y tercer semestre",
-            help=HELP_OPCION2,
-            key="op2_fac"
+        calendario_b_fac = st.checkbox(
+            "Calendario B",
+            help=HELP_CALENDARIO_B,
+            key="cal_b_fac"
         )
-        if opcion2_fac:
-            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION2}</span>', unsafe_allow_html=True)
+        if calendario_b_fac:
+            st.markdown(f'<span class="badge badge-blue">{BADGE_CALENDARIO_B}</span>', unsafe_allow_html=True)
+    with col3_fac:
+        calendario_c_fac = st.checkbox(
+            "Calendario C",
+            help=HELP_CALENDARIO_C,
+            key="cal_c_fac"
+        )
+        if calendario_c_fac:
+            st.markdown(f'<span class="badge badge-blue">{BADGE_CALENDARIO_C}</span>', unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -1674,7 +1698,7 @@ if modulo == "Facultades":
         if st.button("▶  Procesar Facultades", key="btn_fac", use_container_width=True):
             with st.spinner("Procesando facultades..."):
                 try:
-                    archivos = fac_procesar_archivo(archivo_fac, archivo_fac2, opcion1_fac, opcion2_fac)
+                    archivos = fac_procesar_archivo(archivo_fac, archivo_fac2, calendario_a_fac, calendario_b_fac, calendario_c_fac)
                     st.success(f"✅ Proceso completado. Se generaron **{len(archivos)} archivos**.")
 
                     import zipfile
@@ -1795,23 +1819,31 @@ elif modulo == "Cruce":
     st.markdown("---")
     st.markdown("**⚙️ Opciones de filtrado de grupos**")
 
-    col1_c, col2_c = st.columns(2)
+    col1_c, col2_c, col3_c = st.columns(3)
     with col1_c:
-        opcion1_cruce = st.checkbox(
-            "Opción 1 — Primer semestre",
-            help=HELP_OPCION1,
-            key="op1_cruce"
+        calendario_a_cruce = st.checkbox(
+            "Calendario A",
+            help=HELP_CALENDARIO_A,
+            key="cal_a_cruce"
         )
-        if opcion1_cruce:
-            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION1}</span>', unsafe_allow_html=True)
+        if calendario_a_cruce:
+            st.markdown(f'<span class="badge badge-blue">{BADGE_CALENDARIO_A}</span>', unsafe_allow_html=True)
     with col2_c:
-        opcion2_cruce = st.checkbox(
-            "Opción 2 — Segundo y tercer semestre",
-            help=HELP_OPCION2,
-            key="op2_cruce"
+        calendario_b_cruce = st.checkbox(
+            "Calendario B",
+            help=HELP_CALENDARIO_B,
+            key="cal_b_cruce"
         )
-        if opcion2_cruce:
-            st.markdown(f'<span class="badge badge-blue">{BADGE_OPCION2}</span>', unsafe_allow_html=True)
+        if calendario_b_cruce:
+            st.markdown(f'<span class="badge badge-blue">{BADGE_CALENDARIO_B}</span>', unsafe_allow_html=True)
+    with col3_c:
+        calendario_c_cruce = st.checkbox(
+            "Calendario C",
+            help=HELP_CALENDARIO_C,
+            key="cal_c_cruce"
+        )
+        if calendario_c_cruce:
+            st.markdown(f'<span class="badge badge-blue">{BADGE_CALENDARIO_C}</span>', unsafe_allow_html=True)
     st.markdown("---")
 
     archivos_listos = archivo_cruce and archivo_mat_cruce and archivo_informe_cruce
@@ -1822,7 +1854,7 @@ elif modulo == "Cruce":
                 try:
                     resultado = cruce_procesar_archivo(
                         archivo_cruce, archivo_mat_cruce, archivo_informe_cruce,
-                        opcion1_cruce, opcion2_cruce
+                        calendario_a_cruce, calendario_b_cruce, calendario_c_cruce
                     )
                     st.success("✅ Proceso completado exitosamente.")
                     st.download_button(
