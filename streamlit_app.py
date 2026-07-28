@@ -1645,6 +1645,23 @@ if modulo == "Facultades":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="warning-card">
+        <strong>📋 Columna obligatoria (hoja ORIGINAL o primera hoja):</strong><br>
+        <code>FACULTAD</code><br><br>
+        <strong>Columnas opcionales (necesarias para resultados completos):</strong><br>
+        <code>DOCUMENTO</code>/<code>DOC</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
+        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
+        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
+        <code>MATERIA</code> &nbsp;·&nbsp;
+        <code>EVALUACION</code> &nbsp;·&nbsp;
+        <code>GRUPO</code> &nbsp;·&nbsp;
+        <code>NOTA</code> &nbsp;·&nbsp;
+        <code>SEM</code>/<code>SEMESTRE</code><br><br>
+        Sin <strong>FACULTAD</strong> el proceso se detiene con error. Sin <strong>NOTA</strong> no se filtran los reprobados (0.0–2.9). Sin <strong>GRUPO</strong> no se calcula el semestre ni se aplican los filtros de calendario. Sin <strong>PROGRAMA</strong> no se generan hojas por programa. La columna <strong>N_PERDIDAS</strong> se genera automáticamente. Los nombres de columna no distinguen mayúsculas ni espacios extra, pero sí distinguen tildes.
+    </div>
+    """, unsafe_allow_html=True)
+
     col_fac1, col_fac2 = st.columns(2)
     with col_fac1:
         st.markdown('<div class="upload-label">📂 Archivo 1 (obligatorio)</div>', unsafe_allow_html=True)
@@ -1749,6 +1766,22 @@ elif modulo == "Matriculados":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="warning-card">
+        <strong>📋 Columnas reconocidas (hoja ORIGINAL o primera hoja, encabezados en fila 1):</strong><br>
+        <code>DOCUMENTO</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
+        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
+        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
+        <code>SEDE</code>/<code>FRANJA</code> &nbsp;·&nbsp;
+        <code>MATERIA</code> &nbsp;·&nbsp;
+        <code>GRUPO</code> &nbsp;·&nbsp;
+        <code>SEMESTRE</code> &nbsp;·&nbsp;
+        <code>CELULAR</code> &nbsp;·&nbsp;
+        <code>CORREO_INST</code><br><br>
+        ⚠️ Si existe <strong>GRUPO</strong>, el sistema conserva únicamente los registros de Calendario A, B o C — este filtro se aplica siempre en este módulo (no hay opción para desactivarlo). Sin <strong>GRUPO</strong> no se genera la hoja MATRICULADOS ni el SEMESTRE. Sin <strong>PROGRAMA</strong> no se asigna FACULTAD. La columna <strong>MATERIA</strong> debe venir <u>sin tildes</u> (ej. "MATEMATICAS", "ALGEBRA LINEAL", "COMUNICACION Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown('<div class="upload-label">📂 Archivo de entrada</div>', unsafe_allow_html=True)
     archivo_mat = st.file_uploader(
         "Sube el archivo Excel de Matriculados",
@@ -1805,9 +1838,27 @@ elif modulo == "Cruce":
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div class="warning-card">
+        <strong>📋 Archivo CRUCE — columnas reconocidas (hoja ORIGINAL o primera hoja):</strong><br>
+        <code>DOCUMENTO</code>/<code>DOC</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
+        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
+        <code>FACULTAD</code> &nbsp;·&nbsp;
+        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
+        <code>SEDE</code>/<code>FRANJA</code> &nbsp;·&nbsp;
+        <code>TEMA</code>/<code>ENCU_TEMA</code> &nbsp;·&nbsp;
+        <code>FECHA</code>/<code>FECHA_ENCUENTRO</code> &nbsp;·&nbsp;
+        <code>AREA</code> &nbsp;·&nbsp;
+        <code>TUTOR</code>/<code>INSTRUCTOR</code><br><br>
+        La columna <strong>AREA</strong> es esencial: sus valores deben ser "M"/"DCB" (matemáticas) o "C" (comunicación); sin coincidencias las hojas de asistencia quedan vacías.<br><br>
+        <strong>Archivo MATRICULADOS:</strong> debe ser el archivo ya procesado por el módulo "Matriculados" — el sistema exige hojas llamadas exactamente <code>MATEMATICAS</code> y <code>COMUNICACION</code> con columnas DOCUMENTO, GRUPO y SEDE; si no existen, el proceso falla.<br><br>
+        <strong>Archivo INFORME GENERAL:</strong> debe ser el archivo ya procesado por el módulo "Informe General" — también requiere hojas <code>MATEMATICAS</code> y <code>COMUNICACION</code> con columna DOCUMENTO.
+    </div>
+    """, unsafe_allow_html=True)
+
     col_c1, col_c2, col_c3 = st.columns(3)
     with col_c1:
-        st.markdown('<div class="upload-label">📂 Archivo CRUCE</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 Archivo TUTORIAS</div>', unsafe_allow_html=True)
         archivo_cruce = st.file_uploader("Archivo CRUCE", type=["xlsx"], key="uploader_cruce", label_visibility="collapsed")
     with col_c2:
         st.markdown('<div class="upload-label">📂 Archivo MATRICULADOS</div>', unsafe_allow_html=True)
@@ -1897,6 +1948,24 @@ elif modulo == "Informe General":
         • Normaliza y mapea las columnas al formato estándar.<br>
         • Genera hoja <strong>GENERAL</strong> con todas las materias.<br>
         • Filtra y genera hojas separadas de <strong>COMUNICACION</strong> y <strong>MATEMATICAS</strong>.<br>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="warning-card">
+        <strong>📋 Columnas reconocidas (hoja ORIGINAL o primera hoja, encabezados en fila 1):</strong><br>
+        <code>DOCUMENTO</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
+        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
+        <code>SEM</code>/<code>SEMESTRE</code> &nbsp;·&nbsp;
+        <code>SEDE</code>/<code>FRANJA</code> &nbsp;·&nbsp;
+        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
+        <code>FACULTAD</code> &nbsp;·&nbsp;
+        <code>MATERIA</code> &nbsp;·&nbsp;
+        <code>EVALUACION</code>/<code>EVALUACIÓN</code> &nbsp;·&nbsp;
+        <code>GRUPO</code> &nbsp;·&nbsp;
+        <code>NOTA</code> &nbsp;·&nbsp;
+        <code>N_PERDIDAS</code><br><br>
+        ⚠️ A diferencia del módulo Matriculados, aquí la columna <strong>MATERIA</strong> debe venir <u>con tilde</u> (ej. "MATEMÁTICAS", "ÁLGEBRA LINEAL", "COMUNICACIÓN Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
     </div>
     """, unsafe_allow_html=True)
 
@@ -2017,7 +2086,7 @@ elif modulo == "Visitas a Grupos":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>📋 Columnas requeridas en cada hoja:</strong><br>
+        <strong>Columnas requeridas en cada hoja:</strong><br>
         <code>SALON</code> &nbsp;·&nbsp;
         <code>GRUPO</code> &nbsp;·&nbsp;
         <code>ASIGNATURA</code> &nbsp;·&nbsp;
@@ -2029,13 +2098,13 @@ elif modulo == "Visitas a Grupos":
 
     col_v1, col_v2, col_v3 = st.columns(3)
     with col_v1:
-        st.markdown('<div class="upload-label">📂 Archivo 1 — DIURNA</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 1 — DIURNA</div>', unsafe_allow_html=True)
         archivo_vis_1 = st.file_uploader("Archivo 1", type=["xlsx"], key="uploader_vis_1", label_visibility="collapsed")
     with col_v2:
-        st.markdown('<div class="upload-label">📂 Archivo 2 — DIURNA (opcional)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 2 — DIURNA (opcional)</div>', unsafe_allow_html=True)
         archivo_vis_2 = st.file_uploader("Archivo 2", type=["xlsx"], key="uploader_vis_2", label_visibility="collapsed")
     with col_v3:
-        st.markdown('<div class="upload-label">📂 Archivo 3 — NOCTURNA (opcional)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 3 — NOCTURNA (opcional)</div>', unsafe_allow_html=True)
         archivo_vis_3 = st.file_uploader("Archivo 3", type=["xlsx"], key="uploader_vis_3", label_visibility="collapsed")
 
     st.markdown("---")
