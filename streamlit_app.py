@@ -387,8 +387,9 @@ CORRECCIONES_ORTOGRAFICAS = {
 
 def fac_encontrar_columna(df, nombres_posibles):
     for nombre in nombres_posibles:
+        nombre_norm = nombre.upper().translate(TILDES_MAP)
         for col in df.columns:
-            if str(col).strip().upper() == nombre.upper():
+            if str(col).strip().upper().translate(TILDES_MAP) == nombre_norm:
                 return col
     return None
 
@@ -779,8 +780,9 @@ MATERIAS_MATEMATICAS_MAT = [
 
 def mat_encontrar_columna(df, nombres_posibles):
     for nombre in nombres_posibles:
+        nombre_norm = nombre.upper().translate(TILDES_MAP)
         for col in df.columns:
-            if str(col).strip().upper() == nombre.upper():
+            if str(col).strip().upper().translate(TILDES_MAP) == nombre_norm:
                 return col
     return None
 
@@ -844,9 +846,9 @@ def mat_crear_hoja_matriculados(df_general):
 def mat_filtrar_por_materias(df_general, materias):
     if 'MATERIA' not in df_general.columns:
         return pd.DataFrame()
-    df_upper = df_general['MATERIA'].astype(str).str.upper().str.strip()
-    materias_upper = [m.upper().strip() for m in materias]
-    mask = df_upper.isin(materias_upper)
+    df_normalizado = df_general['MATERIA'].astype(str).str.upper().str.strip().str.translate(TILDES_MAP)
+    materias_normalizado = [str(m).upper().strip().translate(TILDES_MAP) for m in materias]
+    mask = df_normalizado.isin(materias_normalizado)
     return df_general[mask].copy()
 
 def mat_aplicar_formato(workbook, nombre_hoja):
@@ -955,8 +957,9 @@ MAPEO_COLUMNAS_CRUCE = {
 
 def cruce_encontrar_columna(df, nombres_posibles):
     for nombre in nombres_posibles:
+        nombre_norm = nombre.upper().translate(TILDES_MAP)
         for col in df.columns:
-            if str(col).strip().upper() == nombre.upper():
+            if str(col).strip().upper().translate(TILDES_MAP) == nombre_norm:
                 return col
     return None
 
@@ -1245,8 +1248,9 @@ MATERIAS_MATEMATICAS_INF = [
 
 def inf_encontrar_columna(df, nombres_posibles):
     for nombre in nombres_posibles:
+        nombre_norm = nombre.upper().translate(TILDES_MAP)
         for col in df.columns:
-            if str(col).strip().upper() == nombre.upper():
+            if str(col).strip().upper().translate(TILDES_MAP) == nombre_norm:
                 return col
     return None
 
@@ -1284,9 +1288,9 @@ def inf_crear_hoja_general(df_original):
 def inf_filtrar_por_materias(df_general, materias):
     if 'MATERIA' not in df_general.columns:
         return pd.DataFrame()
-    df_upper = df_general['MATERIA'].astype(str).str.upper().str.strip()
-    materias_upper = [m.upper().strip() for m in materias]
-    mask = df_upper.isin(materias_upper)
+    df_normalizado = df_general['MATERIA'].astype(str).str.upper().str.strip().str.translate(TILDES_MAP)
+    materias_normalizado = [str(m).upper().strip().translate(TILDES_MAP) for m in materias]
+    mask = df_normalizado.isin(materias_normalizado)
     return df_general[mask].copy()
 
 def inf_aplicar_formato(workbook, nombre_hoja):
@@ -1390,8 +1394,9 @@ def sup_leer_hojas(file_obj):
 
 def sup_encontrar_columna(df, nombres_posibles):
     for nombre in nombres_posibles:
+        nombre_norm = nombre.upper().translate(TILDES_MAP)
         for col in df.columns:
-            if str(col).strip().upper() == nombre.upper():
+            if str(col).strip().upper().translate(TILDES_MAP) == nombre_norm:
                 return col
     return None
 
@@ -1647,18 +1652,17 @@ if modulo == "Facultades":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>📋 Columna obligatoria (hoja ORIGINAL o primera hoja):</strong><br>
-        <code>FACULTAD</code><br><br>
-        <strong>Columnas opcionales (necesarias para resultados completos):</strong><br>
-        <code>DOCUMENTO</code>/<code>DOC</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
-        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
-        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
-        <code>MATERIA</code> &nbsp;·&nbsp;
-        <code>EVALUACION</code> &nbsp;·&nbsp;
-        <code>GRUPO</code> &nbsp;·&nbsp;
-        <code>NOTA</code> &nbsp;·&nbsp;
-        <code>SEM</code>/<code>SEMESTRE</code><br><br>
-        Sin <strong>FACULTAD</strong> el proceso se detiene con error. Sin <strong>NOTA</strong> no se filtran los reprobados (0.0–2.9). Sin <strong>GRUPO</strong> no se calcula el semestre ni se aplican los filtros de calendario. Sin <strong>PROGRAMA</strong> no se generan hojas por programa. La columna <strong>N_PERDIDAS</strong> se genera automáticamente. Los nombres de columna no distinguen mayúsculas ni espacios extra, pero sí distinguen tildes.
+        <strong>Columnas Necesarias</strong><br>
+        <code>FACULTAD</code><br>
+        <code>DOCUMENTO / DOC / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code><br>
+        <code>NOMBRE / NOM / ESTUDIANTE</code><br>
+        <code>PROGRAMA / PROG / PROG_NOMBRE</code><br>
+        <code>MATERIA</code><br>
+        <code>EVALUACION</code><br>
+        <code>GRUPO</code><br>
+        <code>NOTA</code><br>
+        <code>SEM / SEMESTRE</code><br><br>
+        La columna <strong>N_PERDIDAS</strong> se genera automáticamente.
     </div>
     """, unsafe_allow_html=True)
 
