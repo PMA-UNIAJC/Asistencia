@@ -718,7 +718,7 @@ def fac_procesar_archivo(file_obj1, file_obj2, calendario_a, calendario_b, calen
 # ============================================================
 
 MAPEO_COLUMNAS_MAT = {
-    'DOCUMENTO': ['DOCUM', 'DOCUMENTO', 'PEGE_DOCUMENTOIDENTIDAD'],
+    'DOCUMENTO': ['DOC', 'DOCUM', 'DOCUMENTO', 'PEGE_DOCUMENTOIDENTIDAD'],
     'NOMBRE': ['NOMBRE', 'NOM', 'ESTUDIANTE'],
     'PROGRAMA': ['PROGRAMA', 'PROG', 'PROG_NOMBRE'],
     'SEDE': ['FRANJA', 'SEDE'],
@@ -1221,14 +1221,14 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, calendar
 # ============================================================
 
 MAPEO_COLUMNAS_INF = {
-    'DOCUMENTO': ['DOCUM', 'DOCUMENTO', 'PEGE_DOCUMENTOIDENTIDAD'],
+    'DOCUMENTO': ['DOC', 'DOCUM', 'DOCUMENTO', 'PEGE_DOCUMENTOIDENTIDAD'],
     'NOMBRE': ['NOMBRE', 'NOM', 'ESTUDIANTE'],
     'SEMESTRE': ['SEM', 'SEMESTRE'],
     'SEDE': ['FRANJA', 'SEDE'],
     'PROGRAMA': ['PROGRAMA', 'PROG', 'PROG_NOMBRE'],
     'FACULTAD': ['FACULTAD'],
     'MATERIA': ['MATERIA'],
-    'EVALUACIÓN': ['EVALUACION', 'EVALUACIÓN'],
+    'EVALUACIÓN': ['EVALUACION'],
     'GRUPO': ['GRUPO'],
     'NOTA': ['NOTA'],
     'N_PERDIDAS': ['N_PERDIDAS']
@@ -1773,7 +1773,7 @@ elif modulo == "Matriculados":
     st.markdown("""
     <div class="warning-card">
         <strong>Columnas Necesarias</strong><br>
-        <code>DOCUMENTO / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
+        <code>DOCUMENTO / DOC / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
         <code>NOMBRE / NOM / ESTUDIANTE</code>
         <code>PROGRAMA / PROG / PROG_NOMBRE</code>
         <code>SEDE / FRANJA</code>
@@ -1781,8 +1781,7 @@ elif modulo == "Matriculados":
         <code>GRUPO</code>
         <code>SEMESTRE</code>
         <code>CELULAR</code>
-        <code>CORREO_INST</code><br><br>
-        La columna <strong>MATERIA</strong> debe venir <u>sin tildes</u> (ej. "MATEMATICAS", "ALGEBRA LINEAL", "COMUNICACION Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
+        <code>CORREO_INST</code>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1949,7 +1948,7 @@ elif modulo == "Informe General":
     st.markdown("""
     <div class="warning-card">
         <strong>Archivo Necesario</strong><br>
-        Debe subirse el Archivo "Informe General" generado en el modulo de "Procesador de Facultades". Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
+        Debe subirse el Archivo "Informe General" generado en el modulo de "Procesador de Facultades".
     </div>
     """, unsafe_allow_html=True)
 
