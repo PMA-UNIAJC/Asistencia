@@ -1652,7 +1652,7 @@ if modulo == "Facultades":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>Columnas Necesarias</strong>
+        <strong>Columnas Necesarias</strong><br>
         <code>DOCUMENTO / DOC / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
         <code>NOMBRE / NOM / ESTUDIANTE</code>
         <code>FACULTAD</code>
@@ -1661,7 +1661,7 @@ if modulo == "Facultades":
         <code>EVALUACION</code>
         <code>GRUPO</code>
         <code>NOTA</code>
-        <code>SEM / SEMESTRE</code><br>
+        <code>SEM / SEMESTRE</code><br><br>
         La columna <strong>N_PERDIDAS</strong> se genera automáticamente.
     </div>
     """, unsafe_allow_html=True)
@@ -1772,7 +1772,7 @@ elif modulo == "Matriculados":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>Columnas Necesarias</strong>
+        <strong>Columnas Necesarias</strong><br>
         <code>DOCUMENTO / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
         <code>NOMBRE / NOM / ESTUDIANTE</code>
         <code>PROGRAMA / PROG / PROG_NOMBRE</code>
@@ -1781,7 +1781,7 @@ elif modulo == "Matriculados":
         <code>GRUPO</code>
         <code>SEMESTRE</code>
         <code>CELULAR</code>
-        <code>CORREO_INST</code><br>
+        <code>CORREO_INST</code><br><br>
         La columna <strong>MATERIA</strong> debe venir <u>sin tildes</u> (ej. "MATEMATICAS", "ALGEBRA LINEAL", "COMUNICACION Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
     </div>
     """, unsafe_allow_html=True)
@@ -1846,9 +1846,9 @@ elif modulo == "Cruce":
     <div class="warning-card">
         <strong>Archivos Necesarios</strong><br>
         
-        - Archivo TUTORIAS:        Archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
-        - Archivo MATRICULADOS:    Archivo ya procesado por el módulo "Matriculados".<br>
-        - Archivo INFORME GENERAL: Archivo ya procesado por el módulo "Informe General".
+        Archivo TUTORIAS: Archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
+        Archivo MATRICULADOS: Archivo ya procesado por el módulo "Matriculados".<br>
+        Archivo INFORME GENERAL: Archivo ya procesado por el módulo "Informe General".
     </div>
     """, unsafe_allow_html=True)
 
@@ -2078,11 +2078,11 @@ elif modulo == "Visitas a Grupos":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>Columnas requeridas en cada hoja:</strong><br>
-        <code>SALON</code> &nbsp;·&nbsp;
-        <code>GRUPO</code> &nbsp;·&nbsp;
-        <code>ASIGNATURA</code> &nbsp;·&nbsp;
-        <code>DOCENTE</code> &nbsp;·&nbsp;
+        <strong>Columnas Necesarias</strong><br>
+        <code>SALON</code>
+        <code>GRUPO</code>
+        <code>ASIGNATURA</code>
+        <code>DOCENTE</code>
         <code>HORARIO</code><br><br>
         Las columnas <strong>DIA</strong>, <strong>JORNADA</strong> y <strong>SEMESTRE</strong> se generan automáticamente.
     </div>
