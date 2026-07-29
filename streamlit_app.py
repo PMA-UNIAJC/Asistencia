@@ -1652,16 +1652,16 @@ if modulo == "Facultades":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>Columnas Necesarias</strong><br>
-        <code>FACULTAD</code><br>
-        <code>DOCUMENTO / DOC / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code><br>
-        <code>NOMBRE / NOM / ESTUDIANTE</code><br>
-        <code>PROGRAMA / PROG / PROG_NOMBRE</code><br>
-        <code>MATERIA</code><br>
-        <code>EVALUACION</code><br>
-        <code>GRUPO</code><br>
-        <code>NOTA</code><br>
-        <code>SEM / SEMESTRE</code><br><br>
+        <strong>Columnas Necesarias</strong>
+        <code>DOCUMENTO / DOC / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
+        <code>NOMBRE / NOM / ESTUDIANTE</code>
+        <code>FACULTAD</code>
+        <code>PROGRAMA / PROG / PROG_NOMBRE</code>
+        <code>MATERIA</code>
+        <code>EVALUACION</code>
+        <code>GRUPO</code>
+        <code>NOTA</code>
+        <code>SEM / SEMESTRE</code><br>
         La columna <strong>N_PERDIDAS</strong> se genera automáticamente.
     </div>
     """, unsafe_allow_html=True)
@@ -1772,16 +1772,16 @@ elif modulo == "Matriculados":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>Columnas Necesarias</strong><br>
-        <code>DOCUMENTO / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code><br>
-        <code>NOMBRE / NOM / ESTUDIANTE</code><br>
-        <code>PROGRAMA / PROG / PROG_NOMBRE</code><br>
-        <code>SEDE / FRANJA</code><br>
-        <code>MATERIA</code><br>
-        <code>GRUPO</code><br>
-        <code>SEMESTRE</code><br>
-        <code>CELULAR</code><br>
-        <code>CORREO_INST</code><br><br>
+        <strong>Columnas Necesarias</strong>
+        <code>DOCUMENTO / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
+        <code>NOMBRE / NOM / ESTUDIANTE</code>
+        <code>PROGRAMA / PROG / PROG_NOMBRE</code>
+        <code>SEDE / FRANJA</code>
+        <code>MATERIA</code>
+        <code>GRUPO</code>
+        <code>SEMESTRE</code>
+        <code>CELULAR</code>
+        <code>CORREO_INST</code><br>
         La columna <strong>MATERIA</strong> debe venir <u>sin tildes</u> (ej. "MATEMATICAS", "ALGEBRA LINEAL", "COMUNICACION Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
     </div>
     """, unsafe_allow_html=True)
@@ -1846,9 +1846,9 @@ elif modulo == "Cruce":
     <div class="warning-card">
         <strong>Archivos Necesarios</strong><br>
         
-        <strong>Archivo TUTORIAS:</strong> debe ser el archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
-        <strong>Archivo MATRICULADOS:</strong> debe ser el archivo ya procesado por el módulo "Matriculados".<br>
-        <strong>Archivo INFORME GENERAL:</strong> debe ser el archivo ya procesado por el módulo "Informe General".
+        - Archivo TUTORIAS:        Archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
+        - Archivo MATRICULADOS:    Archivo ya procesado por el módulo "Matriculados".<br>
+        - Archivo INFORME GENERAL: Archivo ya procesado por el módulo "Informe General".
     </div>
     """, unsafe_allow_html=True)
 
@@ -1954,7 +1954,7 @@ elif modulo == "Informe General":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="upload-label">📂 Archivo de entrada</div>', unsafe_allow_html=True)
+    st.markdown('<div class="upload-label">📂 Archivo de entrada (INFORME GENERAL CREADO POR "PROCESADOR DE FACULTADES")</div>', unsafe_allow_html=True)
     archivo_inf = st.file_uploader(
         "Sube el archivo Excel de Informe General",
         type=["xlsx"],
