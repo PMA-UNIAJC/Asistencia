@@ -1826,7 +1826,7 @@ elif modulo == "Cruce":
     st.markdown("""
     <div class="module-header">
         <h1>Procesador de Cruce</h1>
-        <p>Cruza los archivos <strong>CRUCE</strong>, <strong>MATRICULADOS</strong> e <strong>INFORME GENERAL</strong><br>
+        <p>Cruza los archivos <strong>TUTORIAS</strong>, <strong>MATRICULADOS</strong> e <strong>INFORME GENERAL</strong><br>
         para generar hojas de asistencia y estudiantes que ganaron.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -1836,19 +1836,18 @@ elif modulo == "Cruce":
         <strong>¿Qué hace este módulo?</strong><br>
         • Filtra por AREA: Matemáticas (M, DCB) y Comunicación (C).<br>
         • Cruza con MATRICULADOS para obtener GRUPO y SEDE por estudiante.<br>
-        • Genera hojas: <strong>GENERAL · ASISTENCIA MATEMÁTICAS · ASISTENCIA COMUNICACIÓN ·
-        ASISTENCIA PMA · GANARON MATEMÁTICAS · GANARON COMUNICACIÓN</strong>.<br>
-        • GANARON = estudiantes que asistieron pero no aparecen en el INFORME GENERAL (No reprobaron).
+        • Genera hojas: <br>
+        <strong>GENERAL · ASISTENCIA MATEMÁTICAS · ASISTENCIA COMUNICACIÓN · ASISTENCIA PMA · GANARON MATEMÁTICAS · GANARON COMUNICACIÓN</strong>.<br>
+        • GANARON = Estudiantes que asistieron pero no aparecen en el INFORME GENERAL (No reprobaron).
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("""
     <div class="warning-card">
         <strong>Archivos Necesarios</strong><br>
-        
-         Archivo TUTORIAS: Archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
-         Archivo MATRICULADOS: Archivo ya procesado por el módulo "Matriculados".<br>
-         Archivo INFORME GENERAL: Archivo ya procesado por el módulo "Informe General".
+        TUTORIAS — descargado desde el Panel Admin del formulario ("Descargar Informe").<br>
+        MATRICULADOS — archivo ya procesado por el módulo "Matriculados".<br>
+        INFORME GENERAL — archivo ya procesado por el módulo "Informe General".
     </div>
     """, unsafe_allow_html=True)
 
