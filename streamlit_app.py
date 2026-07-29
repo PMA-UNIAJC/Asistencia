@@ -1772,17 +1772,17 @@ elif modulo == "Matriculados":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>📋 Columnas reconocidas (hoja ORIGINAL o primera hoja, encabezados en fila 1):</strong><br>
-        <code>DOCUMENTO</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
-        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
-        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
-        <code>SEDE</code>/<code>FRANJA</code> &nbsp;·&nbsp;
-        <code>MATERIA</code> &nbsp;·&nbsp;
-        <code>GRUPO</code> &nbsp;·&nbsp;
-        <code>SEMESTRE</code> &nbsp;·&nbsp;
-        <code>CELULAR</code> &nbsp;·&nbsp;
+        <strong>Columnas Necesarias</strong><br>
+        <code>DOCUMENTO / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code><br>
+        <code>NOMBRE / NOM / ESTUDIANTE</code><br>
+        <code>PROGRAMA / PROG / PROG_NOMBRE</code><br>
+        <code>SEDE / FRANJA</code><br>
+        <code>MATERIA</code><br>
+        <code>GRUPO</code><br>
+        <code>SEMESTRE</code><br>
+        <code>CELULAR</code><br>
         <code>CORREO_INST</code><br><br>
-        ⚠️ Si existe <strong>GRUPO</strong>, el sistema conserva únicamente los registros de Calendario A, B o C — este filtro se aplica siempre en este módulo (no hay opción para desactivarlo). Sin <strong>GRUPO</strong> no se genera la hoja MATRICULADOS ni el SEMESTRE. Sin <strong>PROGRAMA</strong> no se asigna FACULTAD. La columna <strong>MATERIA</strong> debe venir <u>sin tildes</u> (ej. "MATEMATICAS", "ALGEBRA LINEAL", "COMUNICACION Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
+        La columna <strong>MATERIA</strong> debe venir <u>sin tildes</u> (ej. "MATEMATICAS", "ALGEBRA LINEAL", "COMUNICACION Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
     </div>
     """, unsafe_allow_html=True)
 
@@ -1844,19 +1844,11 @@ elif modulo == "Cruce":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>📋 Archivo CRUCE — columnas reconocidas (hoja ORIGINAL o primera hoja):</strong><br>
-        <code>DOCUMENTO</code>/<code>DOC</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
-        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
-        <code>FACULTAD</code> &nbsp;·&nbsp;
-        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
-        <code>SEDE</code>/<code>FRANJA</code> &nbsp;·&nbsp;
-        <code>TEMA</code>/<code>ENCU_TEMA</code> &nbsp;·&nbsp;
-        <code>FECHA</code>/<code>FECHA_ENCUENTRO</code> &nbsp;·&nbsp;
-        <code>AREA</code> &nbsp;·&nbsp;
-        <code>TUTOR</code>/<code>INSTRUCTOR</code><br><br>
-        La columna <strong>AREA</strong> es esencial: sus valores deben ser "M"/"DCB" (matemáticas) o "C" (comunicación); sin coincidencias las hojas de asistencia quedan vacías.<br><br>
-        <strong>Archivo MATRICULADOS:</strong> debe ser el archivo ya procesado por el módulo "Matriculados" — el sistema exige hojas llamadas exactamente <code>MATEMATICAS</code> y <code>COMUNICACION</code> con columnas DOCUMENTO, GRUPO y SEDE; si no existen, el proceso falla.<br><br>
-        <strong>Archivo INFORME GENERAL:</strong> debe ser el archivo ya procesado por el módulo "Informe General" — también requiere hojas <code>MATEMATICAS</code> y <code>COMUNICACION</code> con columna DOCUMENTO.
+        <strong>Archivos Necesarios</strong><br>
+        
+        <strong>Archivo TUTORIAS:</strong> debe ser el archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
+        <strong>Archivo MATRICULADOS:</strong> debe ser el archivo ya procesado por el módulo "Matriculados".<br>
+        <strong>Archivo INFORME GENERAL:</strong> debe ser el archivo ya procesado por el módulo "Informe General".
     </div>
     """, unsafe_allow_html=True)
 
@@ -1957,23 +1949,12 @@ elif modulo == "Informe General":
 
     st.markdown("""
     <div class="warning-card">
-        <strong>📋 Columnas reconocidas (hoja ORIGINAL o primera hoja, encabezados en fila 1):</strong><br>
-        <code>DOCUMENTO</code>/<code>DOCUM</code>/<code>PEGE_DOCUMENTOIDENTIDAD</code> &nbsp;·&nbsp;
-        <code>NOMBRE</code>/<code>NOM</code>/<code>ESTUDIANTE</code> &nbsp;·&nbsp;
-        <code>SEM</code>/<code>SEMESTRE</code> &nbsp;·&nbsp;
-        <code>SEDE</code>/<code>FRANJA</code> &nbsp;·&nbsp;
-        <code>PROGRAMA</code>/<code>PROG</code>/<code>PROG_NOMBRE</code> &nbsp;·&nbsp;
-        <code>FACULTAD</code> &nbsp;·&nbsp;
-        <code>MATERIA</code> &nbsp;·&nbsp;
-        <code>EVALUACION</code>/<code>EVALUACIÓN</code> &nbsp;·&nbsp;
-        <code>GRUPO</code> &nbsp;·&nbsp;
-        <code>NOTA</code> &nbsp;·&nbsp;
-        <code>N_PERDIDAS</code><br><br>
-        ⚠️ A diferencia del módulo Matriculados, aquí la columna <strong>MATERIA</strong> debe venir <u>con tilde</u> (ej. "MATEMÁTICAS", "ÁLGEBRA LINEAL", "COMUNICACIÓN Y LENGUAJE") para poblar correctamente las hojas COMUNICACION y MATEMATICAS. Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
+        <strong>Archivo Necesario</strong><br>
+        Debe subirse el Archivo "Informe General" generado en el modulo de "Procesador de Facultades". Nota: aquí <strong>DOC</strong> no es una variante válida para documento.
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="upload-label">📂 Archivo de entrada (INFORME GENERAL)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="upload-label">📂 Archivo de entrada</div>', unsafe_allow_html=True)
     archivo_inf = st.file_uploader(
         "Sube el archivo Excel de Informe General",
         type=["xlsx"],
@@ -2030,7 +2011,14 @@ elif modulo == "Estudiantes Supabase":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="upload-label">📂 Archivo de entrada (con hojas COMUNICACION y MATEMATICAS)</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="warning-card">
+        <strong>Archivo Necesario</strong><br>
+        Debe subirse el archivo MATRICULADOS PROCESADO generado en el módulo de "Procesador de Matriculados".
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="upload-label">📂 Archivo de entrada (MATRICULADOS PROCESADO)</div>', unsafe_allow_html=True)
     archivo_sup = st.file_uploader(
         "Sube el archivo Excel con hojas COMUNICACION y MATEMATICAS",
         type=["xlsx"],
