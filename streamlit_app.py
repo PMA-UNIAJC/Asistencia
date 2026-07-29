@@ -1846,9 +1846,9 @@ elif modulo == "Cruce":
     <div class="warning-card">
         <strong>Archivos Necesarios</strong><br>
         
-        Archivo TUTORIAS: Archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
-        Archivo MATRICULADOS: Archivo ya procesado por el módulo "Matriculados".<br>
-        Archivo INFORME GENERAL: Archivo ya procesado por el módulo "Informe General".
+         Archivo TUTORIAS: Archivo descargado desde el Panel Admin del formulario: "Descargar Informe".<br>
+         Archivo MATRICULADOS: Archivo ya procesado por el módulo "Matriculados".<br>
+         Archivo INFORME GENERAL: Archivo ya procesado por el módulo "Informe General".
     </div>
     """, unsafe_allow_html=True)
 
