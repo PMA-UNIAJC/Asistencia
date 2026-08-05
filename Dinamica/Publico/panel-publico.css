@@ -1,0 +1,93 @@
+#panel-publico-stats {
+  --pp-color-gold: var(--color-gold, #F0B429);
+  --pp-color-gold-soft: var(--color-gold-soft, #F7D080);
+  --pp-color-violet: var(--color-violet-soft, #8B98FF);
+  --pp-color-border: var(--color-border, rgba(255,255,255,0.12));
+  --pp-color-text: var(--color-text, #F4F5FA);
+  --pp-color-text-muted: var(--color-text-muted, #939BC4);
+  --pp-color-panel: var(--color-bg-panel, #141834);
+  --pp-color-panel-2: var(--color-bg-panel-2, #1B2044);
+  --pp-radius: var(--radius-md, 16px);
+  --pp-ease: var(--ease, cubic-bezier(.4,0,.2,1));
+
+  max-width: 480px;
+  margin: 18px auto 0;
+  background: linear-gradient(180deg, var(--pp-color-panel-2), var(--pp-color-panel));
+  border: 1px solid var(--pp-color-border);
+  border-radius: var(--pp-radius);
+  padding: 18px 20px;
+  font-family: var(--font-body, 'Manrope', sans-serif);
+  color: var(--pp-color-text);
+}
+
+#panel-publico-stats.hidden { display: none; }
+
+.panel-publico-stats__titulo {
+  font-family: var(--font-display, 'Cinzel', serif);
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pp-color-gold-soft);
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+/* AGREGADO — Texto breve mientras el comodín "Público" espera los
+   primeros votos en vivo (antes del primer refresco). */
+.panel-publico-stats__cargando {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--pp-color-text-muted);
+}
+
+.panel-publico-stats__barras {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-publico-stats__fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-publico-stats__letra {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--pp-color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--pp-color-gold-soft);
+}
+
+.panel-publico-stats__pista {
+  flex: 1;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+
+.panel-publico-stats__relleno {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pp-color-violet), var(--pp-color-gold));
+  transition: width 0.6s var(--pp-ease);
+}
+
+.panel-publico-stats__pct {
+  flex-shrink: 0;
+  width: 42px;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pp-color-text-muted);
+}

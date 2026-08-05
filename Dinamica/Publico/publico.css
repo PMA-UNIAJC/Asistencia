@@ -1,0 +1,186 @@
+/* ---------------------------------------------------------------------
+   Variables de respaldo: si ../Inicio/style.css no está disponible,
+   esta pantalla igual se ve bien y coherente con la estética del juego.
+   Si ese archivo SÍ carga y define estas mismas variables, las suyas
+   ganan automáticamente (CSS custom properties son "cascada normal").
+   --------------------------------------------------------------------- */
+:root {
+  --pub-font-display: var(--font-display, 'Cinzel', serif);
+  --pub-font-body: var(--font-body, 'Manrope', sans-serif);
+  --pub-color-bg: var(--color-bg, #0B0E1A);
+  --pub-color-panel: var(--color-bg-panel, #141834);
+  --pub-color-panel-2: var(--color-bg-panel-2, #1B2044);
+  --pub-color-border: var(--color-border, rgba(255,255,255,0.12));
+  --pub-color-text: var(--color-text, #F4F5FA);
+  --pub-color-text-muted: var(--color-text-muted, #939BC4);
+  --pub-color-gold: var(--color-gold, #F0B429);
+  --pub-color-gold-soft: var(--color-gold-soft, #F7D080);
+  --pub-color-violet: var(--color-violet-soft, #8B98FF);
+  --pub-color-success: var(--color-success, #34D399);
+  --pub-color-danger: var(--color-danger, #F0596B);
+  --pub-radius-md: var(--radius-md, 16px);
+  --pub-ease: var(--ease, cubic-bezier(.4,0,.2,1));
+}
+
+* { box-sizing: border-box; }
+
+body.pagina-publico {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--pub-color-bg);
+  color: var(--pub-color-text);
+  font-family: var(--pub-font-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.publico-app {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Encabezado */
+.publico-header { text-align: center; }
+.publico-header__marca {
+  font-family: var(--pub-font-display);
+  font-weight: 700;
+  font-size: clamp(18px, 5vw, 22px);
+  background: linear-gradient(120deg, var(--pub-color-gold-soft), var(--pub-color-gold) 60%, #C98A12);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0 0 4px;
+}
+.publico-header__subtitulo {
+  margin: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pub-color-text-muted);
+}
+
+/* Estados genéricos (cargando / error / esperando / enviado) */
+.publico-estado {
+  text-align: center;
+  background: linear-gradient(180deg, var(--pub-color-panel-2), var(--pub-color-panel));
+  border: 1px solid var(--pub-color-border);
+  border-radius: var(--pub-radius-md);
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.publico-estado__icono { font-size: 30px; margin: 0; }
+.publico-estado p { margin: 0; font-size: 15px; color: var(--pub-color-text); line-height: 1.5; }
+
+.publico-btn-reintentar {
+  margin-top: 6px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--pub-color-border);
+  background: rgba(255,255,255,0.04);
+  color: var(--pub-color-text);
+  font-family: var(--pub-font-body);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.publico-btn-reintentar:active { transform: scale(0.97); }
+
+/* Spinner simple */
+.publico-spinner { display: flex; gap: 6px; }
+.publico-spinner span {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--pub-color-gold);
+  animation: publico-pulso 1s var(--pub-ease) infinite ease-in-out;
+}
+.publico-spinner span:nth-child(2) { animation-delay: 0.15s; }
+.publico-spinner span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes publico-pulso {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* Pregunta + opciones */
+.publico-pregunta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.publico-pregunta__texto {
+  background: linear-gradient(180deg, var(--pub-color-panel-2), var(--pub-color-panel));
+  border: 1px solid var(--pub-color-border);
+  border-radius: var(--pub-radius-md);
+  padding: 20px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.publico-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.publico-opcion {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--pub-color-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--pub-color-text);
+  font-family: var(--pub-font-body);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s var(--pub-ease), border-color 0.18s var(--pub-ease), transform 0.1s var(--pub-ease);
+}
+.publico-opcion:active { transform: scale(0.98); }
+.publico-opcion:not(:disabled):hover {
+  border-color: var(--pub-color-violet);
+  background: rgba(139, 152, 255, 0.08);
+}
+.publico-opcion:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.publico-opcion.esta-seleccionada {
+  border-color: var(--pub-color-gold);
+  background: rgba(240, 180, 41, 0.12);
+  opacity: 1;
+}
+
+.publico-opcion__letra {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--pub-color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pub-font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--pub-color-gold-soft);
+}
+
+.publico-opcion__texto { white-space: pre-line; line-height: 1.35; }
+
+.hidden { display: none !important; }

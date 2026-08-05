@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Participa — ¿Quién Quiere Ser Millonario?</title>
+  <meta name="description" content="Vota la opción que creas correcta en tiempo real." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Reutiliza los mismos tokens visuales (colores, tipografías) que el resto del sitio.
+       Si esta ruta no existe en tu proyecto, publico.css ya trae valores de respaldo
+       y la pantalla se ve bien igual. -->
+  <link rel="stylesheet" href="../Inicio/style.css" onerror="this.remove()" />
+  <link rel="stylesheet" href="publico.css" />
+
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+</head>
+<body class="pagina-publico">
+
+  <main id="publico-app" class="publico-app">
+
+    <header class="publico-header">
+      <p class="publico-header__marca">¿Quién Quiere Ser Millonario?</p>
+      <p class="publico-header__subtitulo">Participación del público</p>
+    </header>
+
+    <!-- ESTADO: cargando conexión inicial -->
+    <section class="publico-estado" id="publico-cargando">
+      <div class="publico-spinner" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p>Conectando…</p>
+    </section>
+
+    <!-- ESTADO: error de conexión -->
+    <section class="publico-estado hidden" id="publico-error">
+      <p class="publico-estado__icono" aria-hidden="true">⚠️</p>
+      <p id="publico-error-texto">No se pudo conectar. Revisa tu internet.</p>
+      <button type="button" class="publico-btn-reintentar" id="btn-publico-reintentar">Reintentar</button>
+    </section>
+
+    <!-- ESTADO: esperando que el presentador inicie la partida -->
+    <section class="publico-estado hidden" id="publico-esperando-partida">
+      <p class="publico-estado__icono" aria-hidden="true">⏳</p>
+      <p>Esperando que comience la partida…</p>
+    </section>
+
+    <!-- ESTADO: pregunta abierta para votar -->
+    <section class="publico-pregunta hidden" id="publico-pregunta">
+      <p class="publico-pregunta__texto" id="publico-pregunta-texto"></p>
+      <div class="publico-opciones" id="publico-opciones">
+        <button type="button" class="publico-opcion" data-opcion="A">
+          <span class="publico-opcion__letra">A</span>
+          <span class="publico-opcion__texto" id="publico-opcion-a"></span>
+        </button>
+        <button type="button" class="publico-opcion" data-opcion="B">
+          <span class="publico-opcion__letra">B</span>
+          <span class="publico-opcion__texto" id="publico-opcion-b"></span>
+        </button>
+        <button type="button" class="publico-opcion" data-opcion="C">
+          <span class="publico-opcion__letra">C</span>
+          <span class="publico-opcion__texto" id="publico-opcion-c"></span>
+        </button>
+        <button type="button" class="publico-opcion" data-opcion="D">
+          <span class="publico-opcion__letra">D</span>
+          <span class="publico-opcion__texto" id="publico-opcion-d"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ESTADO: ya votó / pregunta cerrada — esperando la siguiente -->
+    <section class="publico-estado hidden" id="publico-esperando-siguiente">
+      <p class="publico-estado__icono" aria-hidden="true">✅</p>
+      <p id="publico-esperando-siguiente-texto">Respuesta enviada. Esperando la siguiente pregunta.</p>
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="publico.js"></script>
+</body>
+</html>
