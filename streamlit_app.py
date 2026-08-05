@@ -1514,6 +1514,20 @@ def vis_aplicar_formato(workbook, nombre_hoja):
     for col in range(1, sheet.max_column + 1):
         sheet.column_dimensions[get_column_letter(col)].width = 18
 
+def vis_detectar_dia(nombre_hoja, dias_validos):
+    """
+    Toma la primera palabra del nombre de la hoja, le quita tildes/mayúsculas,
+    y verifica si corresponde a un día válido. Ej: 'Lunes Noche' -> 'LUNES'.
+    Retorna el día normalizado o None si no coincide.
+    """
+    nombre_norm = str(nombre_hoja).strip().upper().translate(TILDES_MAP)
+    if not nombre_norm:
+        return None
+    primer_token = nombre_norm.split()[0]
+    if primer_token in dias_validos:
+        return primer_token
+    return None
+
 def vis_procesar_archivo(archivos, jornadas):
     """
     archivos: lista de file objects (1, 2 o 3 archivos).
@@ -1532,7 +1546,8 @@ def vis_procesar_archivo(archivos, jornadas):
         excel_file = pd.ExcelFile(file_obj, engine='openpyxl')
 
         for nombre_hoja in excel_file.sheet_names:
-            if nombre_hoja.strip().upper() not in DIAS_VALIDOS:
+            dia_detectado = vis_detectar_dia(nombre_hoja, DIAS_VALIDOS)
+            if dia_detectado is None:
                 continue
 
             df_hoja = None
@@ -1547,7 +1562,7 @@ def vis_procesar_archivo(archivos, jornadas):
             if df_hoja is None:
                 continue
 
-            df_hoja['DIA'] = nombre_hoja.strip().upper()
+            df_hoja['DIA'] = dia_detectado
             df_hoja['JORNADA'] = jornada
 
             for col_critica in ['SALON', 'GRUPO', 'HORARIO']:
