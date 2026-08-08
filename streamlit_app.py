@@ -1373,7 +1373,9 @@ TILDES_MAP_SUP = str.maketrans('ÁÉÍÓÚáéíóúÑñÜü', 'AEIOUaeiouNnUu')
 
 def sup_limpiar_texto(texto):
     if pd.isna(texto): return texto
-    return str(texto).translate(TILDES_MAP_SUP)
+    texto_limpio = str(texto).translate(TILDES_MAP_SUP)
+    texto_limpio = re.sub(r'\s+', ' ', texto_limpio).strip()
+    return texto_limpio
 
 def sup_leer_hojas(file_obj):
     try:
@@ -1400,18 +1402,6 @@ def sup_encontrar_columna(df, nombres_posibles):
                 return col
     return None
 
-def sup_tiene_3_o_4_palabras(nombre):
-    if pd.isna(nombre): return False
-    palabras = str(nombre).strip().split()
-    return len(palabras) in (3, 4)
-
-def sup_separar_nombre(nombre):
-    palabras = str(nombre).strip().split()
-    if len(palabras) == 4:
-        return palabras[0], palabras[1], palabras[2], palabras[3]
-    else:
-        return palabras[0], palabras[1], palabras[2], ''
-
 def sup_procesar_archivo(file_obj):
     df = sup_leer_hojas(file_obj)
     col_documento = sup_encontrar_columna(df, ['DOCUMENTO', 'DOCUM', 'PEGE_DOCUMENTOIDENTIDAD', 'DOC'])
@@ -1434,25 +1424,15 @@ def sup_procesar_archivo(file_obj):
     df_work['_programa'] = df[col_programa]
     df_work['_sede'] = df[col_sede]
     df_work['_semestre'] = df[col_semestre]
-    mask = df_work['_nombre'].apply(sup_tiene_3_o_4_palabras)
-    df_work = df_work[mask].copy()
-    if df_work.empty:
-        raise Exception("No hay registros con 3 o 4 palabras en el nombre.")
     df_work = df_work.drop_duplicates(subset='_documento').copy()
-    nombres_separados = df_work['_nombre'].apply(sup_separar_nombre)
-    df_work['primer_apellido'] = nombres_separados.apply(lambda x: sup_limpiar_texto(x[0]))
-    df_work['segundo_apellido'] = nombres_separados.apply(lambda x: sup_limpiar_texto(x[1]))
-    df_work['primer_nombre'] = nombres_separados.apply(lambda x: sup_limpiar_texto(x[2]))
-    df_work['segundo_nombre'] = nombres_separados.apply(lambda x: sup_limpiar_texto(x[3]))
+    if df_work.empty:
+        raise Exception("No hay registros para procesar.")
     df_work['semestre'] = df_work['_semestre'].apply(
         lambda x: SEMESTRE_MAP_SUP.get(str(x).strip().upper(), str(x).strip()) if pd.notna(x) else x
     )
     df_final = pd.DataFrame()
     df_final['documento'] = df_work['_documento']
-    df_final['primer_nombre'] = df_work['primer_nombre']
-    df_final['segundo_nombre'] = df_work['segundo_nombre']
-    df_final['primer_apellido'] = df_work['primer_apellido']
-    df_final['segundo_apellido'] = df_work['segundo_apellido']
+    df_final['nombre'] = df_work['_nombre'].apply(sup_limpiar_texto)
     df_final['facultad'] = df_work['_facultad'].values
     df_final['programa'] = df_work['_programa'].values
     df_final['sede'] = df_work['_sede']
@@ -2041,8 +2021,7 @@ elif modulo == "Estudiantes Supabase":
     st.markdown("""
     <div class="module-header">
         <h1>Estudiantes para Supabase</h1>
-        <p>Prepara los datos de estudiantes para importación a Supabase:<br>
-        separa nombres, elimina tildes y genera el formato requerido.</p>
+        <p>Prepara los datos de estudiantes para importación a Supabase:<br></p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2050,10 +2029,7 @@ elif modulo == "Estudiantes Supabase":
     <div class="info-card">
         <strong>¿Qué hace este módulo?</strong><br>
         • Lee las hojas <strong>COMUNICACION</strong> y <strong>MATEMATICAS</strong> del archivo.<br>
-        • Filtra estudiantes con <strong>3 o 4 palabras</strong> en el nombre.<br>
         • Elimina duplicados por número de documento.<br>
-        • Separa el nombre en: primer_apellido · segundo_apellido · primer_nombre · segundo_nombre.<br>
-        • Elimina tildes (compatibilidad con Supabase).<br>
         • Convierte el semestre en número.
     </div>
     """, unsafe_allow_html=True)
