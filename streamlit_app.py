@@ -1618,6 +1618,11 @@ def vis_procesar_archivo(archivos):
 
     df_general = df_general.reset_index(drop=True)
 
+    columnas_duplicado = ['DIA', 'HORARIO', 'GRUPO']
+    if all(c in df_general.columns for c in columnas_duplicado):
+        df_general = df_general.drop_duplicates(subset=columnas_duplicado, keep='first')
+        df_general = df_general.reset_index(drop=True)
+
     df_visitas = df_general.copy()
     df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(determinar_semestre)
     df_visitas = df_visitas[df_visitas['SEMESTRE'].notna()].copy()
