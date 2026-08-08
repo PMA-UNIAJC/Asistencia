@@ -822,7 +822,7 @@ function mostrarConfirmacion() {
   const programa = (elementosDOM.regPrograma || document.getElementById('regPrograma'))?.value;
   const sede = (elementosDOM.regSede || document.getElementById('regSede'))?.value;
   
-  const nombreCompleto = `${primerNombre} ${segundoNombre} ${primerApellido} ${segundoApellido}`.replace(/\s+/g, ' ');
+  const nombreCompleto = `${primerApellido} ${segundoApellido} ${primerNombre} ${segundoNombre}`.replace(/\s+/g, ' ').trim();
   const semestre = (elementosDOM.regSemestre || document.getElementById('regSemestre'))?.value;
 
   const html = `
@@ -964,12 +964,14 @@ async function registrarEstudiante(event) {
   
   mostrarCargando('mensajeRegistro');
 
+const primerNombre = document.getElementById('regPrimerNombre').value.toUpperCase();
+  const segundoNombre = document.getElementById('regSegundoNombre').value.toUpperCase();
+  const primerApellido = document.getElementById('regPrimerApellido').value.toUpperCase();
+  const segundoApellido = document.getElementById('regSegundoApellido').value.toUpperCase();
+
 const datos = {
     documento: doc,
-    primer_nombre: document.getElementById('regPrimerNombre').value.toUpperCase(),
-    segundo_nombre: document.getElementById('regSegundoNombre').value.toUpperCase() || null,
-    primer_apellido: document.getElementById('regPrimerApellido').value.toUpperCase(),
-    segundo_apellido: document.getElementById('regSegundoApellido').value.toUpperCase(),
+    nombre: [primerApellido, segundoApellido, primerNombre, segundoNombre].filter(Boolean).join(' '),
     facultad: document.getElementById('regFacultad').value,
     programa: document.getElementById('regPrograma').value,
     sede: document.getElementById('regSede').value,
@@ -1019,14 +1021,11 @@ function censurarNombre(nombreCompleto) {
 
 
 function mostrarFormularioParaEstudiante(estudiante) {
-  const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
-  const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
-  const nombreCompleto = `${nombres} ${apellidos}`;
+  const nombreCompleto = estudiante.nombre;
 
   datosEstudiante = {
     documento: estudiante.documento,
-    nombres: nombres,
-    apellidos: apellidos,
+    nombre: nombreCompleto,
     nombreCensurado: censurarNombre(nombreCompleto),
     facultad: estudiante.facultad,
     programa: estudiante.programa,
@@ -1751,8 +1750,7 @@ else {
   
 const datos = {
     documento: datosEstudiante.documento,
-    nombres: datosEstudiante.nombres,
-    apellidos: datosEstudiante.apellidos,
+    nombre: datosEstudiante.nombre,
     facultad: datosEstudiante.facultad,
     programa: datosEstudiante.programa,
     semestre: datosEstudiante.semestre,
@@ -1827,10 +1825,7 @@ function mostrarFormularioActualizacion(estudiante) {
   mostrarPantalla('pantallaActualizacion');
   document.getElementById('mensajeActualizacion').innerHTML = '';
   document.getElementById('actualizarSemestre').value = estudiante.semestre || '';
-  const nombres = `${estudiante.primer_nombre} ${estudiante.segundo_nombre || ''}`.trim();
-  const apellidos = `${estudiante.primer_apellido} ${estudiante.segundo_apellido}`.trim();
-  const nombreCompleto = `${nombres} ${apellidos}`;
-  document.getElementById('nombreEstudianteActualizacion').textContent = censurarNombre(nombreCompleto);
+  document.getElementById('nombreEstudianteActualizacion').textContent = censurarNombre(estudiante.nombre);
 }
 
 async function actualizarDatosEstudiante(event) {
@@ -1879,14 +1874,11 @@ async function actualizarDatosEstudiante(event) {
     console.log('Datos actualizados:', resultado);
     
     // Continuar con el login
-    const nombres = `${estudianteActualizando.primer_nombre} ${estudianteActualizando.segundo_nombre || ''}`.trim();
-    const apellidos = `${estudianteActualizando.primer_apellido} ${estudianteActualizando.segundo_apellido}`.trim();
-    const nombreCompleto = `${nombres} ${apellidos}`;
+    const nombreCompleto = estudianteActualizando.nombre;
     
     datosEstudiante = {
       documento: estudianteActualizando.documento,
-      nombres: nombres,
-      apellidos: apellidos,
+      nombre: nombreCompleto,
       nombreCensurado: censurarNombre(nombreCompleto),
       facultad: estudianteActualizando.facultad,
       programa: estudianteActualizando.programa,
