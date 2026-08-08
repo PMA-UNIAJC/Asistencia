@@ -1528,20 +1528,46 @@ def vis_detectar_dia(nombre_hoja, dias_validos):
         return primer_token
     return None
 
-def vis_procesar_archivo(archivos, jornadas):
+def vis_determinar_jornada(horario):
+    """
+    Analiza la hora de inicio (primeros 4 dígitos) del valor de HORARIO
+    (ej: '0800 - 1200') y determina la JORNADA correspondiente:
+    0700-1159 -> MAÑANA | 1200-1759 -> TARDE | 1800-2159 -> NOCHE
+    No modifica el valor original de HORARIO.
+    """
+    if pd.isna(horario):
+        return None
+    texto = str(horario).strip()
+    match = re.match(r'^(\d{3,4})', texto)
+    if not match:
+        return None
+    hora_inicio = match.group(1).zfill(4)
+    try:
+        hora_num = int(hora_inicio)
+    except:
+        return None
+    if 700 <= hora_num <= 1159:
+        return 'MAÑANA'
+    elif 1200 <= hora_num <= 1759:
+        return 'TARDE'
+    elif 1800 <= hora_num <= 2159:
+        return 'NOCHE'
+    else:
+        return None
+
+def vis_procesar_archivo(archivos):
     """
     archivos: lista de file objects (1, 2 o 3 archivos).
-    jornadas: lista de strings con la jornada de cada archivo ('DIURNA' o 'NOCTURNA').
     """
     DIAS_VALIDOS = {'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'}
     COLUMNAS_GENERAL = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'ASIGNATURA', 'DOCENTE']
-    COLUMNAS_VISITAS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA', 'ASIGNATURA', 'DOCENTE']
+    COLUMNAS_VISITAS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA']
     COLUMNAS_ORIGINALES = ['SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO']
     FILAS_HEADER = [6, 5, 7, 0]  # fila 7, fila 6, fila 8, fila 1 (índice 0-based)
 
     generales = []
 
-    for file_obj, jornada in zip(archivos, jornadas):
+    for file_obj in archivos:
         validar_archivo_xlsx(file_obj)
         excel_file = pd.ExcelFile(file_obj, engine='openpyxl')
 
@@ -1563,7 +1589,10 @@ def vis_procesar_archivo(archivos, jornadas):
                 continue
 
             df_hoja['DIA'] = dia_detectado
-            df_hoja['JORNADA'] = jornada
+            if 'HORARIO' in df_hoja.columns:
+                df_hoja['JORNADA'] = df_hoja['HORARIO'].apply(vis_determinar_jornada)
+            else:
+                df_hoja['JORNADA'] = None
 
             for col_critica in ['SALON', 'GRUPO', 'HORARIO']:
                 if col_critica in df_hoja.columns:
@@ -2114,18 +2143,13 @@ elif modulo == "Visitas a Grupos":
 
     st.markdown("---")
 
-    archivos_vis = []
-    jornadas_vis = []
-    for f, j in [(archivo_vis_1, 'DIURNA'), (archivo_vis_2, 'DIURNA'), (archivo_vis_3, 'NOCTURNA')]:
-        if f is not None:
-            archivos_vis.append(f)
-            jornadas_vis.append(j)
+    archivos_vis = [f for f in [archivo_vis_1, archivo_vis_2, archivo_vis_3] if f is not None]
 
     if archivos_vis:
         if st.button("▶  Procesar Visitas a Grupos", key="btn_vis", use_container_width=True):
             with st.spinner("Procesando visitas a grupos..."):
                 try:
-                    resultado = vis_procesar_archivo(archivos_vis, jornadas_vis)
+                    resultado = vis_procesar_archivo(archivos_vis)
                     st.success(f"✅ Proceso completado. Se procesaron **{len(archivos_vis)} archivo(s)**.")
                     st.download_button(
                         label="⬇️  Descargar archivo procesado",
