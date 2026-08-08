@@ -1684,7 +1684,7 @@ if modulo == "Facultades":
         <strong>Columnas Necesarias</strong><br>
         <code>DOCUMENTO / DOC / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
         <code>NOMBRE / NOM / ESTUDIANTE</code>
-        <code>FACULTAD</code>
+        <code>FACULTAD</code><br>
         <code>PROGRAMA / PROG / PROG_NOMBRE</code>
         <code>MATERIA</code>
         <code>EVALUACION</code>
@@ -1804,7 +1804,7 @@ elif modulo == "Matriculados":
         <strong>Columnas Necesarias</strong><br>
         <code>DOCUMENTO / DOC / DOCUM / PEGE_DOCUMENTOIDENTIDAD</code>
         <code>NOMBRE / NOM / ESTUDIANTE</code>
-        <code>PROGRAMA / PROG / PROG_NOMBRE</code>
+        <code>PROGRAMA / PROG / PROG_NOMBRE</code><br>
         <code>SEDE / FRANJA</code>
         <code>MATERIA</code>
         <code>GRUPO</code>
@@ -1981,7 +1981,7 @@ elif modulo == "Informe General":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="upload-label">📂 Archivo de entrada (INFORME GENERAL CREADO POR "PROCESADOR DE FACULTADES")</div>', unsafe_allow_html=True)
+    st.markdown('<div class="upload-label">📂 INFORME GENERAL (CREADO POR "PROCESADOR DE FACULTADES")</div>', unsafe_allow_html=True)
     archivo_inf = st.file_uploader(
         "Sube el archivo Excel de Informe General",
         type=["xlsx"],
@@ -2041,7 +2041,7 @@ elif modulo == "Estudiantes Supabase":
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown('<div class="upload-label">📂 Archivo de entrada (MATRICULADOS PROCESADO)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="upload-label">📂 MATRICULADOS (PROCESADO)</div>', unsafe_allow_html=True)
     archivo_sup = st.file_uploader(
         "Sube el archivo Excel con hojas COMUNICACION y MATEMATICAS",
         type=["xlsx"],
@@ -2113,13 +2113,13 @@ elif modulo == "Visitas a Grupos":
 
     col_v1, col_v2, col_v3 = st.columns(3)
     with col_v1:
-        st.markdown('<div class="upload-label">📂 1 — DIURNA</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 ARCHIVO 1</div>', unsafe_allow_html=True)
         archivo_vis_1 = st.file_uploader("Archivo 1", type=["xlsx"], key="uploader_vis_1", label_visibility="collapsed")
     with col_v2:
-        st.markdown('<div class="upload-label">📂 2 — DIURNA (opcional)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂 ARCHIVO 2</div>', unsafe_allow_html=True)
         archivo_vis_2 = st.file_uploader("Archivo 2", type=["xlsx"], key="uploader_vis_2", label_visibility="collapsed")
     with col_v3:
-        st.markdown('<div class="upload-label">📂 3 — NOCTURNA (opcional)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="upload-label">📂  ARCHIVO 3</div>', unsafe_allow_html=True)
         archivo_vis_3 = st.file_uploader("Archivo 3", type=["xlsx"], key="uploader_vis_3", label_visibility="collapsed")
 
     st.markdown("---")
