@@ -1242,8 +1242,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
     return {
       'Fecha': serialDate,
       'Documento': parseInt(fila.documento),
-      'Nombres': fila.nombres || '',
-      'Apellidos': fila.apellidos || '',
+      'Nombre': fila.nombre || '',
       'Semestre': fila.semestre || '',
       'Facultad': fila.facultad || '',
       'Programa': fila.programa || '',
@@ -1260,7 +1259,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
   
   ws['!cols'] = [
-    { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 12 }, { wch: 12 }, { wch: 35 },
     { wch: 10 }, { wch: 35 }, { wch: 35 }, { wch: 30 }, { wch: 30 }
   ];
   
@@ -1342,8 +1341,6 @@ function generarExcelPorGrupoMatriculados(datos, mapaGrupos, grupoFiltro) {
   const datosExcel = datos.map(fila => {
     const doc = String(fila.documento).trim();
     const grupoReal = mapaGrupos.get(doc) || grupoFiltro;
-    const apellidos = fila.apellidos || '';
-    const nombres = fila.nombres || '';
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
@@ -1352,7 +1349,7 @@ function generarExcelPorGrupoMatriculados(datos, mapaGrupos, grupoFiltro) {
       'Fecha': serialDate,
       'Hora': horaFormateada,
       'Documento': parseInt(fila.documento) || '',
-      'Apellidos y Nombres': `${apellidos} ${nombres}`.trim(),
+      'Nombre': fila.nombre || '',
       'Facultad': fila.facultad || '',
       'Programa': fila.programa || '',
       'Grupo': grupoReal,
@@ -1549,9 +1546,6 @@ async function descargarPorDocumento(event) {
 
 function generarExcelPorDocumento(datos, documentos, mapaGrupos) {
   const datosExcel = datos.map(fila => {
-    const apellidos = fila.apellidos || '';
-    const nombres = fila.nombres || '';
-    const apellidosYNombres = `${apellidos} ${nombres}`.trim();
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
     const doc = String(fila.documento).trim();
@@ -1560,7 +1554,7 @@ function generarExcelPorDocumento(datos, documentos, mapaGrupos) {
     return {
       'Fecha': serialDate,
       'Documento': parseInt(fila.documento) || '',
-      'Apellidos y Nombres': apellidosYNombres,
+      'Nombre': fila.nombre || '',
       'Grupo': grupo,
       'Programa': fila.programa || '',
       'Asignatura': fila.asignatura || '',
@@ -1605,8 +1599,7 @@ function generarExcelSimplificado(datos, desde, hasta) {
       'Fecha': serialDate,
       'Hora': horaFormateada,
       'Documento': parseInt(fila.documento),
-      'Nombres': fila.nombres,
-      'Apellidos': fila.apellidos,
+      'Nombre': fila.nombre,
       'Programa': fila.programa,
       'Instructor': fila.instructor,
       'Asignatura': fila.asignatura,
@@ -1622,7 +1615,7 @@ function generarExcelSimplificado(datos, desde, hasta) {
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
   ws['!cols'] = [
-    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 },
     { wch: 35 }, { wch: 25 }, { wch: 30 }, { wch: 30 }
   ];
 
@@ -1653,8 +1646,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
       'Fecha': serialDate,
       'Hora': horaFormateada,
       'Documento': parseInt(fila.documento),
-      'Nombres': fila.nombres,
-      'Apellidos': fila.apellidos,
+      'Nombre': fila.nombre,
       'Facultad': fila.facultad,
       'Programa': fila.programa,
       'Semestre': fila.semestre,
@@ -1685,7 +1677,7 @@ function generarExcelCompleto(datos, nombreArchivo) {
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
 ws['!cols'] = [
-    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
+    { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 },
     { wch: 35 }, { wch: 35 }, { wch: 10 }, { wch: 20 },
     { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 },
     { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 12 },
@@ -1709,8 +1701,7 @@ function generarExcelDocentes(datos, desde, hasta) {
       'Fecha': serialDate,
       'Hora': horaFormateada,
       'Documento': parseInt(fila.documento),
-      'Nombres': fila.nombres,
-      'Apellidos': fila.apellidos,
+      'Nombre': fila.nombre,
       'Programa': fila.programa,
       'Facultad/Departamento': fila.facultad_departamento || '',
       'Instructor': fila.instructor,
@@ -1730,8 +1721,7 @@ function generarExcelDocentes(datos, desde, hasta) {
     { wch: 12 }, // Fecha
     { wch: 8 },  // Hora
     { wch: 12 }, // Documento
-    { wch: 20 }, // Nombres
-    { wch: 20 }, // Apellidos
+    { wch: 35 }, // Nombre
     { wch: 35 }, // Programa
     { wch: 20 }, // Facultad/Departamento
     { wch: 25 }, // Instructor
@@ -2612,7 +2602,7 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
     return {
       'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento) || '',
-      'NOMBRE': `${(fila.apellidos || '').trim()} ${(fila.nombres || '').trim()}`.trim(),
+      'NOMBRE': fila.nombre || '',
       'FACULTAD': corregirAcentos(fila.facultad || ''),
       'PROGRAMA': corregirAcentos(fila.programa || ''),
       'SEDE ESTUDIANTE': fila.sede_estudiante || '',
