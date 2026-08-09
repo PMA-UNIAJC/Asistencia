@@ -1,13 +1,15 @@
-// =========================================================
-// PANEL DE ADMINISTRACIÓN DE VISITAS - PMA
-// Módulo independiente (no comparte lógica con VISITAS/INICIO
-// ni con PMA, salvo el CSS reutilizado)
-// =========================================================
-
 const SUPABASE_URL = `https://hgppzklpukgslnrynvld.supabase.co`;
 const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs`;
 const ESQUEMA_VISITAS = 'visitas';
 const ESQUEMA_PUBLICO = 'public';
+
+// ── Verificación de acceso (igual que editar.js) ────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  if (!sessionStorage.getItem('adminAuth')) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../../import/admin.html';
+  }
+});
 
 // ===================================
 // ESTADO GLOBAL
