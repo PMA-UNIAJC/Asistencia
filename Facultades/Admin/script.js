@@ -4,6 +4,20 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ── Cliente de Supabase para verificar sesión de administrador ─────────────
+// (proyecto distinto al de horarios: es el mismo que usan admin.html / editar.html)
+const SUPABASE_URL_AUTH = 'https://hgppzklpukgslnrynvld.supabase.co';
+const SUPABASE_KEY_AUTH = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs';
+
+const supabaseAuthClient = createClient(SUPABASE_URL_AUTH, SUPABASE_KEY_AUTH, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+    storage: window.sessionStorage
+  }
+});
+
 const DIAS  = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const SEDES = ['Norte', 'Sur', 'Virtual'];
 const HORAS_OPTS   = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -1152,11 +1166,31 @@ async function eliminarEnlaceBecario(id) {
 //  INICIALIZACIÓN
 // ══════════════════════════════════════════════════════════════════
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if (!sessionStorage.getItem('adminAuth')) {
     alert('Debe iniciar sesión como administrador para acceder a esta página.');
     window.location.href = '../../import/admin.html';
     return;
   }
+
+  const { data: { session } } = await supabaseAuthClient.auth.getSession();
+  if (!session) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../../import/admin.html';
+    return;
+  }
+
+  const { data: adminData, error: adminError } = await supabaseAuthClient
+    .from('admin_usuarios')
+    .select('user_id')
+    .eq('user_id', session.user.id)
+    .single();
+
+  if (adminError || !adminData) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../../import/admin.html';
+    return;
+  }
+
   cargarEnvios();
 });
