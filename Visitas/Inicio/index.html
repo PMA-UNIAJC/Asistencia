@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="format-detection" content="telephone=no">
+  <title>Visitas a Grupos - PMA</title>
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="stylesheet" href="../../PMA/styles.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="visitas-inicio-body">
+
+<div class="visitas-page visitas-inicio-page">
+
+  <header class="visitas-header">
+    <h1 class="visitas-header-title">Visitas a Grupos</h1>
+    <p class="visitas-header-subtitle" id="subtituloVista">Seleccione su sede</p>
+  </header>
+
+  <div id="mensajeInicio"></div>
+
+  <!-- VISTA 1: SELECCIÓN DE SEDE -->
+  <section id="vistaSede" class="visitas-tab-content">
+    <p class="visitas-intro-texto">Seleccione la sede a la que pertenece para ver el listado de becarios y sus visitas asignadas.</p>
+    <div class="visitas-sede-grid">
+      <button class="btn btn-sede visitas-sede-grande" data-sede="norte">SEDE NORTE</button>
+      <button class="btn btn-sede visitas-sede-grande" data-sede="sur">SEDE SUR</button>
+    </div>
+  </section>
+
+  <!-- VISTA 2: LISTADO DE BECARIOS -->
+  <section id="vistaBecarios" class="visitas-tab-content hidden">
+    <button type="button" class="visitas-btn-volver" onclick="volverASede()">&larr; Cambiar de sede</button>
+    <h2 class="section-title">Becarios — Sede <span id="nombreSedeBecarios"></span></h2>
+    <p class="visitas-nota-lista">Los becarios sin visitas asignadas aparecen deshabilitados.</p>
+    <div id="listadoBecarios"></div>
+  </section>
+
+  <!-- VISTA 3: VISITAS ASIGNADAS AL BECARIO -->
+  <section id="vistaVisitasBecario" class="visitas-tab-content hidden">
+    <button type="button" class="visitas-btn-volver" onclick="volverABecarios()">&larr; Volver al listado de becarios</button>
+    <h2 class="section-title">Visitas de <span id="nombreBecarioSeleccionado"></span></h2>
+    <div id="listadoVisitasBecario"></div>
+  </section>
+
+  <!-- VISTA 4: FORMULARIO DE VISITA -->
+  <section id="vistaFormularioVisita" class="visitas-tab-content hidden">
+    <button type="button" class="visitas-btn-volver" onclick="volverAVisitasBecario()">&larr; Volver a mis visitas</button>
+    <h2 class="section-title">Registrar Visita</h2>
+
+    <div class="visitas-info-box">
+      <h3 class="visitas-info-titulo">Información</h3>
+      <table class="tabla-info-visita">
+        <tbody id="detalleVisitaFormulario"></tbody>
+      </table>
+    </div>
+
+    <div id="mensajeFormularioVisita"></div>
+
+    <form id="formVisita" autocomplete="off">
+      <div class="form-group">
+        <label>Documento de Identidad del Vocero *</label>
+        <input type="tel" id="visitaDocumentoVocero" required pattern="[0-9]{6,12}" inputmode="numeric" minlength="6" maxlength="12"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Nombre del Docente *</label>
+        <input type="text" id="visitaNombreDocente" required
+          oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ ]/g, '')" onblur="limpiarEspaciosVisita(this)" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Documento de Identidad del Docente *</label>
+        <input type="tel" id="visitaDocumentoDocente" required pattern="[0-9]{6,12}" inputmode="numeric" minlength="6" maxlength="12"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)" autocomplete="off">
+      </div>
+
+      <button type="submit" class="btn" id="btnRegistrarVisita">Registrar Visita</button>
+    </form>
+  </section>
+
+  <!-- IMAGEN INSTITUCIONAL - parte inferior, centrada -->
+  <div class="logo-footer">
+    <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png" alt="Logo PMA" class="logo-footer-pma">
+  </div>
+
+</div>
+
+<!-- MODAL: Confirmar "No realizada" -->
+<div id="modalNoRealizada" class="modal-overlay hidden">
+  <div class="modal-confirmacion">
+    <h2>¿Confirmar?</h2>
+    <p>Esta visita se eliminará de tu listado y el grupo volverá a estar disponible para ser asignado nuevamente. ¿Desea continuar?</p>
+    <div class="modal-buttons">
+      <button class="btn" id="btnConfirmarNoRealizada" onclick="marcarNoRealizada()">Sí, no fue realizada</button>
+      <button class="btn btn-secondary" onclick="cerrarModalNoRealizada()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Éxito -->
+<div id="modalExitoVisita" class="modal-overlay hidden">
+  <div class="modal-success">
+    <div class="success-icon">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <h2 id="tituloModalExito">¡Visita Registrada!</h2>
+    <p id="mensajeModalExitoVisita">La información fue guardada correctamente.</p>
+    <p class="small-text">Regresando al listado...</p>
+  </div>
+</div>
+
+<div id="loaderInicio" class="loader hidden"></div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="format-detection" content="telephone=no">
+  <title>Administración de Visitas - PMA</title>
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="stylesheet" href="../../PMA/styles.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="visitas-admin-body">
+
+<div class="visitas-page">
+
+  <header class="visitas-header">
+    <div class="visitas-header-left">
+      <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png" alt="Logo PMA" class="visitas-header-logo">
+      <div>
+        <h1 class="visitas-header-title">Panel de Administración</h1>
+        <p class="visitas-header-subtitle">Gestión de Visitas a Grupos</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="botones-sedes visitas-sede-selector">
+    <button class="btn btn-sede activo" id="btnSedeNorte" onclick="cambiarSede('norte')">SEDE NORTE</button>
+    <button class="btn btn-sede" id="btnSedeSur" onclick="cambiarSede('sur')">SEDE SUR</button>
+  </div>
+
+  <div id="mensajeAdmin"></div>
+
+  <nav class="admin-tabs visitas-tabs">
+    <button class="admin-tab active" data-tab="asignar" onclick="cambiarTab('asignar')">Asignar Visitas</button>
+    <button class="admin-tab" data-tab="grupos" onclick="cambiarTab('grupos')">Estado de Grupos</button>
+    <button class="admin-tab" data-tab="becarios" onclick="cambiarTab('becarios')">Becarios</button>
+  </nav>
+
+  <!-- TAB 1: ASIGNAR VISITAS -->
+  <section id="tabAsignar" class="visitas-tab-content">
+    <div class="visitas-filtros-bar visitas-filtros-bar-asignar">
+      <div class="form-group visitas-filtro-item">
+        <label>Día *</label>
+        <select id="filtroDia" onchange="cargarClasesDelDia()">
+          <option value="">Seleccione un día</option>
+          <option value="LUNES">LUNES</option>
+          <option value="MARTES">MARTES</option>
+          <option value="MIERCOLES">MIERCOLES</option>
+          <option value="JUEVES">JUEVES</option>
+          <option value="VIERNES">VIERNES</option>
+          <option value="SABADO">SABADO</option>
+        </select>
+      </div>
+      <div class="form-group visitas-filtro-item">
+        <label>Jornada</label>
+        <select id="filtroJornada" onchange="cargarClasesDelDia()">
+          <option value="">Todas</option>
+          <option value="MAÑANA">MAÑANA</option>
+          <option value="TARDE">TARDE</option>
+          <option value="NOCHE">NOCHE</option>
+        </select>
+      </div>
+      <div class="form-group visitas-filtro-item">
+        <label>Semestre</label>
+        <select id="filtroSemestre" onchange="cargarClasesDelDia()">
+          <option value="">Todos</option>
+          <option value="PRIMERO">PRIMERO</option>
+          <option value="SEGUNDO">SEGUNDO</option>
+          <option value="TERCERO">TERCERO</option>
+        </select>
+      </div>
+      <div class="form-group visitas-filtro-item">
+        <label>Estado</label>
+        <select id="filtroEstado" onchange="cargarClasesDelDia()">
+          <option value="">Todos</option>
+          <option value="disponible">Disponible</option>
+          <option value="proceso">En proceso</option>
+          <option value="completado">Completado</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="contenedorClasesDia">
+      <p class="visitas-placeholder">Seleccione un día para ver las clases programadas.</p>
+    </div>
+  </section>
+
+  <!-- TAB 2: ESTADO DE GRUPOS -->
+  <section id="tabGrupos" class="visitas-tab-content hidden">
+    <div class="visitas-filtros-bar">
+      <div class="form-group visitas-filtro-item">
+        <label>Semestre (opcional)</label>
+        <select id="filtroSemestreGrupos" onchange="cargarEstadoGrupos()">
+          <option value="">Todos</option>
+          <option value="PRIMERO">PRIMERO</option>
+          <option value="SEGUNDO">SEGUNDO</option>
+          <option value="TERCERO">TERCERO</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stats-grid visitas-stats-grid" id="statsGrupos"></div>
+    <div id="contenedorGrupos"></div>
+  </section>
+
+  <!-- TAB 3: BECARIOS -->
+  <section id="tabBecarios" class="visitas-tab-content hidden">
+    <div id="contenedorBecarios"></div>
+  </section>
+
+</div>
+
+<!-- MODAL: Asignar visita a un becario -->
+<div id="modalAsignar" class="modal-overlay hidden">
+  <div class="modal-confirmacion">
+    <h2>Asignar Visita</h2>
+    <div id="detalleAsignacion" class="visitas-detalle-asignacion"></div>
+    <div class="form-group">
+      <label>Seleccione un becario *</label>
+      <select id="selectBecarioAsignar">
+        <option value="">Seleccione...</option>
+      </select>
+    </div>
+    <div id="mensajeModalAsignar"></div>
+    <div class="modal-buttons">
+      <button class="btn" id="btnConfirmarAsignar" onclick="confirmarAsignacion()">Confirmar Asignación</button>
+      <button class="btn btn-secondary" onclick="cerrarModalAsignar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Éxito -->
+<div id="modalExitoAdmin" class="modal-overlay hidden">
+  <div class="modal-success">
+    <div class="success-icon">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <h2>¡Visita Asignada!</h2>
+    <p id="mensajeExitoAdmin">La visita fue asignada correctamente.</p>
+  </div>
+</div>
+
+<div id="loaderAdmin" class="loader hidden"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
