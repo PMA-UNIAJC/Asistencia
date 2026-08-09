@@ -3,11 +3,41 @@ const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const ESQUEMA_VISITAS = 'visitas';
 const ESQUEMA_PUBLICO = 'public';
 
-// ── Verificación de acceso (igual que editar.js) ────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
+// ── Cliente de Supabase (para verificar sesión de administrador) ───────────
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false
+  }
+});
+
+// ── Verificación de acceso (bandera local + sesión real de administrador) ──
+document.addEventListener('DOMContentLoaded', async function () {
   if (!sessionStorage.getItem('adminAuth')) {
     alert('Debe iniciar sesión como administrador para acceder a esta página.');
     window.location.href = '../../import/admin.html';
+    return;
+  }
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../../import/admin.html';
+    return;
+  }
+
+  const { data: adminData, error: adminError } = await supabaseClient
+    .from('admin_usuarios')
+    .select('user_id')
+    .eq('user_id', session.user.id)
+    .single();
+
+  if (adminError || !adminData) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../../import/admin.html';
+    return;
   }
 });
 

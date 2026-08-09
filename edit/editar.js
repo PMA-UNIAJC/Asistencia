@@ -10,10 +10,39 @@ let datosOriginales    = null;   // Snapshot del registro al cargar
 
 // ── Inicialización ──────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', function () {
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async function () {
   if (!sessionStorage.getItem('adminAuth')) {
     alert('Debe iniciar sesión como administrador para acceder a esta página.');
     window.location.href = '../import/admin.html';
+    return;
+  }
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../import/admin.html';
+    return;
+  }
+
+  const { data: adminData, error: adminError } = await supabaseClient
+    .from('admin_usuarios')
+    .select('user_id')
+    .eq('user_id', session.user.id)
+    .single();
+
+  if (adminError || !adminData) {
+    alert('Debe iniciar sesión como administrador para acceder a esta página.');
+    window.location.href = '../import/admin.html';
+    return;
   }
 });
 
