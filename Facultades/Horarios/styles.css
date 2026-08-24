@@ -168,6 +168,24 @@
   font-size: 15px;
 }
 
+/* Columnas Día | Horario | Sede: cada columna se centra de forma
+   independiente, sin centrar el bloque completo dentro de la tarjeta */
+.docente-card-consulta .horario-row {
+  justify-content: flex-start;
+}
+
+.docente-card-consulta .horario-dia {
+  width: 74px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.docente-card-consulta .horario-hora {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
+
 /* Fila de horario individual */
 .horario-row {
   display: flex;
@@ -572,6 +590,13 @@
   }
 }
 
+/* Pantallas pequeñas: los botones de inicio quedan uno debajo del otro */
+@media (max-width: 640px) {
+  .inicio-opciones {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Tipografía sencilla para TODOS los H2 de la página */
 h2 {
   font-family: 'DM Sans', sans-serif;
@@ -633,37 +658,28 @@ h2 {
   margin-bottom: 2px;
 }
 
+/* Horarios de "Horario de Atención": alineados al borde izquierdo,
+   conservando la columna de día/hora en cualquier resolución */
+.becarios-horario-bloque .horario-row {
+  justify-content: flex-start;
+}
+
+.becarios-horario-bloque .horario-dia {
+  width: 64px;
+  flex-shrink: 0;
+  text-align: left;
+}
+
+.becarios-horario-bloque .horario-hora {
+  text-align: left;
+  margin: 0;
+}
+
 .becarios-card-ubicacion {
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.becarios-ubicacion-texto {
-  font-size: 14px;
-  color: var(--texto);
-  margin: .85rem 0 0 0;
-  line-height: 1.5;
-}
-
-.becarios-ubicacion-botones {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  margin-top: .85rem;
-}
-
-.becarios-ubicacion-botones .docente-link-virtual {
-  justify-content: center;
-  margin-top: 0;
-}
-
-.facultad-chip--virtual {
-  background: var(--verde-bg);
-  color: var(--verde);
-  border-color: var(--verde-borde);
 }
 
 /* Responsive tablets (641px – 1024px) */
@@ -740,17 +756,46 @@ h2 {
   font-weight: 700;
 }
 
-.becarios-ubicacion-item {
-  margin-bottom: 1.1rem;
+/* ── Chips de sede (Horario de Atención) ─────────────────────── */
+.chip-sede {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  letter-spacing: .02em;
 }
 
-.becarios-ubicacion-item:last-child {
-  margin-bottom: 0;
+.chip-sede svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
 }
 
-.becarios-ubicacion-item .becarios-ubicacion-texto {
-  margin: .5rem 0 0 0;
-  text-align: left;
+.chip-sede--norte {
+  background: var(--azul-light);
+  color: var(--azul);
+  border-color: rgba(15,42,61,.12);
+}
+
+.chip-sede--sur {
+  background: var(--verde-bg);
+  color: var(--verde);
+  border-color: var(--verde-borde);
+}
+
+.chip-sede--virtual {
+  background: rgba(29,78,107,.08);
+  color: var(--azul-med);
+  border-color: rgba(29,78,107,.18);
 }
 
 /* Responsive tablets */
@@ -811,4 +856,170 @@ h2 {
   letter-spacing: 0.5px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REDISEÑO: Ubicaciones (Sede Norte / Sede Sur)
+══════════════════════════════════════════════════════════════ */
+
+.becarios-sede-block {
+  margin-bottom: 1.35rem;
+}
+
+.becarios-sede-block:last-child {
+  margin-bottom: 0;
+}
+
+.becarios-sede-block + .becarios-sede-block {
+  padding-top: 1.35rem;
+  border-top: 1px dashed var(--borde);
+}
+
+.becarios-sede-titulo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: .75rem;
+}
+
+.becarios-sede-titulo .barra {
+  width: 4px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--azul);
+  flex-shrink: 0;
+}
+
+.becarios-sede-titulo .nombre {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: .92rem;
+  letter-spacing: .02em;
+  color: var(--azul);
+}
+
+.becarios-sede-titulo--verde .barra { background: var(--verde); }
+.becarios-sede-titulo--verde .nombre { color: var(--verde); }
+
+.becarios-sede-caja {
+  background: var(--azul-light);
+  border-radius: var(--radius);
+  padding: .95rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.becarios-sede-caja--verde { background: var(--verde-bg); }
+
+.becarios-sede-caja .bloque-nombre {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--azul);
+  margin: 0 0 2px 0;
+}
+
+.becarios-sede-caja--verde .bloque-nombre { color: var(--verde); }
+
+.becarios-sede-caja p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--texto);
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NUEVA SECCIÓN: Modalidad Virtual (misma tarjeta que Horario/Ubicaciones)
+══════════════════════════════════════════════════════════════ */
+
+.becarios-virtual-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.becarios-virtual-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: .95rem 0;
+}
+
+.becarios-virtual-item:first-child {
+  padding-top: 0;
+}
+
+.becarios-virtual-item:last-child {
+  padding-bottom: 0;
+}
+
+.becarios-virtual-item + .becarios-virtual-item {
+  border-top: 1px solid var(--borde);
+}
+
+.becarios-virtual-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.becarios-virtual-item-text .nombre {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--azul);
+}
+
+.becarios-virtual-item--verde .nombre {
+  color: var(--verde);
+}
+
+.becarios-virtual-item-text .desc {
+  font-size: 12px;
+  color: var(--gris);
+}
+
+.becarios-virtual-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--azul);
+  color: #fff;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s, transform .15s;
+}
+
+.becarios-virtual-link:hover {
+  background: var(--azul-med);
+  transform: translateY(-1px);
+}
+
+.becarios-virtual-link--verde {
+  background: var(--verde);
+}
+
+.becarios-virtual-link--verde:hover {
+  background: #0f4a2d;
+}
+
+/* Responsive móvil pequeño: enlace virtual en columna */
+@media (max-width: 480px) {
+  .becarios-virtual-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .becarios-virtual-link {
+    width: 100%;
+  }
 }
