@@ -3,8 +3,6 @@ const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 
-
-
 function actualizarFechaHora() {
   const ahora = new Date().toLocaleString('es-CO', {
     timeZone: 'America/Bogota',
