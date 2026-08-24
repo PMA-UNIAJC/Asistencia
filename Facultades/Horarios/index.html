@@ -38,6 +38,13 @@
     <div class="container">
       <h1>HORARIOS DE TUTORÍAS PMA</h1>
       <p>Consulta los horarios de tutorías presenciales y virtuales del Programa de Mejoramiento Académico.</p>
+      <p>
+        ¿Dudas? Comunícate al correo:
+        <a href="mailto:pma@admon.uniajc.edu.co"
+           style="color:#ffffff;font-weight:500;text-decoration:none;">
+          pma@admon.uniajc.edu.co
+        </a>
+      </p>
     </div>
   </div>
 
@@ -45,7 +52,7 @@
 
     <button class="opcion-card" onclick="mostrarVista('facultades')">
       <h2>HORARIO DE TUTORÍAS FACULTADES</h2>
-      <p class="opcion-desc">Consulta por facultad, docente o materia.</p>
+      <p class="opcion-desc">Consulta por Facultad, Docente o Materia.</p>
       <ul class="opcion-facultades">
         <li>Departamento de Ciencias Básicas</li>
         <li>Facultad de Ciencias Empresariales</li>
@@ -58,10 +65,11 @@
 
     <button class="opcion-card" onclick="mostrarVista('virtuales')">
       <h2>HORARIO DE TUTORÍAS BECARIOS</h2>
-      <p class="opcion-desc">Conozca el horario de disponibilidad.</p>
+      <p class="opcion-desc">Consulte Horario y Ubicación de los becarios.</p>
       <ul class="opcion-facultades">
         <li>Disponibilidad Presencial</li>
         <li>Disponibilidad Virtual</li>
+        <li>Ubicaciones y enlaces</li>
       </ul>
       <span class="opcion-cta">Ver horarios →</span>
     </button>
@@ -79,13 +87,6 @@
   <div class="container">
     <h1>HORARIO DE TUTORÍAS FACULTADES </h1>
     <p>Consulta los horarios de atención de los docentes de tu facultad.</p>
-    <p>
-      ¿Dudas? Comunícate al correo:
-      <a href="mailto:pma@admon.uniajc.edu.co"
-         style="color:#ffffff;font-weight:500;text-decoration:none;">
-        pma@admon.uniajc.edu.co
-      </a>
-    </p>
   </div>
 </div>
 <div class="container">
@@ -191,6 +192,7 @@
   <div class="page-hero">
     <div class="container">
       <h1>HORARIO DE TUTORÍAS BECARIOS</h1>
+      <p>Consulte los horarios de disponibilidad y la ubicación de los becarios.</p>
     </div>
   </div>
     <div class="container">
@@ -202,8 +204,7 @@
     <!-- ── Sección: Horario y Ubicaciones (2 tarjetas parejas) ── -->
     <div class="becarios-section">
       <div class="becarios-section-header">
-        <h2>Horario y Ubicaciones de Atención</h2>
-        <p class="becarios-section-desc">Mismo horario de atención para Sede Norte, Sede Sur y modalidad Virtual.</p>
+        <h2>Horarios, Ubicaciones y Enlaces de Atención</h2>
       </div>
 
       <div class="becarios-flex-grid">
@@ -221,9 +222,28 @@
           </div>
 
           <div class="becarios-sedes-tags">
-            <span class="facultad-chip">Sede Norte</span>
-            <span class="facultad-chip">Sede Sur</span>
-            <span class="facultad-chip facultad-chip--virtual">Virtual</span>
+            <span class="chip-sede chip-sede--norte">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/>
+                <circle cx="12" cy="10" r="2.5"/>
+              </svg>
+              Sede Norte
+            </span>
+            <span class="chip-sede chip-sede--sur">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/>
+                <circle cx="12" cy="10" r="2.5"/>
+              </svg>
+              Sede Sur
+            </span>
+            <span class="chip-sede chip-sede--virtual">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="13" rx="2.5"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              Virtual
+            </span>
           </div>
 
           <div class="becarios-horario-bloque">
@@ -259,24 +279,51 @@
             <h3>Ubicaciones</h3>
           </div>
 
-          <div class="becarios-ubicacion-item">
-            <span class="facultad-chip">Sede Norte</span>
-            <p class="becarios-ubicacion-texto">Salones del Bloque D</p>
+          <div class="becarios-sede-block">
+            <div class="becarios-sede-titulo">
+              <span class="barra"></span>
+              <span class="nombre">Sede Norte</span>
+            </div>
+            <div class="becarios-sede-caja">
+              <p class="bloque-nombre">BLOQUE D</p>
+              <p>Segundo Piso</p>
+              <p>Salones D 202 - D 209</p>
+            </div>
           </div>
 
-          <div class="becarios-ubicacion-item">
-            <span class="facultad-chip">Sede Sur</span>
-            <p class="becarios-ubicacion-texto">Salones</p>
-          </div>
-
-<div class="becarios-ubicacion-item">
-            <span class="facultad-chip facultad-chip--virtual">Virtual</span>
-            <div class="becarios-ubicacion-botones" id="becarios-enlaces-virtuales">
-              <p style="font-size:12px;color:var(--gris)">Cargando enlaces...</p>
+          <div class="becarios-sede-block">
+            <div class="becarios-sede-titulo becarios-sede-titulo--verde">
+              <span class="barra"></span>
+              <span class="nombre">Sede Sur</span>
+            </div>
+            <div class="becarios-sede-caja becarios-sede-caja--verde">
+              <p class="bloque-nombre">BLOQUE ?</p>
+              <p>? Piso</p>
+              <p>Salones ?</p>
             </div>
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- ── Sección: Modalidad Virtual ── -->
+    <div class="becarios-section">
+      <div class="becarios-card">
+        <div class="becarios-card-header">
+          <span class="becarios-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="13" rx="2.5"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </span>
+          <h3>Modalidad Virtual</h3>
+        </div>
+
+        <div class="becarios-virtual-list" id="becarios-enlaces-virtuales">
+          <p style="font-size:12px;color:var(--gris)">Cargando enlaces...</p>
+        </div>
       </div>
     </div>
 
