@@ -529,16 +529,20 @@ async function cargarEnlacesBecarios() {
       return;
     }
 
-    cont.innerHTML = enlaces.map(e => `
-      <a href="${e.enlace}" target="_blank" rel="noopener noreferrer" class="docente-link-virtual">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-          <polyline points="15 3 21 3 21 9"/>
-          <line x1="10" y1="14" x2="21" y2="3"/>
-        </svg>
-        ${e.nombre}
-      </a>
-    `).join('');
+    cont.innerHTML = enlaces.map((e, i) => {
+      const acento = i % 2 === 1 ? ' becarios-virtual-item--verde' : '';
+      const acentoBtn = i % 2 === 1 ? ' becarios-virtual-link--verde' : '';
+      return `
+      <div class="becarios-virtual-item${acento}">
+        <div class="becarios-virtual-item-text">
+          <span class="nombre">${e.nombre}</span>
+        </div>
+        <a href="${e.enlace}" target="_blank" rel="noopener noreferrer" class="becarios-virtual-link${acentoBtn}">
+          Enlace Teams
+        </a>
+      </div>
+    `;
+    }).join('');
 
   } catch (err) {
     console.error('Error al cargar enlaces de becarios:', err);
@@ -547,4 +551,3 @@ async function cargarEnlacesBecarios() {
 }
 
 document.addEventListener('DOMContentLoaded', cargarEnlacesBecarios);
-
