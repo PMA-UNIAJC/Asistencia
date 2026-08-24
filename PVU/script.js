@@ -54,6 +54,54 @@ function obtenerFechaColombia() {
   return fechaLocal;
 }
 
+// Determina el día de la semana (en español, mayúsculas) según la fecha
+// de envío, usando la zona horaria de Colombia. Reutiliza TIMEZONE_COLOMBIA.
+function obtenerDiaSemanaColombia() {
+  const ahora = new Date();
+
+  const formatter = new Intl.DateTimeFormat('es-CO', {
+    timeZone: TIMEZONE_COLOMBIA,
+    weekday: 'long'
+  });
+
+  const dia = formatter.format(ahora);
+  return dia.toUpperCase();
+}
+
+// Determina la jornada (MAÑANA / TARDE / NOCHE) según la hora exacta de
+// envío en la zona horaria de Colombia. Fuera del rango 6:00-22:00 no se
+// asigna ninguna categoría (cadena vacía).
+function obtenerJornadaColombia() {
+  const ahora = new Date();
+
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE_COLOMBIA,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  const partes = formatter.formatToParts(ahora);
+  const hora = parseInt(partes.find(p => p.type === 'hour').value, 10);
+  const minuto = parseInt(partes.find(p => p.type === 'minute').value, 10);
+  const minutosTotales = hora * 60 + minuto;
+
+  const INICIO_MANANA = 6 * 60;    // 06:00
+  const INICIO_TARDE = 13 * 60;    // 13:00
+  const INICIO_NOCHE = 18 * 60;    // 18:00
+  const FIN_NOCHE = 22 * 60;       // 22:00
+
+  if (minutosTotales >= INICIO_MANANA && minutosTotales < INICIO_TARDE) {
+    return 'MAÑANA';
+  } else if (minutosTotales >= INICIO_TARDE && minutosTotales < INICIO_NOCHE) {
+    return 'TARDE';
+  } else if (minutosTotales >= INICIO_NOCHE && minutosTotales <= FIN_NOCHE) {
+    return 'NOCHE';
+  }
+
+  return ''; // Fuera del rango definido: se deja vacío, sin inventar categoría
+}
+
 async function supabaseInsert(table, data) {
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
@@ -136,11 +184,7 @@ function obtenerDatosFormulario() {
   const nombresInput = document.getElementById('nombres');
   const apellidosInput = document.getElementById('apellidos');
   const comentarioTextarea = document.getElementById('comentario');
-  const programa = document.getElementById('programa').value;
   const sede = document.getElementById('sede').value;
-  const jornada = document.getElementById('jornada').value;
-  const fechaAsistencia = document.getElementById('fechaAsistencia').value;
-  const horarioAsistencia = document.getElementById('horarioAsistencia').value;
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
   // Limpiar espacios en todos los campos antes de enviar
@@ -155,27 +199,25 @@ function obtenerDatosFormulario() {
   let apellidos = apellidosInput.value.trim();
   let comentarioLimpio = comentarioTextarea.value.trim();
 
-
-
   // Convertir a mayúsculas antes de guardar
   nombres = nombres.toUpperCase();
   apellidos = apellidos.toUpperCase();
   comentarioLimpio = comentarioLimpio.toUpperCase();
-  const programaMayus = programa.toUpperCase();
   const sedeMayus = sede.toUpperCase();
-  const jornadaMayus = jornada.toUpperCase();
-  const fechaAsistenciaMayus = fechaAsistencia.toUpperCase();
-  
+
+  // Unificar Nombres y Apellidos en un solo campo: APELLIDO(S) + NOMBRE(S)
+  const nombreCompleto = `${apellidos} ${nombres}`.replace(/\s+/g, ' ').trim();
+
+  // Día de asistencia y jornada calculados automáticamente (no los ingresa el usuario)
+  const fechaAsistenciaMayus = obtenerDiaSemanaColombia();
+  const jornadaMayus = obtenerJornadaColombia();
 
 return {
   documento,
-  nombres,
-  apellidos,
-  programaMayus,
+  nombre: nombreCompleto,
   sedeMayus,
   jornadaMayus,
   fechaAsistenciaMayus,
-  horarioAsistencia,
   satisfaccion: parseInt(satisfaccion),
   comentarioLimpio
 };
@@ -189,13 +231,10 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
     // Preparar datos para enviar
     const datosEnvio = {
       documento: datos.documento,
-      nombres: datos.nombres,
-      apellidos: datos.apellidos,
-      programa: datos.programaMayus,
+      nombre: datos.nombre,
       sede: datos.sedeMayus,
       jornada: datos.jornadaMayus,
       fecha_asistencia: datos.fechaAsistenciaMayus,
-      horario: datos.horarioAsistencia,
       satisfaccion: datos.satisfaccion,
       comentario: datos.comentarioLimpio,
       fecha: obtenerFechaColombia()
