@@ -803,3 +803,73 @@
   border-color: var(--azul-med);
   box-shadow: 0 0 0 3px rgba(29,78,107,.1);
 }
+
+/* ── Selector de área (pantalla inicial del modal de Enlaces) ────── */
+.enlace-area-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .85rem;
+}
+
+.enlace-area-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 1.9rem 1rem;
+  background: var(--arena);
+  border: 1px solid var(--borde);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color .18s, box-shadow .18s, background .18s, transform .12s;
+}
+
+.enlace-area-card:hover {
+  border-color: var(--azul-mid);
+  background: var(--azul-light);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+.enlace-area-card-nombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--azul);
+}
+
+.enlace-area-card-hint {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--gris);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.enlace-volver {
+  background: none;
+  border: none;
+  color: var(--azul-med);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'DM Sans', sans-serif;
+  transition: color .15s;
+}
+
+.enlace-volver:hover {
+  color: var(--azul);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .enlace-area-selector {
+    grid-template-columns: 1fr;
+  }
+}

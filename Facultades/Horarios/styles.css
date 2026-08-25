@@ -933,6 +933,60 @@ h2 {
    NUEVA SECCIÓN: Modalidad Virtual (misma tarjeta que Horario/Ubicaciones)
 ══════════════════════════════════════════════════════════════ */
 
+/* ── Subsecciones por área: Matemáticas / Comunicación y Lenguaje / Oficina ── */
+.becarios-virtual-subseccion {
+  margin-bottom: 1.35rem;
+}
+
+.becarios-virtual-subseccion:last-child {
+  margin-bottom: 0;
+}
+
+.becarios-virtual-subseccion + .becarios-virtual-subseccion {
+  padding-top: 1.35rem;
+  border-top: 1px dashed var(--borde);
+}
+
+.becarios-virtual-subseccion-titulo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: .75rem;
+}
+
+.becarios-virtual-subseccion-titulo .barra {
+  width: 4px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--azul);
+  flex-shrink: 0;
+}
+
+.becarios-virtual-subseccion-titulo .nombre {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: .92rem;
+  letter-spacing: .02em;
+  color: var(--azul);
+}
+
+.becarios-virtual-subseccion-titulo--verde .barra { background: var(--verde); }
+.becarios-virtual-subseccion-titulo--verde .nombre { color: var(--verde); }
+
+.becarios-virtual-subseccion-titulo--oficina .barra { background: var(--azul-med); }
+.becarios-virtual-subseccion-titulo--oficina .nombre { color: var(--azul-med); }
+
+.becarios-virtual-item--oficina .nombre { color: var(--azul-med); }
+
+.becarios-virtual-link--oficina { background: var(--azul-med); }
+.becarios-virtual-link--oficina:hover { background: var(--azul); }
+
+.becarios-virtual-subseccion-vacio {
+  font-size: 12px;
+  color: var(--gris);
+  padding: .2rem 0 0;
+}
+
 .becarios-virtual-list {
   display: flex;
   flex-direction: column;

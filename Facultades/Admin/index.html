@@ -150,7 +150,8 @@
 </div>
 
 <!-- ══ MODAL: Enlaces virtuales de Becarios ═══════════════════════ -->
-<div class="modal-overlay" id="modal-enlaces" style="display:none" onclick="cerrarModalEnlaces(event)">
+<!-- Nota: este modal se cierra únicamente con el botón "×" (sin onclick en el overlay) -->
+<div class="modal-overlay" id="modal-enlaces" style="display:none">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-header">
       <h2>Enlaces Virtuales — Becarios</h2>
@@ -158,18 +159,40 @@
     </div>
     <div class="modal-body">
 
-      <div class="enlace-form-nuevo">
-        <p class="section-label">Agregar nuevo enlace</p>
-        <div class="enlace-form-row">
-          <input type="text" id="nuevo-enlace-nombre" placeholder="Nombre (ej. Matemáticas)"/>
-          <input type="url" id="nuevo-enlace-url" placeholder="https://..."/>
-          <button class="btn btn-primary" id="btn-agregar-enlace" onclick="agregarEnlaceBecario()">+ Agregar</button>
-        </div>
-        <div class="alert alert-error" id="err-enlace" role="alert"></div>
+      <!-- Selector de área (primera pantalla al abrir el modal) -->
+      <div class="enlace-area-selector" id="enlace-selector">
+        <button type="button" class="enlace-area-card" onclick="seleccionarAreaEnlace('M')">
+          <span class="enlace-area-card-nombre">Matemáticas</span>
+          <span class="enlace-area-card-hint">Ver enlaces</span>
+        </button>
+        <button type="button" class="enlace-area-card" onclick="seleccionarAreaEnlace('C')">
+          <span class="enlace-area-card-nombre">Comunicación</span>
+          <span class="enlace-area-card-hint">Ver enlaces</span>
+        </button>
+        <button type="button" class="enlace-area-card" onclick="seleccionarAreaEnlace('O')">
+          <span class="enlace-area-card-nombre">Oficina</span>
+          <span class="enlace-area-card-hint">Ver enlaces</span>
+        </button>
       </div>
 
-      <div id="enlaces-list" style="margin-top:1.25rem">
-        <div class="loading-state"><div class="spinner-dark"></div><p>Cargando enlaces...</p></div>
+      <!-- Detalle del área seleccionada -->
+      <div id="enlace-area-detail" style="display:none">
+        <button type="button" class="enlace-volver" onclick="volverSelectorAreas()">&larr; Volver a las áreas</button>
+        <p class="section-label" id="enlace-area-titulo"></p>
+
+        <div class="enlace-form-nuevo">
+          <p class="section-label">Agregar nuevo enlace</p>
+          <div class="enlace-form-row">
+            <input type="text" id="nuevo-enlace-nombre" placeholder="Nombre (ej. Cálculo I)"/>
+            <input type="url" id="nuevo-enlace-url" placeholder="https://..."/>
+            <button class="btn btn-primary" id="btn-agregar-enlace" onclick="agregarEnlaceBecario()">+ Agregar</button>
+          </div>
+          <div class="alert alert-error" id="err-enlace" role="alert"></div>
+        </div>
+
+        <div id="enlaces-list" style="margin-top:1.25rem">
+          <div class="loading-state"><div class="spinner-dark"></div><p>Cargando enlaces...</p></div>
+        </div>
       </div>
 
     </div>

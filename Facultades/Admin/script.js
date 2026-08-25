@@ -5,7 +5,7 @@ const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── Cliente de Supabase para verificar sesión de administrador ─────────────
-// (proyecto distinto al de horarios: es el mismo que usan admin.html / editar.html)
+// (proyecto distinto al de horarios: es el mismo que usan Admin/index.html / Editar/index.html)
 const SUPABASE_URL_AUTH = 'https://hgppzklpukgslnrynvld.supabase.co';
 const SUPABASE_KEY_AUTH = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30.gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs';
 
@@ -987,25 +987,58 @@ function cerrarModalConfirm(event) {
 //  MODAL ENLACES VIRTUALES — BECARIOS
 // ══════════════════════════════════════════════════════════════════
 
-let enlacesBecarios   = [];
-let enlaceEditandoId  = null;
+// Mapeo área (columna en BD) → nombre visible
+const NOMBRES_AREA_ENLACE = { M: 'Matemáticas', C: 'Comunicación', O: 'Oficina' };
 
-async function abrirModalEnlaces() {
+let enlacesBecarios  = [];       // enlaces del área actualmente seleccionada
+let enlaceEditandoId = null;     // enlace en edición inline (null = ninguno)
+let areaEnlaceActual = null;     // 'M' | 'C' | 'O' | null (ninguna seleccionada)
+
+function abrirModalEnlaces() {
   document.getElementById('modal-enlaces').style.display = 'flex';
+  mostrarSelectorAreasEnlace();
+}
+
+// El modal SOLO se cierra desde el botón "×" (no hay listener de click afuera)
+function cerrarModalEnlaces() {
+  document.getElementById('modal-enlaces').style.display = 'none';
+  enlaceEditandoId = null;
+  areaEnlaceActual  = null;
+}
+
+// Pantalla inicial: las 3 opciones de área
+function mostrarSelectorAreasEnlace() {
+  areaEnlaceActual = null;
+  enlaceEditandoId = null;
+  enlacesBecarios  = [];
+
+  document.getElementById('enlace-selector').style.display    = 'grid';
+  document.getElementById('enlace-area-detail').style.display = 'none';
+}
+
+function volverSelectorAreas() {
+  mostrarSelectorAreasEnlace();
+}
+
+// El usuario elige Matemáticas / Comunicación / Oficina
+function seleccionarAreaEnlace(area) {
+  areaEnlaceActual = area;
+  enlaceEditandoId = null;
+
+  document.getElementById('enlace-selector').style.display    = 'none';
+  document.getElementById('enlace-area-detail').style.display = 'block';
+  document.getElementById('enlace-area-titulo').textContent   = NOMBRES_AREA_ENLACE[area] || '';
+
   document.getElementById('nuevo-enlace-nombre').value = '';
   document.getElementById('nuevo-enlace-url').value = '';
   hideErr('err-enlace');
-  enlaceEditandoId = null;
-  await cargarEnlacesBecarios();
-}
 
-function cerrarModalEnlaces(event) {
-  if (event && event.target !== document.getElementById('modal-enlaces')) return;
-  document.getElementById('modal-enlaces').style.display = 'none';
-  enlaceEditandoId = null;
+  cargarEnlacesBecarios();
 }
 
 async function cargarEnlacesBecarios() {
+  if (!areaEnlaceActual) return;
+
   const contenedor = document.getElementById('enlaces-list');
   contenedor.innerHTML = `<div class="loading-state"><div class="spinner-dark"></div><p>Cargando enlaces...</p></div>`;
 
@@ -1013,6 +1046,7 @@ async function cargarEnlacesBecarios() {
     const { data, error } = await db
       .from('becarios_virtual')
       .select('*')
+      .eq('area', areaEnlaceActual)
       .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -1030,7 +1064,8 @@ function renderEnlacesBecarios() {
   const contenedor = document.getElementById('enlaces-list');
 
   if (enlacesBecarios.length === 0) {
-    contenedor.innerHTML = `<div class="no-results">No hay enlaces registrados aún.</div>`;
+    const nombreArea = NOMBRES_AREA_ENLACE[areaEnlaceActual] || 'esta área';
+    contenedor.innerHTML = `<div class="no-results">No hay enlaces registrados en ${nombreArea} aún.</div>`;
     return;
   }
 
@@ -1097,6 +1132,8 @@ async function guardarEdicionEnlace(id) {
 }
 
 async function agregarEnlaceBecario() {
+  if (!areaEnlaceActual) return showErr('err-enlace', 'Selecciona primero un área.');
+
   const nombreEl = document.getElementById('nuevo-enlace-nombre');
   const urlEl    = document.getElementById('nuevo-enlace-url');
   const nombre   = nombreEl.value.trim();
@@ -1114,7 +1151,7 @@ async function agregarEnlaceBecario() {
   try {
     const { error } = await db
       .from('becarios_virtual')
-      .insert({ nombre, enlace });
+      .insert({ nombre, enlace, area: areaEnlaceActual });
 
     if (error) throw error;
 
@@ -1169,14 +1206,14 @@ async function eliminarEnlaceBecario(id) {
 document.addEventListener('DOMContentLoaded', async () => {
   if (!sessionStorage.getItem('adminAuth')) {
     alert('Debe iniciar sesión como administrador para acceder a esta página.');
-    window.location.href = '../../import/admin.html';
+    window.location.href = '../../Admin/index.html';
     return;
   }
 
   const { data: { session } } = await supabaseAuthClient.auth.getSession();
   if (!session) {
     alert('Debe iniciar sesión como administrador para acceder a esta página.');
-    window.location.href = '../../import/admin.html';
+    window.location.href = '../../Admin/index.html';
     return;
   }
 
@@ -1188,7 +1225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (adminError || !adminData) {
     alert('Debe iniciar sesión como administrador para acceder a esta página.');
-    window.location.href = '../../import/admin.html';
+    window.location.href = '../../Admin/index.html';
     return;
   }
 

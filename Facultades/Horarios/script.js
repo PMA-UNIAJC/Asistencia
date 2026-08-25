@@ -511,7 +511,34 @@ function toTitleCase(str) {
 }
 
 
-/* ENLACES VIRTUALES DE BECARIOS (desde Supabase) */
+/* ENLACES VIRTUALES DE BECARIOS (desde Supabase), agrupados por área */
+const AREAS_VIRTUAL = [
+  { codigo: 'M', nombre: 'Matemáticas',             variante: '' },
+  { codigo: 'C', nombre: 'Comunicación y Lenguaje', variante: 'verde' },
+  { codigo: 'O', nombre: 'Oficina',                 variante: 'oficina' }
+];
+
+function renderItemsEnlaces(items, variante) {
+  if (items.length === 0) {
+    return `<p class="becarios-virtual-subseccion-vacio">No hay enlaces disponibles.</p>`;
+  }
+
+  const sufijo    = variante ? ` becarios-virtual-item--${variante}` : '';
+  const sufijoBtn = variante ? ` becarios-virtual-link--${variante}` : '';
+
+  return `<div class="becarios-virtual-list">
+    ${items.map(e => `
+      <div class="becarios-virtual-item${sufijo}">
+        <div class="becarios-virtual-item-text">
+          <span class="nombre">${e.nombre}</span>
+        </div>
+        <a href="${e.enlace}" target="_blank" rel="noopener noreferrer" class="becarios-virtual-link${sufijoBtn}">
+          Enlace Teams
+        </a>
+      </div>`).join('')}
+  </div>`;
+}
+
 async function cargarEnlacesBecarios() {
   const cont = document.getElementById('becarios-enlaces-virtuales');
   if (!cont) return;
@@ -519,30 +546,25 @@ async function cargarEnlacesBecarios() {
   try {
     const { data: enlaces, error } = await db
       .from('becarios_virtual')
-      .select('nombre, enlace')
+      .select('nombre, enlace, area')
       .order('created_at', { ascending: true });
 
     if (error) throw error;
 
-    if (!enlaces || enlaces.length === 0) {
-      cont.innerHTML = `<p style="font-size:12px;color:var(--gris)">No hay enlaces disponibles.</p>`;
-      return;
-    }
+    const todos = enlaces || [];
 
-    cont.innerHTML = enlaces.map((e, i) => {
-      const acento = i % 2 === 1 ? ' becarios-virtual-item--verde' : '';
-      const acentoBtn = i % 2 === 1 ? ' becarios-virtual-link--verde' : '';
-      return `
-      <div class="becarios-virtual-item${acento}">
-        <div class="becarios-virtual-item-text">
-          <span class="nombre">${e.nombre}</span>
-        </div>
-        <a href="${e.enlace}" target="_blank" rel="noopener noreferrer" class="becarios-virtual-link${acentoBtn}">
-          Enlace Teams
-        </a>
+    cont.innerHTML = AREAS_VIRTUAL.map(({ codigo, nombre, variante }) => {
+  const items = todos.filter(e => e.area === codigo);
+  const claseTitulo = variante ? ` becarios-virtual-subseccion-titulo--${variante}` : '';
+  return `
+    <div class="becarios-virtual-subseccion">
+      <div class="becarios-virtual-subseccion-titulo${claseTitulo}">
+        <span class="barra"></span>
+        <span class="nombre">${nombre}</span>
       </div>
-    `;
-    }).join('');
+      ${renderItemsEnlaces(items, variante)}
+    </div>`;
+}).join('');
 
   } catch (err) {
     console.error('Error al cargar enlaces de becarios:', err);
@@ -551,3 +573,4 @@ async function cargarEnlacesBecarios() {
 }
 
 document.addEventListener('DOMContentLoaded', cargarEnlacesBecarios);
+
