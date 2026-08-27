@@ -33,13 +33,9 @@
     </svg>
   </div>
 
-
-  <!-- Contador de partidas jugadas en esta sesión: siempre visible,
-       fuera de las pantallas (.screen) para que no se oculte al cambiar de una a otra. -->
   <div class="contador-partidas" id="contador-partidas">Partida #1</div>
 
-  <!-- AGREGADO — Botón fijo de pantalla completa. Vive fuera de .screen
-       para permanecer visible en cualquier pantalla de la aplicación. -->
+
   <button
     type="button"
     class="btn-fullscreen"
@@ -78,31 +74,17 @@
     <!-- PANTALLA: INICIO / CONFIGURACIÓN                              -->
     <!-- ============================================================ -->
     <section id="screen-home" class="screen">
-
-      <!-- MODIFICADO — Antes era el acceso al panel de administración de
-           preguntas (enlace "Preguntas" que abría una pestaña nueva).
-           Ahora es el botón "Instrucciones": abre la imagen de
-           instrucciones dentro de la misma pantalla, usando el modal
-           genérico #modal-imagen (ver más abajo). Vive fuera de
-           .home-card (pero dentro de .screen) para quedar fijo en la
-           esquina superior derecha únicamente mientras esta pantalla
-           está visible, sin afectar el resto del flujo del juego. -->
-      <button
-        type="button"
+            
+        <a href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/INSTRUCCIONES%20JUEGO.png"
+        target="_blank"
+        rel="noopener noreferrer"
         class="btn-preguntas-link"
         id="btn-instrucciones"
-        aria-label="Ver instrucciones del juego"
-      >
+        aria-label="Ver instrucciones">
         <span class="btn-preguntas-link__icono" aria-hidden="true"></span>
         <span>Instrucciones</span>
-      </button>
+      </a>
 
-      <!-- AGREGADO — Botón de mantenimiento: limpia por completo la base
-           de datos del sistema de participación del público (partidas,
-           votos y estadísticas) y la deja lista para empezar de cero.
-           NO toca el banco de preguntas. Vive fuera de .home-card (pero
-           dentro de .screen) para quedar fijo en la esquina inferior
-           izquierda únicamente mientras esta pantalla está visible. -->
       <button
         type="button"
         class="btn-limpiar-bd"
@@ -163,11 +145,7 @@
           </button>
         </form>
 
-        <!-- AGREGADO — Botón pequeño que abre el código QR de asistencia
-             del público dentro de la misma pantalla (modal genérico
-             #modal-imagen, el mismo que usa "Instrucciones"). Vive fuera
-             de <form> para no interferir con el submit de configuración. -->
-        <button type="button" class="btn-qr-publico" id="btn-qr-publico">
+                <button type="button" class="btn-qr-publico" id="btn-qr-publico" onclick="document.getElementById('modal-imagen').classList.remove('hidden')">
           Público · Código QR
         </button>
 
@@ -224,22 +202,12 @@
             <span class="btn-comodin__badge">+30s</span>
             <span id="btn-tiempo-extra-texto">Usar comodín</span>
           </button>
-          <!-- AGREGADO — Comodín "Público": mientras la pregunta está activa
-               funciona como un comodín más (un único uso por partida) que
-               abre el modal del público y suma 15s al cronómetro. Cuando la
-               pregunta termina, vuelve a ser un botón libre de consulta. -->
+
           <button type="button" class="btn-comodin" id="btn-publico">
             <span class="btn-comodin__badge">Público</span>
             <span id="btn-publico-texto">Usar comodín</span>
           </button>
-          <!-- AGREGADO — Comodín "Doble Respuesta": un único uso por
-               partida, que debe activarse ANTES de responder la pregunta
-               actual (igual que los demás comodines). Una vez activo, si
-               el jugador falla en su primer intento, la pregunta no
-               termina: puede elegir una segunda respuesta entre las
-               restantes. Ver #doble-respuesta-aviso más abajo, que indica
-               al jugador cuándo está activo y cuándo tiene el segundo
-               intento disponible. -->
+
           <button type="button" class="btn-comodin" id="btn-doble-respuesta">
             <span class="btn-comodin__badge">2x</span>
             <span id="btn-doble-respuesta-texto">Usar comodín</span>
@@ -329,20 +297,12 @@
 
   <!-- ================================================================ -->
   <!-- MODAL: Participación del público                                 -->
-  <!-- AGREGADO — Antes este contenido vivía siempre visible debajo de   -->
-  <!-- las opciones de respuesta. Ahora se abre desde el botón "Público" -->
-  <!-- y se muestra dentro de este modal. El contenido y toda la lógica  -->
-  <!-- que lo llena (PanelPublico.*) NO cambian: solo cambia dónde vive  -->
-  <!-- #panel-publico-stats en el DOM.                                   -->
-  <!-- ================================================================ -->
+
   <div id="modal-publico" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-publico-titulo">
     <div class="modal-card modal-card--publico">
       <p class="modal-card__texto" id="modal-publico-titulo">Público</p>
 
-      <!-- AGREGADO — Cronómetro visible dentro del modal mientras la
-           pregunta está activa (se oculta automáticamente cuando la
-           pregunta termina). Refleja el mismo valor que el cronómetro
-           principal, así el jugador siempre ve cuánto tiempo le queda. -->
+
       <p class="modal-publico-timer hidden" id="modal-publico-timer">
         <strong id="modal-publico-timer-valor">30</strong>
       </p>
@@ -358,25 +318,12 @@
     </div>
   </div>
 
- <!-- ================================================================ -->
-  <!-- MODAL: Imagen genérica (Instrucciones / Código QR del público)   -->
-  <!-- AGREGADO — Modal reutilizable para mostrar una imagen a pantalla -->
-  <!-- completa, sin título ni recuadro: solo la imagen sobre el fondo  -->
-  <!-- oscuro. Se cierra haciendo clic fuera de la imagen. Lo usan      -->
-  <!-- tanto el botón "Instrucciones" como "Público · Código QR".       -->
-  <!-- ================================================================ -->
-  <div id="modal-imagen" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Imagen ampliada">
-    <img class="modal-imagen__img" id="modal-imagen-img" src="" alt="" />
+
+    <div id="modal-imagen" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Código QR del público" onclick="if(event.target===this) this.classList.add('hidden')">
+    <img class="modal-imagen__img" src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/QR%20DINAMICA%20PUBLICO.png" alt="Código QR de asistencia del público" />
   </div>
 
-  <!-- ================================================================ -->
-  <!-- MODAL: Confirmación para limpiar la base de datos del público    -->
-  <!-- AGREGADO — Vacía las tablas del sistema de participación del     -->
-  <!-- público (partidas, votos temporales y estadísticas) y reinicia   -->
-  <!-- sesion_activa a su estado inicial, mediante la función RPC       -->
-  <!-- millonario.limpiar_base_datos() (ver supabase-limpiar-bd.sql). NO -->
-  <!-- toca la tabla "preguntas" (el banco de preguntas no se borra).   -->
-  <!-- ================================================================ -->
+
   <div id="modal-limpiar-bd" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-limpiar-bd-texto">
     <div class="modal-card">
       <p class="modal-card__texto" id="modal-limpiar-bd-texto">

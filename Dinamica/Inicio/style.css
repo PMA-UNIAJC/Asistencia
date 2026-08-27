@@ -1,21 +1,6 @@
-/* =====================================================================
-   ¿QUIÉN QUIERE SER MILLONARIO? — Hoja de estilos
-   -----------------------------------------------------------------
-   Índice:
-   1. Tokens (colores, tipografía, espaciados)
-   2. Reset básico
-   3. Fondo decorativo
-   4. Layout de pantallas / transiciones
-   5. Componentes: home, stepper, switch, botones
-   6. Pantalla de carga
-   7. Pantalla de juego (topbar, timer, escalera, pregunta, opciones)
-   8. Pantalla de fin / mensajes
-   9. Utilidades y responsive
-   ===================================================================== */
 
-/* ---------------------------------------------------------------------
-   1. TOKENS
-   --------------------------------------------------------------------- */
+
+/*1. TOKENS */
 :root {
   /* Color */
   --color-bg:            #080B1F;
@@ -1128,12 +1113,7 @@ h1, h2, p { margin: 0; }
   margin-top: 20px;
 }
 
-/* AGREGADO — #panel-publico-stats trae su propio margen superior (18px)
-   pensado para cuando vivía debajo de las opciones de respuesta. Ahora
-   que vive dentro de este modal, justo debajo del título, ese margen ya
-   no hace falta (el modal ya tiene su propio espaciado). No se toca
-   panel-publico.css: solo se sobrescribe aquí, específicamente para
-   este contexto. */
+
 .modal-card--publico #panel-publico-stats {
   margin-top: 0;
 }

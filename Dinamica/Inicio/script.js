@@ -6,9 +6,6 @@ const SUPABASE_ANON_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const NOMBRE_TABLA = 'preguntas';
 
-// El cliente se crea solo si las credenciales fueron reemplazadas,
-// para evitar errores confusos en consola si alguien abre el archivo
-// sin haberlas configurado todavía.
 let supabaseClient = null;
 try {
   const { createClient } = window.supabase;
@@ -106,17 +103,6 @@ const el = {
   btnFullscreen: document.getElementById('btn-fullscreen'),
   btnFullscreenIcono: document.getElementById('btn-fullscreen-icono'),
 
-  // MODIFICADO — Antes "Preguntas" (enlace al panel de administración),
-  // ahora "Instrucciones" (abre una imagen dentro del modal genérico).
-  btnInstrucciones: document.getElementById('btn-instrucciones'),
-
-  // AGREGADO — Botón "Público · Código QR" en la pantalla de inicio.
-  btnQrPublico: document.getElementById('btn-qr-publico'),
-
-  // AGREGADO — Modal de imagen genérico (Instrucciones / Código QR).
-  modalImagen: document.getElementById('modal-imagen'),
-  modalImagenImg: document.getElementById('modal-imagen-img'),
-
   // AGREGADO — Botón "Limpiar BD" (mantenimiento, pantalla de inicio) y su modal de confirmación.
   btnLimpiarBd: document.getElementById('btn-limpiar-bd'),
   modalLimpiarBd: document.getElementById('modal-limpiar-bd'),
@@ -144,27 +130,7 @@ let bancoDePreguntas = null;
 
 // Estado de la partida en curso.
 let partida = null;
-/* partida = {
-     preguntas: [...],       // preguntas seleccionadas para esta ronda
-     indiceActual: 0,
-     aciertos: 0,
-     config: { cantidad, tiempo, sonido },
-     respondida: false,      // ¿ya se respondió la pregunta actual?
-     terminada: false,       // ¿la partida ya terminó? (fallo o tiempo)
-     motivoFin: null,        // 'completado' | 'incorrecta' | 'tiempo'
-     comodinUsado: false,    // ¿ya se usó el 50/50 en esta partida?
-     comodinTiempoUsado: false, // ¿ya se usó el "+30 segundos" en esta partida?
-     comodinPublicoUsado: false, // ¿ya se usó el comodín "Público" en esta partida?
-     comodinDobleUsado: false, // ¿ya se usó el comodín "Doble Respuesta" en esta partida?
-     dobleRespuestaActivaPreguntaActual: false, // ¿está activo en la pregunta que se está jugando ahora mismo?
-     dobleRespuestaPrimerIntentoUsado: false,   // ¿ya se falló el primer intento (queda el segundo)?
-   } */
 
-// Número de partida actual en esta sesión del navegador.
-// Empieza en 0 al cargar la página y sube en CADA "Iniciar partida" o
-// "Nueva partida" sin excepciones: la primera pulsación de "Iniciar
-// partida" lo lleva de 0 a 1, mostrando "Partida #1" para la primera
-// partida jugada.
 let numeroPartida = 0;
 
 
@@ -292,13 +258,7 @@ async function obtenerPreguntasActivas() {
    7. SELECCIÓN ALEATORIA DE PREGUNTAS POR DIFICULTAD
    ------------------------------------------------------------------ */
 
-/**
- * Calcula cuántas preguntas de cada dificultad se necesitan para
- * completar "cantidad" preguntas en total, siguiendo el patrón
- * FACIL -> MEDIA -> DIFICIL (el excedente se reparte empezando
- * por la dificultad más alta, igual que en el ejemplo del enunciado:
- * 7 preguntas = 2 FACIL, 2 MEDIA, 3 DIFICIL).
- */
+
 function calcularDistribucionPorDificultad(cantidad) {
   const base = Math.floor(cantidad / 3);
   const resto = cantidad - base * 3;
@@ -313,24 +273,7 @@ function calcularDistribucionPorDificultad(cantidad) {
   return distribucion;
 }
 
-/**
- * Selecciona las preguntas para una nueva partida:
- * - Excluye las ya usadas en esta sesión.
- * - Respeta la proporción por dificultad.
- * - Si falta alguna dificultad, rellena con preguntas de otra
- *   dificultad para que el juego NUNCA falle.
- * - Ordena el resultado de más fácil a más difícil.
- *
- * Devuelve un arreglo que puede tener MENOS preguntas que las
- * solicitadas si no hay suficientes disponibles (nunca produce error).
- */
-/**
- * Calcula cuántas preguntas de Matemáticas (M) y Comunicación (C) se
- * necesitan para repartir "cantidad" preguntas lo más equilibrado
- * posible entre ambas áreas. Si "cantidad" es impar, la pregunta
- * sobrante se asigna al azar a una de las dos áreas, así que la
- * diferencia entre M y C nunca es mayor a 1 y puede variar entre partidas.
- */
+
 function calcularDistribucionPorArea(cantidad) {
   const base = Math.floor(cantidad / 2);
   const resto = cantidad - base * 2;
@@ -344,14 +287,7 @@ function calcularDistribucionPorArea(cantidad) {
 }
 
 
-/**
- * AGREGADO — Reparte el balance M/C priorizando a FACIL y MEDIA: cada
- * una recibe primero SU PROPIO split ideal de área (lo más parejo
- * posible para su propio tamaño, con el mismo criterio y sorteo de
- * calcularDistribucionPorArea). DIFICIL recibe lo que haga falta para
- * completar el total global: puede quedar menos pareja, pero nunca a
- * costa de FACIL o MEDIA.
- */
+
 function calcularDistribucionAreaPorNivel(distribucionDificultad, distribucionAreaTotal) {
   const porNivel = {};
   let tomadasM = 0;
@@ -373,19 +309,7 @@ function calcularDistribucionAreaPorNivel(distribucionDificultad, distribucionAr
 }
 
 
-/**
- * Selecciona las preguntas para una nueva partida combinando DOS
- * distribuciones a la vez:
- * - Por dificultad (FACIL/MEDIA/DIFICIL), como ya existía.
- * - Por área (M/C), lo más equilibrada posible.
- *
- * Excluye las ya usadas en esta sesión y, si falta alguna combinación
- * de dificultad/área, rellena automáticamente con otra para que el
- * juego NUNCA falle.
- *
- * Devuelve un arreglo que puede tener MENOS preguntas que las
- * solicitadas si no hay suficientes disponibles (nunca produce error).
- */
+
 function seleccionarPreguntasParaPartida(todasLasPreguntas, cantidadSolicitada) {
   const disponibles = todasLasPreguntas.filter((p) => !preguntasUsadasEnSesion.has(p.id));
 
@@ -595,9 +519,7 @@ function actualizarEscalera() {
   });
 }
 
-// Solo cambia el TEXTO mostrado al usuario ("Conocimiento Básico/Intermedio/
-// Avanzado"); la lógica interna sigue usando las claves originales
-// FACIL / MEDIA / DIFICIL sin ningún cambio.
+
 const ETIQUETAS_DIFICULTAD = { FACIL: 'Básico', MEDIA: 'Intermedio', DIFICIL: 'Avanzado' };
 const LETRAS = ['A', 'B', 'C', 'D'];
 
@@ -619,10 +541,7 @@ function renderizarPreguntaActual() {
   const pregunta = partida.preguntas[partida.indiceActual];
   partida.respondida = false;
 
-  // AGREGADO — Comodín "Doble Respuesta": el efecto de "segundo intento"
-  // solo es válido en la pregunta durante la cual se activó. Cada nueva
-  // pregunta arranca sin él activo (aunque el comodín ya se haya
-  // consumido para el resto de la partida vía "comodinDobleUsado").
+ 
   partida.dobleRespuestaActivaPreguntaActual = false;
   partida.dobleRespuestaPrimerIntentoUsado = false;
 
@@ -657,12 +576,7 @@ function renderizarPreguntaActual() {
   actualizarAvisoDobleRespuesta();
   iniciarTemporizador(calcularTiempoSegunDificultad(partida.config.tiempo, pregunta.dificultad));
 
-  // AGREGADO — Sistema de participación del público: abre esta pregunta
-  // para que el público vote. No se espera (no "await") para no retrasar
-  // la interfaz del concursante; si falla, solo se pierde la votación
-  // del público en esa pregunta, el juego principal no se ve afectado.
-  // pregunta.opciones ya está mezclado y es el MISMO orden que se usó
-  // arriba para pintar los botones A/B/C/D, así que las letras coinciden.
+ 
   PanelPublico.abrirPregunta(
     partida.indiceActual + 1,
     pregunta.pregunta,
@@ -705,11 +619,7 @@ function actualizarBotonComodin() {
   el.btn5050Texto.textContent = usado ? 'Comodín usado' : 'Usar comodín';
 }
 
-/**
- * Comodín "+30 segundos": un único uso POR PARTIDA (no por pregunta).
- * Suma 30 segundos al tiempo total Y al restante de la pregunta actual,
- * para que el círculo del temporizador se vea consistente con el nuevo total.
- */
+
 function usarComodinTiempoExtra() {
   if (!partida || partida.comodinTiempoUsado || partida.respondida) return;
 
@@ -730,19 +640,7 @@ function actualizarBotonComodinTiempo() {
   el.btnTiempoExtraTexto.textContent = usado ? 'Comodín usado' : 'Usar comodín';
 }
 
-/**
- * AGREGADO — Comodín "Doble Respuesta": un único uso POR PARTIDA (no por
- * pregunta), igual que 50/50, "+30 segundos" y "Público". Debe activarse
- * ANTES de responder la pregunta actual (misma regla que los demás
- * comodines: una vez respondida la pregunta, ya no se puede activar).
- *
- * Efecto: si está activo y el jugador falla su PRIMER intento en la
- * pregunta donde se activó, esa pregunta NO termina — el fallo solo
- * queda marcado y se habilita un segundo intento entre las respuestas
- * restantes (ver manejarRespuesta). Si el segundo intento también es
- * incorrecto, o se acaba el tiempo antes de usarlo, la pregunta se
- * pierde con el comportamiento normal de fin de partida.
- */
+
 function usarComodinDobleRespuesta() {
   if (!partida || partida.comodinDobleUsado || partida.respondida) return;
 
@@ -763,11 +661,7 @@ function actualizarBotonDobleRespuesta() {
   el.btnDobleRespuestaTexto.textContent = usado ? 'Comodín usado' : 'Usar comodín';
 }
 
-/**
- * Muestra/oculta y actualiza el texto del aviso de "Doble Respuesta"
- * (indica que el comodín está activo en la pregunta actual y, tras el
- * primer intento fallido, que hay un segundo intento disponible).
- */
+
 function actualizarAvisoDobleRespuesta() {
   if (!partida || !partida.dobleRespuestaActivaPreguntaActual) {
     el.dobleRespuestaAviso.classList.add('hidden');
@@ -781,28 +675,7 @@ function actualizarAvisoDobleRespuesta() {
     : 'Doble Respuesta activa: si fallas, tendrás un segundo intento.';
 }
 
-/**
- * Botón/comodín "Público".
- *
- * Mientras la pregunta está ACTIVA (aún no se respondió ni se agotó el
- * tiempo), se comporta como un comodín más: un único uso POR PARTIDA
- * (igual que 50/50 y "+30 segundos") que suma 15 segundos al cronómetro,
- * abre el modal del público y muestra el conteo de votos EN VIVO
- * (actualizado cada 3 segundos), sin cerrar la pregunta ni impedir que
- * el público siga votando.
- *
- * Una vez que la pregunta TERMINA (se respondió o se acabó el tiempo),
- * deja de comportarse como comodín: el botón vuelve a abrir el modal
- * libremente, sin restricciones y sin consumir nada, mostrando el
- * resultado final ya pintado por PanelPublico.cerrarPreguntaYMostrar(),
- * exactamente igual que el comportamiento original de "Preguntar al
- * público".
- *
- * La lógica de PanelPublico (recibir votos, actualizarlos y mostrarlos
- * dentro de #panel-publico-stats) no se toca en ningún momento: esta
- * función solo decide CUÁNDO se abre el modal y cuándo se pide el
- * conteo en vivo o el resultado final.
- */
+
 function usarBotonPublico() {
   if (!partida) return;
 
@@ -819,10 +692,7 @@ function usarBotonPublico() {
     actualizarVistaTemporizador(segundosRestantesActuales, segundosTotalesActuales);
     actualizarBotonPublico();
 
-    // AGREGADO — Muestra el conteo de votos EN VIVO (sin cerrar la
-    // pregunta ni impedir que el público siga votando), refrescándose
-    // cada 3 segundos. Cuando la pregunta termine, cerrarPreguntaYMostrar()
-    // detiene este refresco automáticamente y pinta el resultado final.
+
     PanelPublico.mostrarConteoEnVivo(partida.indiceActual + 1, 3000)
       .catch((errPublico) => console.warn('Público: no se pudo mostrar el conteo en vivo.', errPublico));
   }
@@ -882,11 +752,7 @@ function manejarRespuesta(botonSeleccionado, esCorrecta) {
   // Evita respuestas dobles: si ya se respondió, no hace nada.
   if (partida.respondida) return;
 
-  // AGREGADO — Comodín "Doble Respuesta": si está activo en esta pregunta
-  // y el jugador falla su PRIMER intento, la pregunta NO termina. Se
-  // marca esa opción como incorrecta (queda deshabilitada) y se habilita
-  // un segundo intento entre las respuestas restantes; el resto del
-  // flujo (temporizador, otros comodines) sigue exactamente igual.
+
   if (partida.dobleRespuestaActivaPreguntaActual && !esCorrecta && !partida.dobleRespuestaPrimerIntentoUsado) {
     partida.dobleRespuestaPrimerIntentoUsado = true;
 
@@ -1029,13 +895,7 @@ function irASiguientePregunta() {
   renderizarPreguntaActual();
 }
 
-/**
- * Termina la partida en curso manualmente (botón "Terminar partida" +
- * confirmación) y regresa directamente a la pantalla de inicio.
- * Las preguntas ya usadas quedan igual de excluidas para el resto de
- * la sesión, tal como si la partida hubiera terminado por pérdida o victoria
- * (esa exclusión ya ocurrió al seleccionarlas, así que no hay nada más que hacer).
- */
+
 function terminarPartidaManualmente() {
   detenerTemporizador();
   cerrarModalPublico();
@@ -1334,54 +1194,8 @@ el.btnFullscreen.addEventListener('click', alternarPantallaCompleta);
 // si el usuario sale de pantalla completa con la tecla Esc (en vez del botón).
 document.addEventListener('fullscreenchange', actualizarIconoPantallaCompleta);
 
-/* ---------------------------------------------------------------------
-   13. MODAL DE IMAGEN (Instrucciones / Código QR del público)
-   AGREGADO — Modal genérico reutilizado por dos botones distintos:
-   - "Instrucciones" (esquina superior derecha, antes era "Preguntas").
-   - "Público · Código QR" (pantalla de inicio, debajo de "Iniciar partida").
-   No afecta ninguna otra lógica: solo abre/cierra una imagen dentro de
-   la misma pantalla, sin navegar ni depender de la partida en curso.
-   ------------------------------------------------------------------ */
 
-const URL_INSTRUCCIONES = 'https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/INSTRUCCIONES%20JUEGO.png';
-const URL_QR_PUBLICO = 'https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/QR%20ASISTENCIA%20PVU.jpeg';
 
-function abrirModalImagen(url, alt) {
-  el.modalImagenImg.src = url;
-  el.modalImagenImg.alt = alt;
-  el.modalImagen.classList.remove('hidden');
-}
-
-function cerrarModalImagen() {
-  el.modalImagen.classList.add('hidden');
-}
-
-el.btnInstrucciones.addEventListener('click', () => {
-  abrirModalImagen(URL_INSTRUCCIONES, 'Instrucciones del juego');
-});
-
-el.btnQrPublico.addEventListener('click', () => {
-  abrirModalImagen(URL_QR_PUBLICO, 'Código QR de asistencia del público');
-});
-
-// AGREGADO — Cierra el modal al hacer clic fuera de la imagen (sobre el
-// fondo oscuro). Un clic sobre la imagen misma no cierra el modal.
-el.modalImagen.addEventListener('click', (evento) => {
-  if (evento.target === el.modalImagen) {
-    cerrarModalImagen();
-  }
-});
-
-/* ---------------------------------------------------------------------
-   14. LIMPIAR BASE DE DATOS DEL PÚBLICO (mantenimiento)
-   AGREGADO — Botón fijo en la esquina inferior izquierda de la pantalla
-   de inicio. Vacía por completo las tablas del sistema de participación
-   del público (partidas, votos temporales y estadísticas) y reinicia
-   "sesion_activa" a su estado inicial ('ESPERANDO', sin partida ni
-   pregunta), todo a través de la función RPC
-   millonario.limpiar_base_datos() (ver supabase-limpiar-bd.sql).
-   NO toca la tabla "preguntas": el banco de preguntas no se ve afectado.
-   ------------------------------------------------------------------ */
 
 function abrirModalLimpiarBd() {
   el.limpiarBdMensaje.textContent = '';
