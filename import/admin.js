@@ -113,10 +113,12 @@ function cambiarTabPrincipal(event, seccion) {
       primerTabPMA.classList.add('active');
       document.getElementById('tabEstadisticas').classList.add('hidden');
       document.getElementById('tabGraficas').classList.add('hidden');
+      document.getElementById('tabVisitas').classList.add('hidden');
       document.getElementById('tabDescargas').classList.remove('hidden');
 
       
     }
+
   } else if (seccion === 'pvu') {
     document.getElementById('contenidoPVU').classList.remove('hidden');
     const primerTabPVU = document.querySelector('#contenidoPVU .admin-tabs-secundario .admin-tab');
@@ -145,9 +147,13 @@ async function cambiarTab(event, tab) {
   document.getElementById('tabEstadisticas').classList.add('hidden');
   document.getElementById('tabGraficas').classList.add('hidden');
   document.getElementById('tabDescargas').classList.add('hidden');
+  document.getElementById('tabVisitas').classList.add('hidden');
   
   if (tab === 'descargas') {
     document.getElementById('tabDescargas').classList.remove('hidden');
+
+} else if (tab === 'visitas') {
+    document.getElementById('tabVisitas').classList.remove('hidden');
 
 } else if (tab === 'estadisticas') {
     document.getElementById('tabEstadisticas').classList.remove('hidden');
@@ -2098,20 +2104,91 @@ async function descargarPDFAAA() {
 }
 
 
+function leerMatriculadosParaPVU(archivo) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const nombreHoja = wb.SheetNames[0];
+        const ws = wb.Sheets[nombreHoja];
+        const mapa = new Map();
+
+        if (!ws) {
+          reject(new Error('El archivo Matriculados no contiene hojas.'));
+          return;
+        }
+
+        const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (filas.length === 0) {
+          reject(new Error(`La hoja "${nombreHoja}" del archivo Matriculados está vacía.`));
+          return;
+        }
+
+        const keys = Object.keys(filas[0]);
+        const colDoc = keys.find(k => k.trim().toUpperCase() === 'DOCUMENTO');
+        const colFacultad = keys.find(k => k.trim().toUpperCase() === 'FACULTAD');
+        const colPrograma = keys.find(k => k.trim().toUpperCase() === 'PROGRAMA');
+        const colSede = keys.find(k => k.trim().toUpperCase() === 'SEDE');
+
+        if (!colDoc || (!colFacultad && !colPrograma && !colSede)) {
+          reject(new Error(`La hoja "${nombreHoja}" no tiene columnas DOCUMENTO/FACULTAD/PROGRAMA/SEDE utilizables. Columnas encontradas: ${keys.join(', ')}`));
+          return;
+        }
+
+        filas.forEach(fila => {
+          const doc = String(fila[colDoc]).trim();
+          if (!doc || mapa.has(doc)) return; // Ya existe: se conserva la primera coincidencia
+          mapa.set(doc, {
+            facultad: colFacultad ? String(fila[colFacultad]).trim() : '',
+            programa: colPrograma ? String(fila[colPrograma]).trim() : '',
+            sede: colSede ? String(fila[colSede]).trim() : ''
+          });
+        });
+
+        if (mapa.size === 0) {
+          reject(new Error('No se encontraron documentos válidos en la hoja del archivo Matriculados.'));
+          return;
+        }
+
+        resolve(mapa);
+      } catch (err) {
+        reject(new Error('Error leyendo el archivo Excel: ' + err.message));
+      }
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsArrayBuffer(archivo);
+  });
+}
+
 async function descargarPVU() {
   const btnDescarga = document.getElementById('btnDescargarPVU');
+  const archivoInput = document.getElementById('archivoMatriculadosPVU');
   const textoOriginal = btnDescarga.textContent;
+
+  // No se permite descargar sin antes cargar el archivo Matriculados
+  if (!archivoInput || !archivoInput.files || archivoInput.files.length === 0) {
+    alert('Por favor selecciona el archivo Matriculados (Excel) antes de descargar.');
+    return;
+  }
+
   btnDescarga.disabled = true;
-  btnDescarga.textContent = 'Preparando descarga...';
+  btnDescarga.textContent = 'Procesando archivo Matriculados...';
 
   try {
-const data = await supabaseQuerySinLimite('pvu', { order: 'fecha.asc' });    
-    if (data.length === 0) {
+    // 1) Procesar el archivo Matriculados (Facultad y Programa por Documento)
+    const mapaMatriculados = await leerMatriculadosParaPVU(archivoInput.files[0]);
+
+    // 2) Solo si el procesamiento fue exitoso, se consulta la BD y se genera la descarga
+    btnDescarga.textContent = 'Descargando de la BD...';
+    const data = await supabaseQuerySinLimite('pvu', { order: 'fecha.asc' });
+
+    if (!data || data.length === 0) {
       alert('No hay registros de PVU para descargar');
       return;
     }
 
-    generarExcelPVU(data, 'PVU_Registros');
+    generarExcelPVU(data, 'PVU_Registros', mapaMatriculados);
     alert(`${data.length} registros de PVU descargados exitosamente`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
@@ -2122,23 +2199,26 @@ const data = await supabaseQuerySinLimite('pvu', { order: 'fecha.asc' });
   }
 }
 
-function generarExcelPVU(datos, nombreArchivo) {
+function generarExcelPVU(datos, nombreArchivo, mapaMatriculados) {
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
-    
+
+    // Cruce por DOCUMENTO (tipo BUSCARV) contra el archivo Matriculados.
+    // Si no hay coincidencia, se dejan Facultad y Programa vacíos.
+    const doc = String(fila.documento).trim();
+    const infoMatriculado = mapaMatriculados.get(doc);
+
     return {
       'Fecha': serialDate,
       'Hora': horaFormateada,
       'Fecha de Asistencia': fila.fecha_asistencia || '',
-      'Horario de Asistencia': fila.horario || '',
       'Documento': parseInt(fila.documento) || '',
-      'Nombres': fila.nombres || '',
-      'Apellidos': fila.apellidos || '',
-      'Correo': fila.correo || '',
-      'Programa': fila.programa || '',
-      'Sede': fila.sede || '',
+      'Nombre': fila.nombre || '',
+      'Facultad': infoMatriculado ? infoMatriculado.facultad : '',
+      'Programa': infoMatriculado ? infoMatriculado.programa : '',
+      'Sede': infoMatriculado ? infoMatriculado.sede : '',
       'Jornada': fila.jornada || '',
       'Satisfaccion': fila.satisfaccion || '',
       'Comentario': fila.comentario || ''
@@ -2149,18 +2229,16 @@ function generarExcelPVU(datos, nombreArchivo) {
   const ws = XLSX.utils.json_to_sheet(datosExcel);
 
   const range = XLSX.utils.decode_range(ws['!ref']);
-  aplicarFormatoExcel(ws, range, 0, 4);
+  aplicarFormatoExcel(ws, range, 0, 3);
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
   ws['!cols'] = [
     { wch: 12 },  // Fecha
     { wch: 8 },   // Hora
     { wch: 18 },  // Fecha de Asistencia
-    { wch: 16 },  // Horario de Asistencia
     { wch: 12 },  // Documento
-    { wch: 20 },  // Nombres
-    { wch: 20 },  // Apellidos
-    { wch: 35 },  // Correo
+    { wch: 35 },  // Nombre
+    { wch: 40 },  // Facultad
     { wch: 45 },  // Programa
     { wch: 10 },  // Sede
     { wch: 12 },  // Jornada

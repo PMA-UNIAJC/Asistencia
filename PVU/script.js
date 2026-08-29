@@ -3,6 +3,8 @@ const SUPABASE_KEY = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 
+
+
 function actualizarFechaHora() {
   const ahora = new Date().toLocaleString('es-CO', {
     timeZone: 'America/Bogota',
@@ -182,7 +184,6 @@ function obtenerDatosFormulario() {
   const nombresInput = document.getElementById('nombres');
   const apellidosInput = document.getElementById('apellidos');
   const comentarioTextarea = document.getElementById('comentario');
-  const sede = document.getElementById('sede').value;
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
   // Limpiar espacios en todos los campos antes de enviar
@@ -201,7 +202,6 @@ function obtenerDatosFormulario() {
   nombres = nombres.toUpperCase();
   apellidos = apellidos.toUpperCase();
   comentarioLimpio = comentarioLimpio.toUpperCase();
-  const sedeMayus = sede.toUpperCase();
 
   // Unificar Nombres y Apellidos en un solo campo: APELLIDO(S) + NOMBRE(S)
   const nombreCompleto = `${apellidos} ${nombres}`.replace(/\s+/g, ' ').trim();
@@ -213,7 +213,6 @@ function obtenerDatosFormulario() {
 return {
   documento,
   nombre: nombreCompleto,
-  sedeMayus,
   jornadaMayus,
   fechaAsistenciaMayus,
   satisfaccion: parseInt(satisfaccion),
@@ -230,7 +229,6 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
     const datosEnvio = {
       documento: datos.documento,
       nombre: datos.nombre,
-      sede: datos.sedeMayus,
       jornada: datos.jornadaMayus,
       fecha_asistencia: datos.fechaAsistenciaMayus,
       satisfaccion: datos.satisfaccion,

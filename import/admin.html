@@ -14,34 +14,61 @@
   <div id="contenidoFormulario">
     <div class="container">
 
-      <div id="pantallaAdminLogin">
-        <h2 class="section-title">Acceso de Administrador</h2>
-        <div id="mensajeAdminLogin"></div>
-        <form id="formAdminLogin" onsubmit="loginAdmin(event)" autocomplete="off">
-<div class="form-group">
-  <label>Usuario</label>
-  <input 
-    type="text" 
-    id="adminDocumento" 
-    name="username" 
-    autocomplete="email" 
-    required 
-    class="admin-input"
-  >
-</div>
-          <div class="form-group">
-            <label><svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Contraseña</label>
-            <div class="admin-input-wrapper">
-<input type="password" id="adminContrasena" name="password" autocomplete="current-password" required class="admin-input" onkeydown="verificarCapsLock(event)">              <button type="button" id="btnTogglePassword" onclick="togglePassword()" class="admin-toggle-btn">
-                <svg id="iconPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              </button>
+            <div id="pantallaAdminLogin" class="welcome-screen">
+        <div class="welcome-left">
+          <div class="welcome-logo-section">
+            <div class="welcome-logo-main">
+              <img
+                src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/PMA%20BLANCO.png"
+                alt="Logo PMA"
+                class="logo-image"
+              >
             </div>
-            <p id="avisoCapsLock" style="display:none; color: #e67e22; font-size: 12px; margin-top: 4px;">
-            Mayúsculas Activadas
-            </p>
           </div>
-          <button type="submit" class="btn">Ingresar</button>
-        </form>
+          <div class="welcome-footer">
+            <div class="welcome-footer-info-left">
+              <p class="welcome-footer-text">PBX. 665 2828 &nbsp; Ext. 3701 - 3702</p>
+              <a href="mailto:pma@admon.uniajc.edu.co" class="welcome-footer-link">pma@admon.uniajc.edu.co</a>
+              <p class="welcome-footer-credit">By: Becario Admin. David Franco V.</p>
+            </div>
+            <div class="welcome-footer-logo-right">
+              <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png" alt="Logo UNIAJC" class="welcome-footer-logo">
+            </div>
+          </div>
+        </div>
+
+        <div class="welcome-right">
+          <div class="welcome-content">
+            <h2 class="welcome-title-main">Acceso de Administrador</h2>
+            <div id="mensajeAdminLogin"></div>
+            <form id="formAdminLogin" onsubmit="loginAdmin(event)" autocomplete="off">
+              <div class="form-group">
+                <label>Usuario</label>
+                <input
+                  type="text"
+                  id="adminDocumento"
+                  name="username"
+                  autocomplete="email"
+                  required
+                  class="admin-input"
+                >
+              </div>
+              <div class="form-group">
+                <label><svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Contraseña</label>
+                <div class="admin-input-wrapper">
+                  <input type="password" id="adminContrasena" name="password" autocomplete="current-password" required class="admin-input" onkeydown="verificarCapsLock(event)">
+                  <button type="button" id="btnTogglePassword" onclick="togglePassword()" class="admin-toggle-btn">
+                    <svg id="iconPassword" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                  </button>
+                </div>
+                <p id="avisoCapsLock" style="display:none; color: #e67e22; font-size: 12px; margin-top: 4px;">
+                Mayúsculas Activadas
+                </p>
+              </div>
+              <button type="submit" class="btn">Ingresar</button>
+            </form>
+          </div>
+        </div>
       </div>
 
       <div id="pantallaAdmin" class="hidden">
@@ -68,11 +95,13 @@
             <button class="admin-tab active" onclick="cambiarTab(event, 'descargas')">Descargar Datos</button>
             <button class="admin-tab" onclick="cambiarTab(event, 'estadisticas')">Estadísticas</button>
             <button class="admin-tab" onclick="cambiarTab(event, 'graficas')">Gráficas</button>
+            <button class="admin-tab" onclick="cambiarTab(event, 'visitas')">Visitas</button>
 
-            <button class="admin-tab" onclick="sessionStorage.setItem('adminAuth','1'); window.location.href='../edit/editar.html'">Editar</button>
+            <button class="admin-tab" onclick="sessionStorage.setItem('adminAuth','1'); window.location.href='../Editar/index.html'">Editar</button>
             <button class="admin-tab" onclick="sessionStorage.setItem('adminAuth','1'); window.location.href='../Facultades/Admin/index.html'">Admin Horarios</button>
-            <button class="admin-tab" onclick="sessionStorage.setItem('adminAuth','1'); window.location.href='../Visitas/Admin/index.html'">Visitas</button>
             
+            
+
           </div>
           <div id="tabEstadisticas" class="hidden">
             <div class="stats-grid" id="statsGrid"></div>
@@ -210,9 +239,21 @@
             <div class="chart-container chart-container-spacing">
               <h3 class="chart-title">Descargar PDF de Estadísticas</h3>
               <p class="texto-descargas">Genera un PDF completo con todas las estadísticas generales, de tutores y de profesores, incluyendo tablas y gráficas.</p>
-              <button class="btn" onclick="descargarPDF()">Descargar PDF Estadísticas</button>
+                            <button class="btn" onclick="descargarPDF()">Descargar PDF Estadísticas</button>
             </div>
 
+          </div>
+
+          <div id="tabVisitas" class="hidden">
+            <div class="admin-tabs admin-tabs-terciario">
+              <button class="admin-tab active">Descargar Visitas</button>
+              <button class="admin-tab" onclick="sessionStorage.setItem('adminAuth','1'); window.location.href='../Visitas/Admin/index.html'">Asignar Visitas</button>
+            </div>
+            <div class="chart-container">
+              <h3 class="chart-title">Descargar Reportes de Visitas</h3>
+              <p class="texto-descargas">Descargue los registros de visitas.</p>
+              <button class="btn" id="btnDescargarVisitas">Descargar</button>
+            </div>
           </div>
         </div>
 
@@ -229,6 +270,10 @@
             <div class="chart-container">
               <h3 class="chart-title">Descargar Reportes PVU</h3>
               <p class="texto-descargas">Descargue los registros de asistencia del programa Preparación para la Vida Universitaria.</p>
+              <div class="form-group">
+                <label>Archivo Matriculados (Excel) *</label>
+                <input type="file" id="archivoMatriculadosPVU" accept=".xlsx,.xls" class="buscador-grupo-input">
+              </div>
               <button class="btn" onclick="descargarPVU()" id="btnDescargarPVU">Descargar</button>
             </div>
           </div>
@@ -357,7 +402,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="../PMA/script.js"></script>
-  <script src="admin.js"></script>
+  <script src="script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       verificarSesionAdmin();
