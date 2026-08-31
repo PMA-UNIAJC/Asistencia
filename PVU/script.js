@@ -99,7 +99,50 @@ function obtenerJornadaColombia() {
     return 'NOCHE';
   }
 
-  return ''; // Fuera del rango definido: se deja vacío, sin inventar categoría
+    return ''; // Fuera del rango definido: se deja vacío, sin inventar categoría
+}
+
+// Verifica si este documento ya registró asistencia en las últimas 3 horas
+async function verificarEnvioReciente(documento) {
+  const HORAS_LIMITE = 3;
+
+  try {
+    // Reutiliza obtenerFechaColombia() y le resta las horas del límite
+    const limite = new Date(obtenerFechaColombia());
+    limite.setHours(limite.getHours() - HORAS_LIMITE);
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const haceTresHoras = `${limite.getFullYear()}-${pad(limite.getMonth() + 1)}-${pad(limite.getDate())}T${pad(limite.getHours())}:${pad(limite.getMinutes())}:${pad(limite.getSeconds())}`;
+
+    const query = `?documento=eq.${documento}&fecha=gte.${haceTresHoras}&order=fecha.desc&limit=1`;
+    const registros = await supabaseSelect('pvu', query);
+
+    if (!registros || registros.length === 0) {
+      return { puedeRegistrar: true };
+    }
+
+    const fechaUltimoRegistro = new Date(registros[0].fecha);
+    const ahora = new Date(obtenerFechaColombia());
+    const minutosTranscurridos = Math.floor((ahora - fechaUltimoRegistro) / (1000 * 60));
+    const minutosRestantes = (HORAS_LIMITE * 60) - minutosTranscurridos;
+
+    let tiempoRestante;
+    if (minutosRestantes >= 60) {
+      const horasRestantes = Math.floor(minutosRestantes / 60);
+      const minRestantes = minutosRestantes % 60;
+      tiempoRestante = minRestantes > 0
+        ? `${horasRestantes} hora${horasRestantes > 1 ? 's' : ''} y ${minRestantes} minutos`
+        : `${horasRestantes} hora${horasRestantes > 1 ? 's' : ''}`;
+    } else {
+      tiempoRestante = `${minutosRestantes} minuto${minutosRestantes !== 1 ? 's' : ''}`;
+    }
+
+    return { puedeRegistrar: false, tiempoRestante };
+  } catch (error) {
+    console.error('Error verificando envío reciente:', error);
+    // Si falla la verificación por conexión, se deja pasar para no bloquear al usuario
+    return { puedeRegistrar: true };
+  }
 }
 
 async function supabaseInsert(table, data) {
@@ -403,8 +446,20 @@ async function enviarFormulario(event) {
   }
 
 
-  // Deshabilitar botón mientras se envía
+    // Deshabilitar botón mientras se verifica y se envía
   btnEnviar.disabled = true;
+  btnEnviar.textContent = 'Verificando...';
+
+  // NUEVO: Validar que no se haya registrado este documento en las últimas 3 horas
+  const verificacion = await verificarEnvioReciente(datos.documento);
+
+  if (!verificacion.puedeRegistrar) {
+    mostrarMensaje(`Ya registraste tu asistencia en este horario. Podrás volver a registrarla en ${verificacion.tiempoRestante}.`, 'error');
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    return;
+  }
+
   btnEnviar.textContent = 'Enviando...';
   intentosRestantes = 3;
 
