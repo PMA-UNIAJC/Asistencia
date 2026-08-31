@@ -2130,9 +2130,10 @@ function leerMatriculadosParaPVU(archivo) {
         const colFacultad = keys.find(k => k.trim().toUpperCase() === 'FACULTAD');
         const colPrograma = keys.find(k => k.trim().toUpperCase() === 'PROGRAMA');
         const colSede = keys.find(k => k.trim().toUpperCase() === 'SEDE');
+        const colNombre = keys.find(k => k.trim().toUpperCase() === 'NOMBRE');
 
-        if (!colDoc || (!colFacultad && !colPrograma && !colSede)) {
-          reject(new Error(`La hoja "${nombreHoja}" no tiene columnas DOCUMENTO/FACULTAD/PROGRAMA/SEDE utilizables. Columnas encontradas: ${keys.join(', ')}`));
+        if (!colDoc || (!colFacultad && !colPrograma && !colSede && !colNombre)) {
+          reject(new Error(`La hoja "${nombreHoja}" no tiene columnas DOCUMENTO/FACULTAD/PROGRAMA/SEDE/NOMBRE utilizables. Columnas encontradas: ${keys.join(', ')}`));
           return;
         }
 
@@ -2142,7 +2143,8 @@ function leerMatriculadosParaPVU(archivo) {
           mapa.set(doc, {
             facultad: colFacultad ? String(fila[colFacultad]).trim() : '',
             programa: colPrograma ? String(fila[colPrograma]).trim() : '',
-            sede: colSede ? String(fila[colSede]).trim() : ''
+            sede: colSede ? String(fila[colSede]).trim() : '',
+            nombre: colNombre ? String(fila[colNombre]).trim() : ''
           });
         });
 
@@ -2210,14 +2212,14 @@ function generarExcelPVU(datos, nombreArchivo, mapaMatriculados) {
     const doc = String(fila.documento).trim();
     const infoMatriculado = mapaMatriculados.get(doc);
 
-    return {
+        return {
       'Fecha': serialDate,
       'Hora': horaFormateada,
       'Fecha de Asistencia': fila.fecha_asistencia || '',
       'Documento': parseInt(fila.documento) || '',
-      'Nombre': fila.nombre || '',
+      'Nombre': (infoMatriculado && infoMatriculado.nombre) ? infoMatriculado.nombre : (fila.nombre || ''),
       'Facultad': infoMatriculado ? infoMatriculado.facultad : '',
-      'Programa': infoMatriculado ? infoMatriculado.programa : '',
+      'Programa': (infoMatriculado && infoMatriculado.programa) ? infoMatriculado.programa : (fila.programa || ''),
       'Sede': infoMatriculado ? infoMatriculado.sede : '',
       'Jornada': fila.jornada || '',
       'Satisfaccion': fila.satisfaccion || '',

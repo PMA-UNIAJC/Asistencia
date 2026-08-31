@@ -120,12 +120,58 @@ async function supabaseInsert(table, data) {
       throw new Error(errorData.message || 'Error al guardar los datos');
     }
 
-    return await response.json();
+        return await response.json();
   } catch (error) {
     console.error('Error en supabaseInsert:', error);
     throw error;
   }
 }
+
+async function supabaseSelect(table, query = '') {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al consultar los datos');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error en supabaseSelect:', error);
+    throw error;
+  }
+}
+
+// Carga los programas académicos desde la tabla facultades_carreras
+// y los inserta como opciones en el <select id="programa">
+async function cargarProgramas() {
+  const selectPrograma = document.getElementById('programa');
+  if (!selectPrograma) return;
+
+  try {
+    const data = await supabaseSelect('facultades_carreras', '?select=programa&order=programa.asc');
+    const programasUnicos = [...new Set(data.map(fila => fila.programa).filter(Boolean))];
+
+    selectPrograma.innerHTML = '<option value="" disabled selected>Seleccione su programa</option>';
+    programasUnicos.forEach(programa => {
+      const option = document.createElement('option');
+      option.value = programa;
+      option.textContent = programa;
+      selectPrograma.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error al cargar programas:', error);
+    selectPrograma.innerHTML = '<option value="" disabled selected>Error al cargar programas</option>';
+  }
+}
+
+cargarProgramas();
 
 function limpiarEspacios(input) {
   let valor = input.value;
@@ -183,6 +229,7 @@ function obtenerDatosFormulario() {
   const documentoInput = document.getElementById('documento');
   const nombresInput = document.getElementById('nombres');
   const apellidosInput = document.getElementById('apellidos');
+  const programaSelect = document.getElementById('programa');
   const comentarioTextarea = document.getElementById('comentario');
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
@@ -216,7 +263,8 @@ return {
   jornadaMayus,
   fechaAsistenciaMayus,
   satisfaccion: parseInt(satisfaccion),
-  comentarioLimpio
+  comentarioLimpio,
+  programa: programaSelect.value
 };
 }
 
@@ -226,13 +274,14 @@ async function intentarEnviarConReintentos(datos, intento = 1) {
   
   try {
     // Preparar datos para enviar
-    const datosEnvio = {
+        const datosEnvio = {
       documento: datos.documento,
       nombre: datos.nombre,
       jornada: datos.jornadaMayus,
       fecha_asistencia: datos.fechaAsistenciaMayus,
       satisfaccion: datos.satisfaccion,
       comentario: datos.comentarioLimpio,
+      programa: datos.programa,
       fecha: obtenerFechaColombia()
     };
 
@@ -288,6 +337,7 @@ async function enviarFormulario(event) {
   const documentoInput = document.getElementById('documento');
   const nombresInput = document.getElementById('nombres');
   const apellidosInput = document.getElementById('apellidos');
+  const programaSelect = document.getElementById('programa');
   const comentarioTextarea = document.getElementById('comentario');
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
@@ -307,11 +357,20 @@ async function enviarFormulario(event) {
     return;
   }
   
-  // Validar confirmación de documento
+    // Validar confirmación de documento
   if (!validarConfirmacionDocumento()) {
     const documentoConfirmarInput = document.getElementById('documentoConfirmar');
     documentoConfirmarInput.reportValidity();
     scrollToError(documentoConfirmarInput);
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Enviar Formulario';
+    return;
+  }
+
+  // Validar programa académico
+  if (!programaSelect.value) {
+    mostrarMensaje('Por favor seleccione su programa académico', 'error');
+    scrollToError(programaSelect);
     btnEnviar.disabled = false;
     btnEnviar.textContent = 'Enviar Formulario';
     return;

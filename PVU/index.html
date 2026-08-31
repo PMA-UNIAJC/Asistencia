@@ -104,7 +104,7 @@
           autocomplete="off">
       </div>
 
-      <!-- APELLIDOS -->
+            <!-- APELLIDOS -->
       <div class="form-group">
         <label>Apellidos <span class="required-asterisk">*</span></label>
         <input 
@@ -114,6 +114,15 @@
           oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '')"
           onblur="limpiarEspacios(this)"
           autocomplete="off">
+      </div>
+
+      <!-- PROGRAMA ACADÉMICO -->
+      <div class="form-group">
+        <label>Programa Académico <span class="required-asterisk">*</span></label>
+        <select id="programa" required>
+          <option value="" disabled selected>Seleccione su programa</option>
+        </select>
+        <span class="error-message" id="errorPrograma"></span>
       </div>
 
 
