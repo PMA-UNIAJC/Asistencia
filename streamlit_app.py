@@ -293,7 +293,8 @@ PATRONES_SEMESTRE = {
     'PRIMERO': [
         r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)',
         r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)',
-        r'^C1(?!00)', r'^SC1(?!00)', r'^LB1(?!00)'
+        r'^C1(?!00)', r'^SC1(?!00)', r'^LB1(?!00)',
+        r'^SBR1(?!00)', r'^NLB1(?!00)', r'^SRB1(?!00)'
     ],
     'SEGUNDO': [
         r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2'
@@ -322,7 +323,7 @@ PATRONES_CALENDARIO = {
     'B': [
         r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)',
         r'^BR1(?!00)', r'^BRS1(?!00)', r'^1(?!0|1)',
-        r'^LB1(?!00)'
+        r'^LB1(?!00)', r'^SBR1(?!00)', r'^NLB1(?!00)', r'^SRB1(?!00)'
     ],
     'C': [
         r'^C1(?!00)', r'^SC1(?!00)'
@@ -330,10 +331,10 @@ PATRONES_CALENDARIO = {
 }
 
 BADGE_CALENDARIO_A = "BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3"
-BADGE_CALENDARIO_B = "B1 · BS1 · SB1 · BR1 · BRS1 · LB1 · 1"
+BADGE_CALENDARIO_B = "B1 · BS1 · SB1 · BR1 · BRS1 · SBR1 · SRB1 · LB1 · NLB1 · 1"
 BADGE_CALENDARIO_C = "C1 · SC1"
 HELP_CALENDARIO_A = "Incluye grupos: BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3"
-HELP_CALENDARIO_B = "Incluye grupos: B1, BS1, SB1, BR1, BRS1, LB1 (sin 00), 1 (sin 0 ni 1 después)"
+HELP_CALENDARIO_B = "Incluye grupos: B1, BS1, SB1, BR1, BRS1, SBR1, SRB1, NLB1, LB1 (sin 00), 1 (sin 0 ni 1 después)"
 HELP_CALENDARIO_C = "Incluye grupos: C1, SC1 (sin 00)"
 
 
@@ -789,10 +790,10 @@ def mat_encontrar_columna(df, nombres_posibles):
 def mat_normalizar_sede(sede):
     if pd.isna(sede):
         return sede
-    sede_str = str(sede).upper()
-    if 'NORTE' in sede_str: return 'NORTE'
-    elif 'SUR' in sede_str: return 'SUR'
-    return sede
+    sede_str = str(sede).strip()
+    if '-' in sede_str:
+        sede_str = sede_str.split('-')[0].strip()
+    return sede_str
 
 
 
