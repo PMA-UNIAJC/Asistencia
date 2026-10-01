@@ -297,10 +297,12 @@ PATRONES_SEMESTRE = {
         r'^SBR1(?!00)', r'^NLB1(?!00)', r'^SRB1(?!00)'
     ],
     'SEGUNDO': [
-        r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2'
+        r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2',
+        r'^NL2', r'^L2'
     ],
     'TERCERO': [
-        r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3'
+        r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3',
+        r'^NL3', r'^L3'
     ]
 }
 
@@ -318,7 +320,8 @@ def determinar_semestre(grupo):
 PATRONES_CALENDARIO = {
     'A': [
         r'^BS2', r'^SB2', r'^B2', r'^S2', r'^2',
-        r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3'
+        r'^BS3', r'^SB3', r'^B3', r'^S3', r'^3',
+        r'^NL2', r'^L2', r'^NL3', r'^L3'
     ],
     'B': [
         r'^B1(?!00)', r'^BS1(?!00)', r'^SB1(?!00)',
@@ -330,11 +333,11 @@ PATRONES_CALENDARIO = {
     ]
 }
 
-BADGE_CALENDARIO_A = "BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3"
-BADGE_CALENDARIO_B = "B1 · BS1 · SB1 · BR1 · BRS1 · SBR1 · SRB1 · LB1 · NLB1 · 1"
+BADGE_CALENDARIO_A = "BS2 · BS3 · SB2 · SB3 · B2 · B3 · S2 · S3 · 2 · 3 · L2 · NL2 · L3 · NL3"
+BADGE_CALENDARIO_B = "B1 · BS1 · SB1 · BR1 · BRS1 · LB1 · SBR1 · NLB1 · SRB1 · 1"
 BADGE_CALENDARIO_C = "C1 · SC1"
-HELP_CALENDARIO_A = "Incluye grupos: BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3"
-HELP_CALENDARIO_B = "Incluye grupos: B1, BS1, SB1, BR1, BRS1, SBR1, SRB1, NLB1, LB1 (sin 00), 1 (sin 0 ni 1 después)"
+HELP_CALENDARIO_A = "Incluye grupos: BS2, BS3, SB2, SB3, B2, B3, S2, S3, 2, 3, L2, NL2, L3, NL3"
+HELP_CALENDARIO_B = "Incluye grupos: B1, BS1, SB1, BR1, BRS1, LB1, SBR1, NLB1, SRB1 (sin 00), 1 (sin 0 ni 1 después)"
 HELP_CALENDARIO_C = "Incluye grupos: C1, SC1 (sin 00)"
 
 
