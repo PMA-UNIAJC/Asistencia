@@ -314,6 +314,11 @@ h2, h3 {
 /* Ocultar footer de Streamlit */
 footer { visibility: hidden; }
 #MainMenu { visibility: hidden; }
+
+/* Oculta la barra superior de Streamlit (header con Fork/GitHub) */
+header[data-testid="stHeader"] {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
