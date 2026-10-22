@@ -1,11 +1,15 @@
 import streamlit as st
 import pandas as pd
 import openpyxl
-from openpyxl.styles import Font, Alignment, Border, Side
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 import os
 import re
 import io
+import json
+import time
+import urllib.request
+import urllib.error
 
 # ============================================================
 # VALIDACIÓN DE ARCHIVOS
@@ -374,18 +378,42 @@ MAPEO_COLUMNAS_FAC = {
 }
 
 CORRECCIONES_ORTOGRAFICAS = {
-    'ADMINISTRACION': 'ADMINISTRACIÓN', 'ALGEBRA': 'ÁLGEBRA', 'ANATOMIA': 'ANATOMÍA',
-    'AUDITORIA': 'AUDITORÍA', 'BASICAS': 'BÁSICAS', 'BIOLOGIA': 'BIOLOGÍA',
-    'CALCULO': 'CÁLCULO', 'CIUDADANIA': 'CIUDADANÍA', 'COMUNICACION': 'COMUNICACIÓN',
-    'CONSTITUCION': 'CONSTITUCIÓN', 'CONTADURIA': 'CONTADURÍA', 'ECONOMIA': 'ECONOMÍA',
-    'ECOLOGIA': 'ECOLOGÍA', 'EDUCACION': 'EDUCACIÓN', 'ELECTRONICA': 'ELECTRÓNICA',
-    'ESTADISTICA': 'ESTADÍSTICA', 'ETICA': 'ÉTICA', 'FISICA': 'FÍSICA',
-    'FISIOLOGIA': 'FISIOLOGÍA', 'GESTION': 'GESTIÓN', 'INFORMACION': 'INFORMACIÓN',
-    'INGENIERIA': 'INGENIERÍA', 'INGENIERIAS': 'INGENIERÍA', 'LEGISLACION': 'LEGISLACIÓN',
-    'LOGICA': 'LÓGICA', 'MATEMATICA': 'MATEMÁTICA', 'MATEMATICAS': 'MATEMÁTICAS',
-    'MECATRONICA': 'MECATRÓNICA', 'ORGANIZACION': 'ORGANIZACIÓN', 'PLANEACION': 'PLANEACIÓN',
-    'POLITICA': 'POLÍTICA', 'PRODUCCION': 'PRODUCCIÓN', 'QUIMICA': 'QUÍMICA',
-    'SOCIOLOGIA': 'SOCIOLOGÍA', 'EVALUACION': 'EVALUACIÓN', 'TECNOLOGIA': 'TECNOLOGÍA',
+    'ADMINISTRACION': 'ADMINISTRACIÓN',
+    'ALGEBRA': 'ÁLGEBRA',
+    'ANATOMIA': 'ANATOMÍA',
+    'AUDITORIA': 'AUDITORÍA',
+    'BASICAS': 'BÁSICAS',
+    'BIOLOGIA': 'BIOLOGÍA',
+    'CALCULO': 'CÁLCULO',
+    'CIUDADANIA': 'CIUDADANÍA',
+    'COMUNICACION': 'COMUNICACIÓN',
+    'CONSTITUCION': 'CONSTITUCIÓN',
+    'CONTADURIA': 'CONTADURÍA',
+    'ECONOMIA': 'ECONOMÍA',
+    'ECOLOGIA': 'ECOLOGÍA',
+    'EDUCACION': 'EDUCACIÓN',
+    'ELECTRONICA': 'ELECTRÓNICA',
+    'ESTADISTICA': 'ESTADÍSTICA',
+    'ETICA': 'ÉTICA',
+    'FISICA': 'FÍSICA',
+    'FISIOLOGIA': 'FISIOLOGÍA',
+    'GESTION': 'GESTIÓN',
+    'INFORMACION': 'INFORMACIÓN',
+    'INGENIERIA': 'INGENIERÍA',
+    'INGENIERIAS': 'INGENIERÍA',
+    'LEGISLACION': 'LEGISLACIÓN',
+    'LOGICA': 'LÓGICA',
+    'MATEMATICA': 'MATEMÁTICA',
+    'MATEMATICAS': 'MATEMÁTICAS',
+    'MECATRONICA': 'MECATRÓNICA',
+    'ORGANIZACION': 'ORGANIZACIÓN',
+    'PLANEACION': 'PLANEACIÓN',
+    'POLITICA': 'POLÍTICA',
+    'PRODUCCION': 'PRODUCCIÓN',
+    'QUIMICA': 'QUÍMICA',
+    'SOCIOLOGIA': 'SOCIOLOGÍA',
+    'EVALUACION': 'EVALUACIÓN',
+    'TECNOLOGIA': 'TECNOLOGÍA',
     'TEORIA': 'TEORÍA'
 }
 
@@ -733,32 +761,6 @@ MAPEO_COLUMNAS_MAT = {
     'CORREO_INST': ['CORREO_INST']
 }
 
-PROGRAMA_A_FACULTAD = {
-    'ADMINISTRACION DE EMPRESAS': 'CIENCIAS EMPRESARIALES',
-    'CONTADURIA PUBLICA': 'CIENCIAS EMPRESARIALES',
-    'MERCADEO Y PUBLICIDAD': 'CIENCIAS EMPRESARIALES',
-    'TECNOLOGIA EN CONTABILIDAD SISTEMATIZADA': 'CIENCIAS EMPRESARIALES',
-    'TECNOLOGIA EN GESTION CONTABLE Y FINANCIERA': 'CIENCIAS EMPRESARIALES',
-    'TECNOLOGIA EN GESTION EMPRESARIAL': 'CIENCIAS EMPRESARIALES',
-    'TECNOLOGIA EN GESTION LOGISTICA': 'CIENCIAS EMPRESARIALES',
-    'TECNOLOGIA EN MERCADEO Y NEGOCIOS INTERNACIONALES': 'CIENCIAS EMPRESARIALES',
-    'COMUNICACION SOCIAL': 'CIENCIAS SOCIALES Y HUMANAS',
-    'DISENO VISUAL': 'CIENCIAS SOCIALES Y HUMANAS',
-    'TRABAJO SOCIAL': 'CIENCIAS SOCIALES Y HUMANAS',
-    'ADMINISTRACION EN SALUD': 'EDUCACION A DISTANCIA Y VIRTUAL',
-    'ADMINISTRACION EN SEGURIDAD Y SALUD EN EL TRABAJO': 'EDUCACION A DISTANCIA Y VIRTUAL',
-    'LICENCIATURA EN CIENCIAS DEL DEPORTE Y LA EDUCACION FISICA': 'EDUCACION A DISTANCIA Y VIRTUAL',
-    'LICENCIATURA EN EDUCACION INFANTIL': 'EDUCACION A DISTANCIA Y VIRTUAL',
-    'SALUD OCUPACIONAL': 'EDUCACION A DISTANCIA Y VIRTUAL',
-    'INGENIERIA DE SISTEMAS': 'INGENIERIA',
-    'INGENIERIA ELECTRONICA': 'INGENIERIA',
-    'INGENIERIA INDUSTRIAL': 'INGENIERIA',
-    'TECNOLOGIA EN ELECTRONICA INDUSTRIAL': 'INGENIERIA',
-    'TECNOLOGIA EN MECATRONICA INDUSTRIAL': 'INGENIERIA',
-    'TECNOLOGIA EN PRODUCCION INDUSTRIAL': 'INGENIERIA',
-    'TECNOLOGIA EN SISTEMAS DE INFORMACION': 'INGENIERIA',
-}
-
 TILDES_MAP = str.maketrans('ÁÉÍÓÚáéíóúÑñÜü', 'AEIOUaeiouNnUu')
 
 def mat_limpiar_texto(texto):
@@ -769,7 +771,163 @@ def mat_limpiar_texto(texto):
 def mat_normalizar_programa(programa):
     if pd.isna(programa):
         return programa
-    return mat_limpiar_texto(str(programa).strip().upper())
+    texto = mat_limpiar_texto(str(programa).strip().upper())
+    return re.sub(r'\s+', ' ', texto)
+
+# ============================================================
+# CONEXIÓN CON SUPABASE (FACULTADES Y PROGRAMAS)
+# ============================================================
+
+SUPABASE_URL_DEFAULT = "https://hgppzklpukgslnrynvld.supabase.co"
+SUPABASE_KEY_DEFAULT = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhncHB6a2xwdWtnc2xucnludmxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3OTIzNTcsImV4cCI6MjA4MDM2ODM1N30."
+    "gRgf8vllRhVXj9pPPoHj2fPDgXyjZ8SA9h_wLmBSZfs"
+)
+
+_ultimo_fetch_programas_ts = 0.0
+
+def _obtener_config_supabase():
+    url = os.environ.get("SUPABASE_URL", "").strip()
+    key = os.environ.get("SUPABASE_KEY", "").strip()
+    if not url or not key:
+        try:
+            if not url and "SUPABASE_URL" in st.secrets:
+                url = str(st.secrets["SUPABASE_URL"]).strip()
+            if not key and "SUPABASE_KEY" in st.secrets:
+                key = str(st.secrets["SUPABASE_KEY"]).strip()
+        except Exception:
+            pass
+    if not url:
+        url = SUPABASE_URL_DEFAULT
+    if not key:
+        key = SUPABASE_KEY_DEFAULT
+    return url.rstrip("/"), key
+
+def _consultar_tabla_supabase(tabla, select="*", order="id.asc", intentos=3, timeout=10):
+    supabase_url, supabase_key = _obtener_config_supabase()
+    if not supabase_url or not supabase_key:
+        raise Exception("Configuración de conexión a Supabase incompleta (URL o API Key faltante).")
+
+    url = f"{supabase_url}/rest/v1/{tabla}?select={select}&order={order}"
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Accept": "application/json"
+    }
+
+    ultimo_error = None
+    for intento in range(intentos):
+        try:
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read().decode("utf-8")
+                datos = json.loads(raw)
+                if not isinstance(datos, list):
+                    raise Exception(f"Formato de respuesta inválido al consultar la tabla 'public.{tabla}'.")
+                return datos
+        except urllib.error.HTTPError as e:
+            ultimo_error = Exception(
+                f"Error al consultar 'public.{tabla}' en Supabase (HTTP {e.code}). "
+                "Verifique los permisos y la disponibilidad de la base de datos."
+            )
+            if 400 <= e.code < 500 and e.code != 429:
+                break
+        except urllib.error.URLError as e:
+            ultimo_error = Exception(
+                f"No se pudo conectar con Supabase al consultar 'public.{tabla}'. "
+                f"Verifique su conexión a internet ({e.reason})."
+            )
+        except json.JSONDecodeError:
+            ultimo_error = Exception(
+                f"Respuesta ilegible desde Supabase al consultar 'public.{tabla}'."
+            )
+        except Exception as e:
+            ultimo_error = e
+
+        if intento < intentos - 1:
+            time.sleep(0.5 * (intento + 1))
+
+    raise ultimo_error if ultimo_error else Exception(f"Error desconocido consultando 'public.{tabla}'.")
+
+def construir_relacion_programa_facultad(facultades_registros, programas_registros):
+    """
+    Construye dinámicamente el diccionario {programa_normalizado: facultad_normalizada}
+    a partir de los registros de public.facultades (id, nombre) y
+    public.programas (id, facultad_id, nombre).
+    Si un programa no tiene facultad válida asociada o el registro está incompleto,
+    no se asigna ninguna relación incorrecta.
+    """
+    if not isinstance(facultades_registros, list) or not isinstance(programas_registros, list):
+        raise Exception("Los datos de facultades y programas deben ser listas de registros.")
+
+    facultades_por_id = {}
+    for fac in facultades_registros:
+        if not isinstance(fac, dict):
+            continue
+        fac_id = fac.get("id")
+        fac_nombre = fac.get("nombre")
+        if fac_id is None or fac_nombre is None or pd.isna(fac_nombre):
+            continue
+        fac_nombre_norm = mat_normalizar_programa(fac_nombre)
+        if fac_nombre_norm:
+            facultades_por_id[fac_id] = fac_nombre_norm
+
+    relacion = {}
+    for prog in programas_registros:
+        if not isinstance(prog, dict):
+            continue
+        prog_nombre = prog.get("nombre")
+        if prog_nombre is None or pd.isna(prog_nombre):
+            continue
+        prog_nombre_norm = mat_normalizar_programa(prog_nombre)
+        if not prog_nombre_norm:
+            continue
+
+        fac_id = prog.get("facultad_id")
+        fac_nombre_norm = facultades_por_id.get(fac_id) if fac_id is not None else None
+
+        if not fac_nombre_norm and isinstance(prog.get("facultades"), dict):
+            emb = prog["facultades"]
+            emb_id = emb.get("id")
+            emb_nombre = emb.get("nombre")
+            if (fac_id is None or emb_id == fac_id) and emb_nombre is not None and not pd.isna(emb_nombre):
+                fac_nombre_norm = mat_normalizar_programa(emb_nombre)
+
+        if fac_nombre_norm:
+            relacion[prog_nombre_norm] = fac_nombre_norm
+
+    return relacion
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cargar_programa_a_facultad_cached():
+    facultades_data = _consultar_tabla_supabase("facultades", select="id,nombre", order="id.asc")
+    programas_data = _consultar_tabla_supabase("programas", select="id,facultad_id,nombre", order="id.asc")
+    return construir_relacion_programa_facultad(facultades_data, programas_data)
+
+def obtener_programa_a_facultad(forzar_recarga=False):
+    global _ultimo_fetch_programas_ts
+    if forzar_recarga:
+        _cargar_programa_a_facultad_cached.clear()
+    relacion = _cargar_programa_a_facultad_cached()
+    if forzar_recarga or _ultimo_fetch_programas_ts == 0.0:
+        _ultimo_fetch_programas_ts = time.time()
+    return dict(relacion)
+
+def mat_obtener_facultad_de_programa(programa, programa_a_facultad):
+    if pd.isna(programa) or not isinstance(programa_a_facultad, dict):
+        return None
+    prog_norm = mat_normalizar_programa(programa)
+    if not prog_norm:
+        return None
+    facultad = programa_a_facultad.get(prog_norm)
+    if not facultad and " - " in prog_norm:
+        prog_base = prog_norm.split(" - ")[0].strip()
+        if prog_base:
+            facultad = programa_a_facultad.get(prog_base)
+    if pd.isna(facultad) or not str(facultad).strip():
+        return None
+    return facultad
 
 MATERIAS_COMUNICACION_MAT = [
     'COMUNICACION Y LENGUAJE', 'COMUNICACION Y LENGUAJE I', 'COMUNICACION Y LENGUAJE II',
@@ -815,15 +973,31 @@ def mat_leer_excel(file_obj):
     except Exception as e:
         raise Exception(f"Error al leer el archivo Excel: {str(e)}")
 
-def mat_crear_hoja_general(df_original):
+def mat_crear_hoja_general(df_original, programa_a_facultad=None):
     df_general = pd.DataFrame()
     for col_norm, nombres in MAPEO_COLUMNAS_MAT.items():
         col_enc = mat_encontrar_columna(df_original, nombres)
         if col_enc:
             df_general[col_norm] = df_original[col_enc].copy()
     if 'PROGRAMA' in df_general.columns:
+        if programa_a_facultad is None:
+            relacion_pf = obtener_programa_a_facultad()
+            programas_archivo = [
+                mat_normalizar_programa(p)
+                for p in df_general['PROGRAMA'].dropna().unique()
+                if str(p).strip()
+            ]
+            hay_no_reconocidos = any(
+                (p not in relacion_pf) and (p.split(" - ")[0].strip() not in relacion_pf)
+                for p in programas_archivo if p
+            )
+            if hay_no_reconocidos and (time.time() - _ultimo_fetch_programas_ts) > 2.0:
+                relacion_pf = obtener_programa_a_facultad(forzar_recarga=True)
+        else:
+            relacion_pf = programa_a_facultad
+
         df_general['FACULTAD'] = df_general['PROGRAMA'].apply(
-            lambda p: PROGRAMA_A_FACULTAD.get(mat_normalizar_programa(p), None)
+            lambda p: mat_obtener_facultad_de_programa(p, relacion_pf)
         )
         cols = list(df_general.columns)
         if 'FACULTAD' in cols and 'PROGRAMA' in cols:
@@ -1222,7 +1396,7 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, calendar
 
 
 # ============================================================
-# ==================  MÓDULO 4: INFORME  =====================
+# ==============  MÓDULO 4: INFORME GENERAL  =================
 # ============================================================
 
 MAPEO_COLUMNAS_INF = {
@@ -1540,6 +1714,75 @@ def vis_determinar_jornada(horario):
     else:
         return None
 
+def vis_limpiar_horario(horario):
+    if pd.isna(horario):
+        return horario, True
+
+    valor_original = horario
+    texto = str(horario).strip()
+
+    if texto == '':
+        return valor_original, True
+
+    # Mas de un guion -> imposible separar inicio/fin con confianza
+    if texto.count('-') != 1:
+        return valor_original, True
+
+    parte_inicio, parte_fin = [p.strip() for p in texto.split('-')]
+
+    patron_hm = re.compile(r'^(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?$')  # 7:00 / 07:00 / 07.00
+    patron_hhmm = re.compile(r'^(\d{3,4})$')                           # 0700 / 700
+    patron_hora_sola = re.compile(r'^(\d{1,2})$')                      # 10 / 1 / 01
+
+    def extraer_hora_minuto(parte):
+        m = patron_hm.match(parte)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+        m = patron_hhmm.match(parte)
+        if m:
+            digitos = m.group(1)
+            if len(digitos) == 3:
+                return int(digitos[0]), int(digitos[1:])
+            return int(digitos[:2]), int(digitos[2:])
+        m = patron_hora_sola.match(parte)
+        if m:
+            return int(m.group(1)), 0
+        return None
+
+    datos_inicio = extraer_hora_minuto(parte_inicio)
+    datos_fin = extraer_hora_minuto(parte_fin)
+
+    # Texto no numerico / sin patron reconocible
+    if datos_inicio is None or datos_fin is None:
+        return valor_original, True
+
+    hora_inicio, min_inicio = datos_inicio
+    hora_fin, min_fin = datos_fin
+
+    # Nunca hay clases entre 1:00 a.m. y 6:59 a.m. -> formato de 12h detectado
+    if hora_inicio < 7:
+        hora_inicio += 12
+    if hora_fin < 7:
+        hora_fin += 12
+
+    if not (0 <= hora_inicio <= 23 and 0 <= hora_fin <= 23 and 0 <= min_inicio <= 59 and 0 <= min_fin <= 59):
+        return valor_original, True
+
+    horario_normalizado = f"{hora_inicio:02d}{min_inicio:02d} - {hora_fin:02d}{min_fin:02d}"
+    return horario_normalizado, False
+
+def vis_resaltar_sospechosos(workbook, nombre_hoja, sospechosos):
+
+    if nombre_hoja not in workbook.sheetnames:
+        return
+    sheet = workbook[nombre_hoja]
+    relleno_amarillo = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+    for idx, es_sospechoso in enumerate(sospechosos):
+        if es_sospechoso:
+            fila_excel = idx + 2  # +1 por encabezado, +1 porque idx es 0-based
+            for col in range(1, sheet.max_column + 1):
+                sheet.cell(row=fila_excel, column=col).fill = relleno_amarillo
+
 def vis_procesar_archivo(archivos):
     """
     archivos: lista de file objects (1, 2 o 3 archivos).
@@ -1575,9 +1818,16 @@ def vis_procesar_archivo(archivos):
 
             df_hoja['DIA'] = dia_detectado
             if 'HORARIO' in df_hoja.columns:
-                df_hoja['JORNADA'] = df_hoja['HORARIO'].apply(vis_determinar_jornada)
+                resultado_limpieza = df_hoja['HORARIO'].apply(vis_limpiar_horario)
+                df_hoja['HORARIO'] = resultado_limpieza.apply(lambda x: x[0])
+                df_hoja['SOSPECHOSO'] = resultado_limpieza.apply(lambda x: x[1])
+                df_hoja['JORNADA'] = df_hoja.apply(
+                    lambda fila: None if fila['SOSPECHOSO'] else vis_determinar_jornada(fila['HORARIO']),
+                    axis=1
+                )
             else:
                 df_hoja['JORNADA'] = None
+                df_hoja['SOSPECHOSO'] = False
 
             for col_critica in ['SALON', 'GRUPO', 'HORARIO']:
                 if col_critica in df_hoja.columns:
@@ -1600,6 +1850,7 @@ def vis_procesar_archivo(archivos):
             df_general[col] = df_general_raw[col]
         else:
             df_general[col] = None
+    df_general['SOSPECHOSO'] = df_general_raw['SOSPECHOSO'] if 'SOSPECHOSO' in df_general_raw.columns else False
 
     df_general = df_general.reset_index(drop=True)
 
@@ -1612,17 +1863,26 @@ def vis_procesar_archivo(archivos):
     df_visitas['SEMESTRE'] = df_visitas['GRUPO'].apply(determinar_semestre)
     df_visitas = df_visitas[df_visitas['SEMESTRE'].notna()].copy()
     df_visitas = df_visitas.reset_index(drop=True)
-    df_visitas = df_visitas[[c for c in COLUMNAS_VISITAS if c in df_visitas.columns]]
+    df_visitas = df_visitas[[c for c in COLUMNAS_VISITAS if c in df_visitas.columns] + ['SOSPECHOSO']]
+
+    # Listas de sospechosos alineadas con el orden de las filas que se van a escribir
+    sospechosos_general = df_general['SOSPECHOSO'].fillna(False).tolist()
+    sospechosos_visitas = df_visitas['SOSPECHOSO'].fillna(False).tolist()
+
+    df_general_export = df_general[COLUMNAS_GENERAL]
+    df_visitas_export = df_visitas[[c for c in COLUMNAS_VISITAS if c in df_visitas.columns]]
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_general.to_excel(writer, sheet_name='GENERAL', index=False)
-        df_visitas.to_excel(writer, sheet_name='VISITAS', index=False)
+        df_general_export.to_excel(writer, sheet_name='GENERAL', index=False)
+        df_visitas_export.to_excel(writer, sheet_name='VISITAS', index=False)
 
     output.seek(0)
     workbook = openpyxl.load_workbook(output)
     vis_aplicar_formato(workbook, 'GENERAL')
     vis_aplicar_formato(workbook, 'VISITAS')
+    vis_resaltar_sospechosos(workbook, 'GENERAL', sospechosos_general)
+    vis_resaltar_sospechosos(workbook, 'VISITAS', sospechosos_visitas)
 
     final_output = io.BytesIO()
     workbook.save(final_output)
@@ -1635,7 +1895,7 @@ def vis_procesar_archivo(archivos):
 
 # Sidebar
 with st.sidebar:
-    st.markdown('<div class="sidebar-title">🎓 Procesador Académico</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-title">INFORME PMA</div>', unsafe_allow_html=True)
     st.markdown('<div class="sidebar-subtitle">Sistema de gestión de datos</div>', unsafe_allow_html=True)
     st.markdown("---")
 
