@@ -25,7 +25,7 @@ def validar_archivo_xlsx(file_obj):
 # CONFIGURACIÓN DE PÁGINA
 # ============================================================
 st.set_page_config(
-    page_title="Procesador Académico",
+    page_title="INFORME PMA",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -56,6 +56,35 @@ html, body, [class*="css"] {
 
 [data-testid="stSidebar"] * {
     font-family: 'Sora', sans-serif !important;
+}
+
+/* --- Bloquear el sidebar: sin scroll, sin colapso, tamaño fijo --- */
+
+/* Oculta el botón de flecha que colapsa/oculta el sidebar (todas las versiones) */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"],
+button[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"] {
+    display: none !important;
+}
+
+/* Oculta la barra/handle para redimensionar el ancho */
+[data-testid="stSidebarResizeHandle"] {
+    display: none !important;
+}
+
+/* Ancho fijo y sin posibilidad de encogerse */
+[data-testid="stSidebar"] {
+    min-width: 300px !important;
+    max-width: 300px !important;
+    width: 300px !important;
+}
+
+/* Quita cualquier scroll dentro del sidebar */
+[data-testid="stSidebar"],
+[data-testid="stSidebarContent"],
+section[data-testid="stSidebar"] > div {
+    overflow: hidden !important;
 }
 
 /* Título principal en sidebar */
@@ -1896,7 +1925,7 @@ def vis_procesar_archivo(archivos):
 # Sidebar
 with st.sidebar:
     st.markdown('<div class="sidebar-title">INFORME PMA</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sidebar-subtitle">Sistema de gestión de datos</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-subtitle">EXCEL</div>', unsafe_allow_html=True)
     st.markdown("---")
 
     modulo = st.radio(
