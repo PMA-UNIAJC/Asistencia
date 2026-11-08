@@ -1,0 +1,309 @@
+/* =========================================
+   PC / ESCRITORIO
+   Diseño principal
+   ========================================= */
+/* =========================================================
+   AAA/styles.css
+   Solo estilos específicos de Activación Acompañamiento Académico.
+   Estilos globales y escala tipográfica: ../Global/global.css
+   ========================================================= */
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+  margin-bottom: 0;
+  border: 1px solid transparent;
+}
+
+.checkbox-label:hover {
+  background-color: var(--surface-muted, #f8f9fa);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  cursor: pointer;
+  accent-color: #1e3c72;
+  flex-shrink: 0;
+}
+
+.checkbox-label span {
+  flex: 1;
+  color: var(--text-body);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.checkbox-label input[type="checkbox"]:checked + span {
+  font-weight: 500;
+  color: #1e3c72;
+}
+
+/* ---------- Seguimiento ---------- */
+.seguimiento-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(26, 47, 90, 0.2);
+}
+
+.seguimiento-titulo {
+  color: var(--text-primary);
+  font-size: var(--fs-section-subtitle);
+  font-weight: 600;
+  line-height: 1.35;
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+
+.seguimiento-input {
+  letter-spacing: 2px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+#mensajeSeguimiento {
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  font-weight: 500;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.seguimiento-btn {
+  margin-top: 4px;
+  background: #1a2f5a;
+}
+
+.seguimiento-btn:hover {
+  background: #2a4d8f;
+}
+
+.modal-seguimiento-inner {
+  background: white;
+  padding: 36px 32px;
+  border-radius: 12px;
+  text-align: left;
+  max-width: 540px;
+  width: 95%;
+  box-shadow: 0 12px 40px rgba(10, 22, 40, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-seguimiento-inner h2 {
+  color: #1e3c72;
+  font-size: var(--fs-section-title);
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0e0e0;
+  font-family: inherit;
+}
+
+.seguimiento-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-body);
+  font-family: inherit;
+}
+
+.seguimiento-tabla td {
+  padding: 10px 10px;
+  vertical-align: top;
+  line-height: 1.5;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.seguimiento-tabla td:first-child {
+  font-weight: 600;
+  color: #1e3c72;
+  white-space: nowrap;
+  width: 45%;
+  padding-right: 16px;
+}
+
+.seguimiento-tabla td:last-child {
+  color: #444;
+}
+
+.seguimiento-tabla tr:last-child td {
+  border-bottom: none;
+}
+
+.seguimiento-info-celda {
+  padding-top: 18px !important;
+  white-space: normal !important;
+}
+
+.seguimiento-info-titulo {
+  text-align: center;
+  color: #1e3c72;
+  font-size: var(--fs-card-title);
+  font-weight: 600;
+  line-height: 1.35;
+  font-family: inherit;
+  margin: 0 0 10px 0;
+}
+
+.seguimiento-info-valor {
+  text-align: left;
+  color: #444;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  margin: 0 0 8px 0;
+}
+
+.seguimiento-info-fecha {
+  text-align: right;
+  color: #888;
+  font-size: var(--fs-small);
+  font-style: italic;
+  margin: 0;
+}
+
+
+/* =========================================
+   TABLET
+   ========================================= */
+
+@media (max-width: 968px) {
+  .seguimiento-section {
+    margin-top: 28px;
+    padding-top: 20px;
+  }
+
+  .seguimiento-titulo {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .checkbox-label span,
+  #mensajeSeguimiento,
+  .seguimiento-tabla,
+  .seguimiento-info-valor {
+    font-size: 13px;
+  }
+
+  .modal-seguimiento-inner h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .seguimiento-info-titulo {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .seguimiento-section {
+    margin-top: 24px;
+    padding-top: 18px;
+  }
+
+  .seguimiento-titulo {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+
+  .modal-seguimiento-inner {
+    padding: 24px 18px;
+    border-radius: 12px;
+  }
+
+  .seguimiento-tabla td {
+    padding: 8px 6px;
+  }
+
+  .seguimiento-tabla td:first-child {
+    width: 42%;
+    padding-right: 10px;
+  }
+}
+
+
+/* =========================================
+   CELULAR / MÓVIL
+   ========================================= */
+
+@media (max-width: 480px) {
+  .seguimiento-section {
+    margin-top: 20px;
+    padding-top: 16px;
+  }
+
+  .seguimiento-titulo {
+    font-size: 14px;
+  }
+
+  #mensajeSeguimiento {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  .modal-seguimiento-inner {
+    padding: 20px 14px;
+    width: 98%;
+  }
+
+  .modal-seguimiento-inner h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .seguimiento-info-titulo {
+    font-size: 14px;
+  }
+
+  .seguimiento-tabla,
+  .seguimiento-info-valor {
+    font-size: 12px;
+  }
+
+  .seguimiento-tabla td {
+    padding: 7px 4px;
+  }
+
+  .seguimiento-tabla td:first-child {
+    width: 40%;
+    font-size: 12px;
+    padding-right: 8px;
+  }
+
+  .checkbox-label {
+    min-height: 44px;
+  }
+
+  .checkbox-label span {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .seguimiento-tabla td:first-child {
+    width: 38%;
+  }
+}

@@ -1,0 +1,197 @@
+/* =========================================
+   PC / ESCRITORIO
+   Diseño principal
+   ========================================= */
+/* =============================================
+   styles.css (Editar) — estilos específicos del panel
+   de edición. Complementa ../../Global/global.css y ../Panel/admin.css.
+   ============================================= */
+
+/* Grid de campos de edición — 2 columnas en desktop */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+
+/* Header de la sección de edición */
+.edicion-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.edicion-header .chart-title {
+  margin-bottom: 0;
+}
+
+/* Badge que muestra el documento original */
+.doc-original-badge {
+  display: inline-block;
+  background: #1e3c72;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+
+/* Contenedor de botones de edición */
+.edicion-botones {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mensaje de búsqueda */
+#mensajeBusqueda,
+#mensajeGuardado {
+  margin-top: 10px;
+}
+
+/* Contenedor principal de edición */
+.edicion-container {
+  margin-top: 20px;
+}
+
+/* Resumen de cambios */
+#resumenCambios .list-item {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#resumenCambios .list-item .cambio-antes {
+  font-size: 12px;
+  color: #999;
+  text-decoration: line-through;
+}
+
+#resumenCambios .list-item .cambio-despues {
+  font-size: 13px;
+  color: #1e3c72;
+  font-weight: 600;
+}
+
+#resumenCambios .list-item .cambio-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.resumen-formularios {
+  margin-top: 12px;
+  padding: 12px 15px;
+  background: #d4edda;
+  border-radius: 6px;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resumen-sin-cambios {
+  padding: 12px 15px;
+  background: #fff3cd;
+  border-radius: 6px;
+  border: 1px solid #ffc107;
+  color: #856404;
+  font-size: 13px;
+}
+
+/* Checkboxes del listado de eliminación con el azul institucional */
+#chkSeleccionarTodos,
+#chkSeleccionarTodosFP,
+#itemsLista input[type="checkbox"],
+#itemsListaFP input[type="checkbox"] {
+  accent-color: #1e3c72;
+}
+
+/* Layout del panel con menú lateral a la derecha */
+.panel-contenido {
+  margin-right: 400px;
+}
+
+.panel-menu-lateral {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface-content);
+  border-left: 1px solid var(--border-subtle);
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.menu-lateral-marca {
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--brand-primary);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.menu-lateral-btn {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  background: transparent;
+  color: var(--text-body);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu-lateral-btn:hover {
+  background: var(--surface-muted);
+  color: var(--brand-primary);
+}
+
+.menu-lateral-btn.active {
+  background: var(--brand-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25);
+}
+
+.panel-menu-lateral .admin-link {
+  margin-top: auto;
+}
+
+
+/* =========================================
+   CELULAR / MÓVIL
+   ========================================= */
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-shell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-contenido {
+    margin-right: 0;
+  }
+
+  .panel-menu-lateral {
+    position: static;
+    width: 100%;
+    order: -1;
+  }
+}

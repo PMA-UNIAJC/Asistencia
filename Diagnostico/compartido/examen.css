@@ -1,0 +1,592 @@
+/* =========================================================
+   Diagnostico/compartido/examen.css
+   Estilos comunes de las pruebas diagnósticas.
+   Complementa ../../Global/global.css (hoja global): solo añade
+   lo que no existe allí. Usa sus variables (--brand-primary, etc.).
+   ========================================================= */
+
+/* =========================================
+   PC / ESCRITORIO
+   ========================================= */
+
+#contenedorSeccion {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS: evita el menú "Copiar" al mantener presionado */
+}
+
+.pantalla-acciones {
+  margin-top: auto;
+}
+
+.lista-instrucciones {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+.lista-instrucciones li {
+  margin-bottom: 6px;
+}
+
+.mensaje-accion {
+  display: inline;
+  margin: 0 0 0 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mensaje-accion:hover,
+.mensaje-accion:focus-visible {
+  text-decoration: none;
+}
+
+/* ── Estado del examen: sección actual y avance ── */
+.examen-estado {
+  margin-bottom: 14px;
+}
+
+.examen-estado-texto {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--fs-aux);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.examen-progreso-pista {
+  width: 100%;
+  height: 6px;
+  background: #e3e9f2;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.examen-progreso-barra {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-light));
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+}
+
+/* ── Mapa de preguntas (respondida / sin responder; nunca correcta/incorrecta) ── */
+.examen-mapa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.mapa-pregunta {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  border: 1.5px solid #d0d7de;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: var(--text-muted);
+  font-size: var(--fs-aux);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.mapa-pregunta:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.mapa-pregunta.respondida {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+}
+
+.mapa-pregunta:focus-visible {
+  outline: 3px solid rgba(30, 60, 114, 0.45);
+  outline-offset: 2px;
+}
+
+.mapa-pregunta:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── Pregunta ── */
+.pregunta-examen {
+  border: none;
+  margin: 0 0 28px;
+  padding: 0 0 28px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.pregunta-examen:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.pregunta-encabezado {
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: var(--fs-aux);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+}
+
+.pregunta-enunciado {
+  margin: 0 0 16px;
+  font-size: var(--fs-body-lg);
+  line-height: 1.65;
+  color: var(--text-body);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.pregunta-contexto {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.pregunta-contexto-titulo {
+  font-size: var(--fs-card-title);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.pregunta-contexto-texto {
+  font-size: var(--fs-body);
+  line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.pregunta-contexto-nota {
+  font-size: var(--fs-aux);
+  font-style: italic;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.pregunta-imagen {
+  margin: 0 0 16px;     
+  max-width: 100%;
+  text-align: center;
+}
+
+.pregunta-imagen img {
+  box-sizing: border-box;  
+  display: block;
+  max-width: 100%;         
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin: 0 auto;
+}
+
+.pregunta-imagen-error {
+  margin: 8px 0 0;
+  font-size: var(--fs-aux);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* ── Opciones: misma línea visual que los campos del formulario global ── */
+.pregunta-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+label.opcion-examen {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  margin: 0;
+  padding: 11px 14px;
+  border: 1.5px solid #d0d7de;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  font-size: var(--fs-body);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+label.opcion-examen:hover {
+  border-color: var(--brand-primary);
+}
+
+/* El radio queda accesible por teclado, pero oculto visualmente */
+.opcion-examen input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.opcion-letra {
+  flex: 0 0 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #b8c2cc;
+  border-radius: 50%;
+  font-size: var(--fs-aux);
+  font-weight: 700;
+  color: var(--brand-primary);
+  background: #ffffff;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.opcion-texto {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Seleccionada: color institucional neutro (no indica acierto ni error) */
+label.opcion-examen.seleccionada {
+  border-color: var(--brand-primary);
+  background: #eef3fa;
+  box-shadow: 0 0 0 1px var(--brand-primary);
+}
+
+.opcion-examen.seleccionada .opcion-letra {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+}
+
+.opcion-examen input[type="radio"]:focus-visible + .opcion-letra {
+  outline: 3px solid rgba(30, 60, 114, 0.45);
+  outline-offset: 2px;
+}
+
+.examen-bloqueado label.opcion-examen {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+/* ── Navegación entre secciones ── */
+#pantallaFormulario .navegacion-formulario {
+  justify-content: space-between;
+}
+
+.btn-flecha.invisible {
+  visibility: hidden;
+  transition: none; /* el "transition: all" global retrasaría el ocultamiento */
+}
+
+.btn-flecha:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Resultado ── */
+.resultado-encabezado {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.resultado-texto {
+  font-size: var(--fs-body-lg);
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+#resumenResultado .confirmation-label {
+  min-width: 190px;
+  padding-right: 10px;
+}
+
+/* ── Selector con buscador de Grupo (Registro de Diagnósticos) ── */
+.grupo-buscador {
+  position: relative;
+  width: 100%;
+}
+
+.grupo-buscador-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.grupo-buscador-input {
+  padding-right: 42px;
+}
+
+.grupo-buscador-input:disabled {
+  background: #f5f7fa;
+  color: #7a8694;
+  cursor: not-allowed;
+}
+
+.grupo-buscador.grupo-seleccionado .grupo-buscador-input {
+  border-color: var(--brand-primary);
+  background-color: #f4f8ff;
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+.grupo-buscador-limpiar {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(30, 60, 114, 0.1);
+  color: var(--brand-primary);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.grupo-buscador-limpiar:hover,
+.grupo-buscador-limpiar:focus-visible {
+  background: rgba(30, 60, 114, 0.2);
+  outline: none;
+}
+
+.grupo-buscador-limpiar.hidden {
+  display: none;
+}
+
+.grupo-buscador-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 224px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background: #ffffff;
+  border: 1.5px solid var(--brand-primary);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(10, 22, 40, 0.16);
+  padding: 4px;
+}
+
+.grupo-buscador-lista.hidden {
+  display: none;
+}
+
+.grupo-buscador-opcion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 42px;
+  margin: 0;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-body);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.grupo-buscador-opcion:hover,
+.grupo-buscador-opcion.activa {
+  background: #eef3fa;
+  color: var(--brand-primary);
+}
+
+.grupo-buscador-opcion.seleccionada {
+  background: var(--brand-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.grupo-coincidencia {
+  font-weight: 700;
+  color: var(--brand-primary);
+  background: rgba(30, 60, 114, 0.12);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.grupo-buscador-opcion.seleccionada .grupo-coincidencia {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.grupo-buscador-vacio {
+  padding: 14px 12px;
+  text-align: center;
+  font-size: var(--fs-aux);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.alert-box-grupo {
+  margin-top: 18px;
+  margin-bottom: 0;
+}
+
+
+/* =========================================
+   TABLET
+   ========================================= */
+@media (max-width: 768px) {
+  .pregunta-enunciado {
+    font-size: 15px;
+  }
+
+  .pregunta-contexto-titulo {
+    font-size: 15px;
+  }
+
+  .pregunta-contexto-texto,
+  label.opcion-examen {
+    font-size: 13px;
+  }
+
+  .pregunta-contexto {
+    max-height: none;
+  }
+}
+
+
+/* ── Límite de ancho de la imagen de apoyo solo en pantallas medianas/grandes ── */
+@media (min-width: 600px) {
+  .pregunta-imagen img {
+    max-width: 420px;
+  }
+}
+
+
+/* =========================================
+   CELULAR / MÓVIL
+   ========================================= */
+@media (max-width: 480px) {
+  .examen-estado-texto,
+  .mapa-pregunta,
+  .pregunta-encabezado,
+  .pregunta-contexto-nota,
+  .pregunta-imagen-error {
+    font-size: 12px;
+  }
+
+  .mapa-pregunta {
+    min-width: 32px;
+    height: 32px;
+  }
+
+  .pregunta-examen {
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+  }
+
+  .pregunta-enunciado,
+  .pregunta-contexto-titulo,
+  .resultado-texto {
+    font-size: 14px;
+  }
+
+  .pregunta-contexto-texto {
+    font-size: 12px;
+  }
+
+  label.opcion-examen {
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .opcion-letra {
+    flex-basis: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .opcion-texto {
+    padding-top: 3px;
+  }
+
+  #pantallaFormulario .navegacion-formulario {
+    gap: 10px;
+  }
+
+  .pregunta-imagen {
+    margin-bottom: 12px;
+  }
+
+  .pregunta-imagen img {
+    border-radius: var(--radius-sm);
+  }
+
+  .grupo-buscador-lista {
+    max-height: 200px;
+  }
+
+  .grupo-buscador-opcion {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .grupo-buscador-vacio {
+    font-size: 12px;
+    padding: 12px 10px;
+  }
+
+  .alert-box-grupo {
+    margin-top: 16px;
+  }
+}

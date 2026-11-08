@@ -1,0 +1,175 @@
+/* =========================================
+   PC / ESCRITORIO
+   Diseño principal
+   ========================================= */
+/* ── Estilos específicos del módulo Admin/Visitas ── */
+/* Complementa ../../Global/global.css y ../Panel/admin.css */
+
+/* ── CABECERA ── */
+
+.visitas-header-logo {
+  display: none;
+}
+
+/* ── BARRAS DE FILTROS ── */
+
+.visitas-filtros-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  align-items: flex-end;
+}
+
+.form-group.visitas-filtro-item {
+  min-width: 200px;
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.visitas-filtros-bar-asignar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: end;
+}
+
+.visitas-filtros-bar-asignar .visitas-filtro-item {
+  min-width: 0;
+  flex: none;
+}
+
+/* ── ELEMENTOS EXCLUSIVOS DE ADMIN/VISITAS ── */
+
+.tabla-visitas th,
+.tabla-visitas td {
+  white-space: nowrap;
+}
+
+#tabAsignar .tabla-visitas tbody td:not(.tabla-tutor-nombre) {
+  text-align: center;
+}
+
+.tabla-visitas td div + div {
+  margin-top: 2px;
+}
+
+.btn-accion-tabla {
+  background: #1e3c72;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(30, 60, 114, 0.2);
+}
+
+.btn-accion-tabla:hover {
+  background: #2a5298;
+  box-shadow: 0 4px 10px rgba(30, 60, 114, 0.3);
+}
+
+.visitas-sin-accion {
+  color: #bbb;
+  font-size: 13px;
+}
+
+.badge-estado {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.badge-disponible {
+  background: #e8f4fd;
+  color: #1e3c72;
+  border: 1px solid #b8dcf5;
+}
+
+.badge-asignada {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffe08a;
+}
+
+.badge-completado {
+  background: #1e3c72;
+  color: #ffffff;
+  border: 1px solid #1e3c72;
+}
+
+.visitas-placeholder {
+  text-align: center;
+  color: #666;
+  padding: 24px 16px;
+  font-size: 14px;
+}
+
+.visitas-detalle-asignacion {
+  text-align: left;
+  margin: 0 0 20px 0;
+  padding: 14px 16px;
+}
+
+#modalAsignar .form-group {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+
+/* =========================================
+   TABLET
+   ========================================= */
+
+@media (max-width: 900px) {
+  .visitas-filtros-bar-asignar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .visitas-filtros-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-group.visitas-filtro-item {
+    min-width: 100%;
+  }
+
+  .visitas-filtros-bar-asignar {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .badge-estado,
+  .btn-accion-tabla,
+  .visitas-placeholder {
+    font-size: 11px;
+  }
+}
+
+
+/* =========================================
+   CELULAR / MÓVIL
+   ========================================= */
+
+@media (max-width: 480px) {
+  .badge-estado,
+  .btn-accion-tabla,
+  .visitas-placeholder {
+    font-size: 10px;
+  }
+
+  .btn-accion-tabla {
+    padding: 6px 10px;
+  }
+}

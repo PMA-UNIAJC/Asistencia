@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="format-detection" content="telephone=no">
+  <title>Prueba Diagnóstica - Comunicación Escrita</title>
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="stylesheet" href="../../Global/global.css">
+  <link rel="stylesheet" href="../compartido/examen.css">
+</head>
+<body class="welcome-active">
+
+<div id="pantallaBienvenida" class="welcome-screen">
+  <div class="welcome-left">
+    <div class="welcome-logo-section">
+      <div class="welcome-logo-main">
+        <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png" alt="Logo UNIAJC" class="logo-image">
+      </div>
+    </div>
+  </div>
+
+  <div class="welcome-right">
+    <div class="welcome-content">
+      <h1 class="welcome-title">Prueba Diagnóstica</h1>
+      <p class="welcome-subtitle" data-examen="titulo">Comunicación Escrita</p>
+      <div class="welcome-description">
+        <p>Este diagnóstico evalúa el desempeño de los estudiantes en Comunicación Escrita, de acuerdo con 
+          los criterios de las pruebas Saber Pro y Saber TyT en Colombia. Se centra en tres competencias: 
+          planteamiento, organización y forma de expresión, necesarias para construir textos claros, coherentes y pertinentes.
+          Los resultados permitirán identificar fortalezas y aspectos por mejorar para orientar estrategias de fortalecimiento 
+          de las habilidades comunicativas. Analiza cada situación, comprende lo que se solicita y selecciona la opción más adecuada.</p>
+      </div>
+      <button type="button" class="welcome-btn" id="btnEmpezar">Empezar ahora</button>
+    </div>
+  </div>
+</div>
+
+<div id="contenidoFormulario" class="hidden">
+  <div class="container">
+
+    <!-- INGRESO: DOCUMENTO -->
+    <div id="pantallaLogin" class="hidden">
+      <h2 class="section-title">Ingreso a la Prueba</h2>
+      <p class="texto-login">Ingrese su documento de identidad para acceder a la prueba diagnóstica de <span data-examen="titulo">Comunicación Escrita</span>.</p>
+      <div id="mensajeLogin"></div>
+      <form id="formLogin" novalidate>
+        <div class="form-group">
+          <label for="loginDocumento">Documento de Identidad</label>
+          <input type="tel" id="loginDocumento" name="documento" required pattern="[0-9]*" inputmode="numeric" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')" autocomplete="on">
+        </div>
+        <button type="submit" class="btn" id="btnLogin">Continuar</button>
+        <button type="button" class="btn btn-secondary" id="btnVolverLogin">Volver</button>
+      </form>
+    </div>
+
+    <!-- REGISTRO (solo si el documento no existe en diagnosticos.estudiantes) -->
+    <div id="pantallaRegistro" class="hidden">
+      <h2 class="section-title">Registro de Estudiante</h2>
+      <div class="alert-box">
+        <strong>IMPORTANTE:</strong>
+        Para que tu participación sea validada exitosamente, es indispensable que toda tu información 
+        personal esté ingresada con total exactitud. Si el sistema no logra verificar tu identidad debido 
+        a datos incompletos o mal digitados, la prueba quedará registrada automáticamente como "No presentada". 
+        Por favor, revisa muy bien tu información antes de avanzar a las preguntas.
+        Asegúrese de que los datos coincidan exactamente con su registro institucional.
+      </div>
+
+      <div id="mensajeRegistro"></div>
+
+      <div id="pasoDocumento">
+        <form id="formVerificarDocumento" autocomplete="off" novalidate>
+          <div class="form-group">
+            <label for="regDocumento">Documento de Identidad <span class="required-asterisk">*</span></label>
+            <input type="tel" id="regDocumento" required pattern="[0-9]*" inputmode="numeric" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')" autocomplete="off" onpaste="return false" oncopy="return false" oncut="return false" ondrop="return false" oncontextmenu="return false">
+          </div>
+          <div class="form-group">
+            <label for="regDocumentoConfirmar">Confirma tu Documento de Identidad <span class="required-asterisk">*</span></label>
+            <input type="tel" id="regDocumentoConfirmar" required pattern="[0-9]*" inputmode="numeric" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')" autocomplete="off" onpaste="return false" oncopy="return false" oncut="return false" ondrop="return false" oncontextmenu="return false">
+          </div>
+          <button type="submit" class="btn" id="btnVerificarDocumento">Continuar</button>
+          <button type="button" class="btn btn-secondary" id="btnCancelarVerificacion">Cancelar</button>
+        </form>
+      </div>
+
+      <form id="formRegistro" class="hidden" autocomplete="off" novalidate>
+        <div class="form-group">
+          <label for="regDocumentoMostrar">Documento de Identidad <span class="required-asterisk">*</span></label>
+          <input type="text" id="regDocumentoMostrar" readonly class="documento-readonly">
+        </div>
+        <div class="form-group">
+          <label for="regPrimerNombre">Primer Nombre <span class="required-asterisk">*</span></label>
+          <input type="text" id="regPrimerNombre" required class="uppercase-input" maxlength="40" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" onblur="this.value = normalizarNombreSinEspacios(this.value)" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="regSegundoNombre">Segundo Nombre (Si Aplica)</label>
+          <input type="text" id="regSegundoNombre" class="uppercase-input" maxlength="40" placeholder="En caso de no aplicar, no llenar este espacio" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" onblur="this.value = normalizarNombreSinEspacios(this.value)" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="regPrimerApellido">Primer Apellido <span class="required-asterisk">*</span></label>
+          <input type="text" id="regPrimerApellido" required class="uppercase-input" maxlength="40" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" onblur="this.value = normalizarNombreSinEspacios(this.value)" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="regSegundoApellido">Segundo Apellido <span class="required-asterisk">*</span></label>
+          <input type="text" id="regSegundoApellido" required class="uppercase-input" maxlength="40" oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '')" onblur="this.value = normalizarNombreSinEspacios(this.value)" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="regPrograma">Programa Académico <span class="required-asterisk">*</span></label>
+          <select id="regPrograma" required>
+            <option value="" disabled selected>Cargando programas...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="regSede">Sede donde estudia <span class="required-asterisk">*</span></label>
+          <select id="regSede" required>
+            <option value="">Seleccione una sede</option>
+            <option value="NORTE">NORTE</option>
+            <option value="SUR">SUR</option>
+            <option value="VIRTUAL">VIRTUAL</option>
+            <option value="LADERA">LADERA</option>
+            <option value="NUEVO LATIR">NUEVO LATIR</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="regGrupoBuscar">Grupo <span class="required-asterisk">*</span></label>
+          <p class="sugerencia-texto">¿No está seguro? Consulte con su docente.</p>
+          <div class="grupo-buscador" id="contenedorBuscadorGrupo">
+            <input type="hidden" id="regGrupo" value="">
+            <div class="grupo-buscador-control">
+              <input
+                type="text"
+                id="regGrupoBuscar"
+                class="uppercase-input grupo-buscador-input"
+                maxlength="30"
+                placeholder="Primero seleccione una sede"
+                autocomplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded="false"
+                aria-controls="listaGruposDiagnostico"
+                disabled
+              >
+              <button
+                type="button"
+                id="btnLimpiarGrupo"
+                class="grupo-buscador-limpiar hidden"
+                aria-label="Limpiar búsqueda o selección de grupo"
+                title="Limpiar"
+              >&times;</button>
+            </div>
+            <div
+              id="listaGruposDiagnostico"
+              class="grupo-buscador-lista hidden"
+              role="listbox"
+              aria-label="Grupos disponibles"
+            ></div>
+          </div>
+          <div class="alert-box alert-box-grupo">
+            <strong>IMPORTANTE:</strong> Es necesario que seleccione su grupo correctamente para validar su prueba.
+          </div>
+        </div>
+
+        <div id="confirmacionDatos" class="hidden">
+          <div class="confirmation-box">
+            <h3>Confirme sus Datos</h3>
+            <div id="datosConfirmacion"></div>
+          </div>
+          <div class="alert-box alert-box-margin">
+            <strong>Revise cuidadosamente:</strong>
+            Estos datos se usarán para identificar sus resultados. Si algo no es correcto, modifíquelo antes de continuar.
+          </div>
+        </div>
+
+        <button type="submit" class="btn" id="btnContinuar">Continuar</button>
+        <button type="submit" class="btn hidden" id="btnConfirmarRegistro">Confirmar y continuar</button>
+        <button type="button" class="btn btn-secondary" id="btnCancelarRegistro">Cancelar</button>
+      </form>
+    </div>
+
+    <!-- INSTRUCCIONES -->
+    <div id="pantallaInstrucciones" class="hidden">
+      <h2 class="section-title">Instrucciones</h2>
+      <div class="user-greeting">
+        <p id="nombreUsuarioInstrucciones"></p>
+      </div>
+      <div class="alert-box">
+        <strong>Antes de comenzar:</strong>
+        <ul class="lista-instrucciones">
+          <li>Debes responder todas las preguntas para poder entregar.</li>
+          <li>La prueba se puede presentar una sola vez. Al entregar verás tu resumen de resultados.</li>
+          <li>No recargues ni cierres la página.</li>
+        </ul>
+      </div>
+      <div id="mensajeInstrucciones"></div>
+      <div class="pantalla-acciones">
+        <button type="button" class="btn" id="btnIniciarExamen">Iniciar examen</button>
+        <button type="button" class="btn btn-secondary" id="btnCancelarInstrucciones">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- EXAMEN -->
+    <div id="pantallaFormulario" class="hidden">
+      <h2 class="section-title">Prueba Diagnóstica de <span data-examen="titulo">Comunicación Escrita</span></h2>
+      <div class="user-greeting">
+        <p id="nombreUsuario"></p>
+      </div>
+
+      <div class="examen-estado">
+        <div class="examen-estado-texto" aria-live="polite">
+          <span id="textoSeccion"></span>
+          <span id="textoRespondidas"></span>
+        </div>
+        <div class="examen-progreso-pista" id="pistaProgreso" role="progressbar" aria-label="Preguntas respondidas" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="examen-progreso-barra" id="barraProgreso"></div>
+        </div>
+      </div>
+
+      <nav class="examen-mapa" id="mapaPreguntas" aria-label="Mapa de preguntas"></nav>
+
+      <div id="mensajeFormulario"></div>
+
+      <form id="formExamen" novalidate>
+        <div id="contenedorSeccion" class="pagina-formulario"></div>
+
+        <div class="navegacion-formulario">
+          <button type="button" class="btn-flecha btn-flecha-izquierda" id="btnAnterior" title="Sección anterior">Anterior</button>
+          <button type="button" class="btn-flecha btn-flecha-derecha" id="btnSiguiente" title="Sección siguiente">Siguiente</button>
+        </div>
+
+        <button type="submit" class="btn hidden" id="btnEnviar">Entregar examen</button>
+        <button type="button" class="btn btn-secondary" id="btnCancelarExamen">Cancelar</button>
+      </form>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="pantallaResultado" class="hidden">
+      <div class="resultado-encabezado">
+        <div class="success-icon">
+          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2 class="resultado-titulo">¡Examen entregado!</h2>
+        <p class="resultado-texto" id="textoResultado"></p>
+      </div>
+      <div class="confirmation-box" id="cajaResultado">
+        <h3>Resultado:</h3>
+        <div id="resumenResultado"></div>
+      </div>
+      <div class="pantalla-acciones">
+        <button type="button" class="btn" id="btnFinalizar">Finalizar</button>
+      </div>
+    </div>
+
+    <!-- AVISO (prueba ya presentada) -->
+    <div id="pantallaAviso" class="hidden">
+      <h2 class="section-title" id="tituloAviso"></h2>
+      <div class="alert-box">
+        <strong>Atención:</strong>
+        <span id="textoAviso"></span>
+      </div>
+      <div class="pantalla-acciones">
+        <button type="button" class="btn" id="btnVolverAviso">Volver al inicio</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="modalConfirmacion" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tituloConfirmacion">
+  <div class="modal-confirmacion">
+    <h2 id="tituloConfirmacion">¿Seguro?</h2>
+    <p id="mensajeConfirmacion">Esta acción no se puede deshacer.</p>
+    <div class="modal-buttons">
+      <button type="button" class="btn" id="btnConfirmarModal">Sí, estoy seguro</button>
+      <button type="button" class="btn btn-secondary" id="btnCancelarModal">No, volver</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../Global/global.js"></script>
+<script src="../../Global/consultas.js"></script>
+<script src="../../Global/supabase.js"></script>
+<script src="../compartido/examen.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

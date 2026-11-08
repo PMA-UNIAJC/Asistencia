@@ -1,0 +1,6 @@
+#paginaFormulario1:not(.hidden),
+#paginaFormulario2:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Formulario Asistencia PVU</title>
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="stylesheet" href="../Global/global.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="welcome-active">
+
+<div id="pantallaBienvenida" class="welcome-screen">
+  <div class="welcome-left">
+    <div class="welcome-logo-section">
+      <div class="welcome-logo-main">
+        <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO%20BLANCO.png" alt="Logo UNIAJC" class="logo-image">
+      </div>
+    </div>
+  </div>
+  
+  <div class="welcome-right">
+    <div class="welcome-content">
+      <h1 class="welcome-title">Preparación para la Vida Universitaria</h1>
+      <p class="welcome-subtitle">Formulario Asistencia PVU</p>
+      <div class="welcome-description">
+        <p>Este formulario tiene como objetivo recopilar información sobre tu experiencia de aprendizaje y nivel de satisfacción con las actividades académicas realizadas.</p>
+        <p>Tu opinión es muy importante para nosotros y nos ayuda a mejorar continuamente nuestros procesos educativos.</p>
+      </div>
+      <button class="welcome-btn" onclick="mostrarFormulario()">Empezar ahora</button>
+
+      <div class="welcome-qr-container">
+        <button class="welcome-qr-btn" onclick="document.getElementById('modalQR').style.display='flex'">Codigo QR</button>
+      </div>
+
+      <div id="modalQR" class="modal-qr" onclick="this.style.display='none'">
+        <img src="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/QR%20ASISTENCIA%20PVU.jpeg" class="modal-qr-img" onclick="event.stopPropagation()">
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<div id="contenidoFormulario" class="hidden">
+  <div class="container">
+  <div id="pantallaFormulario">
+    <h2 class="section-title">Preparación para la Vida Universitaria</h2>
+    <p id="fechaHoraActual"></p>
+    
+    <br>
+    
+    <div id="mensajeFormulario"></div>
+    
+    <form id="formPVU" onsubmit="enviarFormulario(event)">
+      
+      <!-- NÚMERO DE DOCUMENTO -->
+      <div class="form-group">
+        <label>Número de documento de identidad <span class="required-asterisk">*</span></label>
+        <input 
+          type="tel" 
+          id="documento" 
+          pattern="[0-9]*" 
+          inputmode="numeric" 
+          maxlength="10"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+          autocomplete="off">
+        <span class="error-message" id="errorDocumento"></span>
+      </div>
+
+      <!-- CONFIRMAR DOCUMENTO -->
+      <div class="form-group">
+        <label>Confirma tu documento de identidad <span class="required-asterisk">*</span></label>
+        <input 
+          type="tel" 
+          id="documentoConfirmar" 
+          pattern="[0-9]*" 
+          inputmode="numeric" 
+          maxlength="10"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+          autocomplete="off"
+          onpaste="return false"
+          oncopy="return false"
+          oncut="return false"
+          ondrop="return false"
+          oncontextmenu="return false">
+
+        <span class="error-message" id="errorDocumentoConfirmar"></span>
+      </div>
+
+      <!-- NOMBRES -->
+      <div class="form-group">
+        <label>Nombres <span class="required-asterisk">*</span></label>
+        <input 
+          type="text" 
+          id="nombres" 
+          oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '')"
+          onblur="this.value = normalizarNombre(this.value)"
+          autocomplete="off">
+      </div>
+
+            <!-- APELLIDOS -->
+      <div class="form-group">
+        <label>Apellidos <span class="required-asterisk">*</span></label>
+        <input 
+          type="text" 
+          id="apellidos" 
+          oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '')"
+          onblur="this.value = normalizarNombre(this.value)"
+          autocomplete="off">
+      </div>
+
+      <!-- PROGRAMA ACADÉMICO -->
+      <div class="form-group">
+        <label>Programa Académico <span class="required-asterisk">*</span></label>
+        <select id="programa">
+          <option value="" disabled selected>Seleccione su programa</option>
+        </select>
+        <span class="error-message" id="errorPrograma"></span>
+      </div>
+
+
+      <!-- NIVEL DE SATISFACCIÓN -->
+      <div class="form-group">
+        <label>Indique su nivel de satisfacción con la actividad realizada <span class="required-asterisk">*</span></label>
+        <div class="rating" id="ratingContainer">
+          <input type="radio" name="satisfaccion" id="sat1" value="1">
+          <label for="sat1">1</label>
+          <input type="radio" name="satisfaccion" id="sat2" value="2">
+          <label for="sat2">2</label>
+          <input type="radio" name="satisfaccion" id="sat3" value="3">
+          <label for="sat3">3</label>
+          <input type="radio" name="satisfaccion" id="sat4" value="4">
+          <label for="sat4">4</label>
+          <input type="radio" name="satisfaccion" id="sat5" value="5">
+          <label for="sat5">5</label>
+        </div>
+        <p class="rating-description">1 = Muy insatisfecho | 5 = Muy satisfecho</p>
+      </div>
+
+      <!-- COMENTARIO -->
+      <div class="form-group">
+      <label>Comentario (Opcional)</label>        
+      <textarea 
+      id="comentario"
+      placeholder="Déjanos un comentario de sugerencia, felicitación, petición o reclamo sobre la experiencia de aprendizaje realizada"
+      oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,.\-]/g, '')"
+      onblur="this.value = this.value.toUpperCase(); limpiarEspacios(this)"
+      rows="4"></textarea>
+      </div>
+
+      <!-- BOTONES -->
+      <button type="submit" class="btn" id="btnEnviar">Enviar Formulario</button>
+      <button type="button" class="btn btn-secondary" id="btnCancelar" onclick="mostrarConfirmacionCancelar()">Cancelar</button>
+    </form>
+  </div>
+</div>
+</div>
+
+<!-- Modal de éxito -->
+<div id="modalExito" class="modal-overlay hidden">
+  <div class="modal-success">
+    <div class="success-icon">
+      <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <h2>¡Formulario Enviado!</h2>
+    <p>Gracias por completar el formulario</p>
+    <p class="small-text">Redirigiendo...</p>
+  </div>
+</div>
+
+<!-- Modal de confirmación de cancelación -->
+<div id="modalConfirmacion" class="modal-overlay hidden">
+  <div class="modal-confirmacion">
+    <h2 id="tituloConfirmacion">¿Seguro que deseas cancelar?</h2>
+    <p id="mensajeConfirmacion">Se perderán todos los datos del formulario que has ingresado.</p>
+    <div class="modal-buttons">
+      <button class="btn" id="btnConfirmarModal">Sí, estoy seguro</button>
+      <button class="btn btn-secondary" id="btnCancelarModal">No, volver</button>
+    </div>
+  </div>
+</div>
+
+<script src="../Global/global.js"></script>
+<script src="../Global/consultas.js"></script>
+<script src="../Global/supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

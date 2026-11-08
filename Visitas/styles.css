@@ -1,0 +1,326 @@
+/* =========================================
+   PC / ESCRITORIO
+   Diseño principal
+   ========================================= */
+/* =========================================================
+   Visitas/styles.css — estilos específicos del módulo Visitas
+   Complementa ../Global/global.css (hoja de estilos global).
+   ========================================================= */
+
+/* En Visitas no existe barra superior institucional; cada vista usa .section-title */
+.visitas-header {
+  display: none;
+}
+
+/* Superficie de vista interna (complementa .container de Global/global.css) */
+.visitas-tab-content:not(#vistaSede) {
+  flex: 1 0 auto;
+}
+
+.visitas-tab-content:not(#vistaSede):not(.hidden) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Navegación interna ---------- */
+.visitas-btn-volver {
+  background: none;
+  border: none;
+  color: var(--brand-primary);
+  font-weight: 600;
+  font-size: var(--fs-aux);
+  font-family: inherit;
+  cursor: pointer;
+  padding: 8px 12px;
+  margin: 0 0 12px -12px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  transition: all 0.2s ease;
+}
+
+.visitas-btn-volver:hover {
+  text-decoration: underline;
+  background: rgba(30, 60, 114, 0.05);
+  color: var(--brand-primary-light);
+}
+
+/* ---------- Vista 2: Listado de becarios ---------- */
+.visitas-filtro-areas {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.visitas-btn-area {
+  flex: 1;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.visitas-btn-area:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.visitas-btn-area.activo {
+  background: var(--brand-primary);
+  color: #ffffff;
+  border-color: var(--brand-primary);
+}
+
+.visitas-becario-item {
+  cursor: pointer;
+  min-height: 52px;
+  padding: 14px 8px;
+}
+
+.visitas-becario-nombre {
+  font-weight: 400;
+  font-size: var(--fs-body);
+  line-height: 1.4;
+}
+
+.visitas-becario-item.deshabilitado {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.visitas-becario-item.deshabilitado:hover {
+  background: transparent;
+}
+
+.visitas-becario-contador {
+  background: var(--brand-primary);
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  font-size: var(--fs-aux);
+  font-weight: 600;
+  min-width: 76px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.visitas-becario-contador.sin-visitas {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ---------- Vista 3: Visitas asignadas al becario ---------- */
+.visitas-titulo-becario {
+  line-height: 1.3;
+  margin-bottom: 18px;
+}
+
+#nombreBecarioSeleccionado {
+  display: block;
+  margin-top: 2px;
+}
+
+.visitas-grupo-dia {
+  margin-bottom: 18px;
+}
+
+.visitas-grupo-dia:last-child {
+  margin-bottom: 0;
+}
+
+.visitas-dia-encabezado {
+  font-size: var(--fs-aux);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--brand-primary);
+  background: var(--surface-muted);
+  border-left: 3px solid var(--brand-primary);
+  padding: 6px 10px;
+  margin: 0 0 6px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.visitas-visita-item {
+  gap: 12px;
+  cursor: default;
+  padding: 14px 8px;
+}
+
+.visitas-visita-info {
+  cursor: pointer;
+  padding: 2px 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.visitas-visita-info strong {
+  display: block;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.visitas-visita-info span {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-aux);
+  line-height: 1.4;
+}
+
+.btn-no-realizada {
+  background: #ffffff;
+  color: #dc3545;
+  border: 1.5px solid #dc3545;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.btn-no-realizada:hover {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-no-realizada:active {
+  transform: scale(0.96);
+}
+
+/* ---------- Vista 4: Resumen y formulario de visita (complementa .confirmation-box) ---------- */
+.visitas-info-box {
+  margin: 0 0 25px 0;
+}
+
+.visitas-info-titulo {
+  font-weight: 600;
+}
+
+.tabla-info-visita {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-info-visita td {
+  padding: 8px 0;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: #333;
+  border-bottom: 1px solid #d0e7f7;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.tabla-info-visita td:first-child {
+  font-weight: 600;
+  color: #555;
+  width: 140px;
+  padding-right: 12px;
+}
+
+.tabla-info-visita tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---------- Estado vacío ---------- */
+.visitas-empty-state {
+  text-align: center;
+  padding: 35px 15px;
+  color: var(--text-muted);
+  font-size: var(--fs-body);
+}
+
+
+/* =========================================
+   TABLET
+   ========================================= */
+
+@media (max-width: 768px) {
+  .visitas-becario-nombre,
+  .tabla-info-visita td,
+  .visitas-empty-state {
+    font-size: 13px;
+  }
+
+  .visitas-titulo-becario {
+    margin-bottom: 15px;
+  }
+
+  .visitas-info-box {
+    margin-bottom: 20px;
+  }
+
+  .tabla-info-visita td:first-child {
+    width: 110px;
+  }
+}
+
+
+/* =========================================
+   CELULAR / MÓVIL
+   ========================================= */
+
+@media (max-width: 480px) {
+  .visitas-btn-volver {
+    font-size: 12px;
+  }
+
+  .visitas-filtro-areas {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .visitas-btn-area {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .visitas-becario-nombre,
+  .visitas-becario-contador,
+  .visitas-dia-encabezado,
+  .visitas-visita-info span,
+  .tabla-info-visita td,
+  .visitas-empty-state {
+    font-size: 12px;
+  }
+
+  .visitas-becario-contador {
+    padding: 4px 10px;
+    min-width: 68px;
+  }
+
+  .visitas-titulo-becario {
+    margin-bottom: 12px;
+  }
+
+  .visitas-dia-encabezado {
+    padding: 5px 8px;
+  }
+
+  .btn-no-realizada {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .visitas-info-box {
+    margin-bottom: 16px;
+  }
+
+  .tabla-info-visita td:first-child {
+    width: 100px;
+  }
+}

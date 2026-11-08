@@ -1,0 +1,12 @@
+html:not([data-admin-autorizado="true"]) body {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+html[data-admin-autorizado="true"] body {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}

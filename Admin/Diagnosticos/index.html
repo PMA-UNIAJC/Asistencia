@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="format-detection" content="telephone=no">
+  <title>Administración de Diagnósticos - PMA</title>
+  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+
+  <link rel="stylesheet" href="../../Global/global.css">
+  <link rel="stylesheet" href="../Panel/admin.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="../compartido/admin-guard.css">
+</head>
+<body>
+
+<div class="visitas-page diag-page" id="paginaDiagnosticos">
+
+  <!-- CABECERA ADMINISTRATIVA -->
+  <header class="admin-header diag-header">
+    <div>
+      <h1 class="section-title">Administración de Diagnósticos</h1>
+      <p class="nombre-admin">Gestión de preguntas, opciones, textos compartidos e imágenes por prueba diagnóstica</p>
+    </div>
+    <div class="admin-header-buttons">
+      <button type="button" class="btn-actualizar" id="btnRecargarDiagnostico" title="Recargar datos del diagnóstico">
+        <svg id="iconoRecargar" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- SELECTOR DE DIAGNÓSTICO (Segmented Control de admin.css) -->
+  <div class="botones-sedes diag-selector" role="tablist" aria-label="Seleccionar diagnóstico">
+    <button type="button" class="btn btn-sede activo" data-prueba="MATEMATICAS" id="btnPruebaMatematicas" role="tab" aria-selected="true">
+      <span>Matemáticas</span>
+    </button>
+    <button type="button" class="btn btn-sede" data-prueba="COMUNICACION" id="btnPruebaComunicacion" role="tab" aria-selected="false">
+      <span>Comunicación Escrita</span>
+    </button>
+    <button type="button" class="btn btn-sede" data-prueba="LECTURA" id="btnPruebaLectura" role="tab" aria-selected="false">
+      <span>Lectura Crítica</span>
+    </button>
+  </div>
+
+  <!-- MENSAJES GENERALES -->
+  <div id="mensajePrincipal"></div>
+
+  <!-- TARJETAS DE RESUMEN DEL DIAGNÓSTICO SELECCIONADO -->
+  <div class="stats-grid" id="statsDiagnostico">
+    <div class="stat-card">
+      <h3 id="statTotalPreguntas">—</h3>
+      <p>Preguntas Totales</p>
+    </div>
+    <div class="stat-card">
+      <h3 id="statPreguntasActivas">—</h3>
+      <p>Preguntas Activas</p>
+    </div>
+    <div class="stat-card">
+      <h3 id="statConImagen">—</h3>
+      <p>Con Imagen</p>
+    </div>
+    <div class="stat-card">
+      <h3 id="statTextosCompartidos">—</h3>
+      <p>Textos Compartidos</p>
+    </div>
+  </div>
+
+  <!-- AVISO CUANDO NO HAY PREGUNTAS ACTIVAS -->
+  <div id="alertaSinActivas" class="alert-box hidden">
+    <strong>Atención: diagnóstico sin preguntas activas</strong>
+    <span id="textoAlertaSinActivas">Actualmente este diagnóstico no tiene preguntas activas. Los estudiantes no podrán presentar la prueba hasta que exista al menos una pregunta activa.</span>
+  </div>
+
+  <!-- PESTAÑAS INTERNAS: PREGUNTAS / TEXTOS COMPARTIDOS -->
+  <nav class="admin-tabs" aria-label="Secciones del diagnóstico">
+    <button type="button" class="admin-tab active" data-vista="preguntas" id="tabVistaPreguntas">
+      Preguntas del Diagnóstico
+    </button>
+    <button type="button" class="admin-tab" data-vista="textos" id="tabVistaTextos">
+      Textos Compartidos
+    </button>
+  </nav>
+
+  <!-- =====================================================
+       VISTA 1: PREGUNTAS DEL DIAGNÓSTICO
+       ===================================================== -->
+  <section id="vistaPreguntas">
+    <div class="chart-container diag-toolbar-card">
+      <div class="diag-toolbar-top">
+        <div>
+          <h2 class="chart-title" id="tituloSeccionPreguntas">Preguntas de Matemáticas</h2>
+          <p class="texto-descargas diag-subtexto">Administra las preguntas, opciones de respuesta e imágenes exclusivas de este diagnóstico.</p>
+        </div>
+        <button type="button" class="btn diag-btn-primario" id="btnNuevaPregunta">
+          <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Nueva Pregunta
+        </button>
+      </div>
+
+      <div class="diag-filtros-grid">
+        <div class="form-group diag-filtro-busqueda">
+          <label for="inputBuscarPregunta">Buscar pregunta</label>
+          <input type="text" id="inputBuscarPregunta" placeholder="Buscar por número, enunciado, opción o archivo de imagen..." autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="filtroEstadoPregunta">Estado</label>
+          <select id="filtroEstadoPregunta">
+            <option value="todas">Todas</option>
+            <option value="activas">Activas</option>
+            <option value="inactivas">Inactivas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filtroRecursoPregunta">Recursos asociados</label>
+          <select id="filtroRecursoPregunta">
+            <option value="todos">Todos</option>
+            <option value="con_imagen">Con imagen</option>
+            <option value="sin_imagen">Sin imagen</option>
+            <option value="con_texto">Con texto compartido</option>
+            <option value="sin_texto">Sin texto compartido</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="diag-resumen-filtro">
+        <span id="contadorPreguntasFiltradas">Cargando preguntas...</span>
+        <button type="button" class="diag-link-limpiar hidden" id="btnLimpiarFiltrosPreguntas">Limpiar filtros</button>
+      </div>
+    </div>
+
+    <div id="contenedorListaPreguntas" class="diag-lista-contenedor"></div>
+  </section>
+
+  <!-- =====================================================
+       VISTA 2: TEXTOS COMPARTIDOS DEL DIAGNÓSTICO
+       ===================================================== -->
+  <section id="vistaTextos" class="hidden">
+    <div class="chart-container diag-toolbar-card">
+      <div class="diag-toolbar-top">
+        <div>
+          <h2 class="chart-title" id="tituloSeccionTextos">Textos Compartidos de Matemáticas</h2>
+          <p class="texto-descargas diag-subtexto">Los textos compartidos permiten agrupar varias preguntas bajo una misma lectura o imagen de contexto durante el examen.</p>
+        </div>
+        <button type="button" class="btn diag-btn-primario" id="btnNuevoTexto">
+          <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Nuevo Texto Compartido
+        </button>
+      </div>
+
+      <div class="diag-filtros-grid diag-filtros-textos">
+        <div class="form-group diag-filtro-busqueda">
+          <label for="inputBuscarTexto">Buscar texto compartido</label>
+          <input type="text" id="inputBuscarTexto" placeholder="Buscar por título, contenido o archivo de imagen..." autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="filtroEstadoTexto">Estado</label>
+          <select id="filtroEstadoTexto">
+            <option value="todos">Todos</option>
+            <option value="activos">Solo activos</option>
+            <option value="inactivos">Solo inactivos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="diag-resumen-filtro">
+        <span id="contadorTextosFiltrados">Cargando textos compartidos...</span>
+        <button type="button" class="diag-link-limpiar hidden" id="btnLimpiarFiltrosTextos">Limpiar filtros</button>
+      </div>
+    </div>
+
+    <div id="contenedorListaTextos" class="diag-lista-contenedor"></div>
+  </section>
+
+</div>
+
+<!-- =========================================================
+     MODAL EDITOR DE PREGUNTA (CREAR / EDITAR)
+     ========================================================= -->
+<div id="modalPregunta" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalPregunta">
+  <div class="modal-confirmacion diag-modal-editor">
+    <div class="diag-modal-header">
+      <div>
+        <span class="diag-modal-subtitulo" id="subtituloModalPregunta">Matemáticas</span>
+        <h2 id="tituloModalPregunta">Nueva Pregunta</h2>
+      </div>
+      <button type="button" class="diag-btn-cerrar-modal" id="btnCerrarModalPregunta" aria-label="Cerrar editor">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form id="formPregunta" class="diag-modal-body" novalidate>
+      <div id="avisoRespuestasEdicion" class="alert-box hidden">
+        <strong>Pregunta con respuestas registradas</strong>
+        <span id="textoAvisoRespuestasEdicion"></span>
+      </div>
+
+      <div class="diag-form-row">
+        <div class="form-group">
+          <label for="pregNumero">Número de pregunta *</label>
+          <input type="number" id="pregNumero" min="1" step="1" required placeholder="Ej: 1">
+          <span class="diag-ayuda-campo">Identificador único de orden interno dentro de este diagnóstico.</span>
+        </div>
+        <div class="form-group">
+          <label for="pregEstado">Estado en el examen *</label>
+          <select id="pregEstado">
+            <option value="true">Activa</option>
+            <option value="false">Inactiva</option>
+          </select>
+          <span class="diag-ayuda-campo">Solo las preguntas activas se presentan a los estudiantes.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="diag-label-bar">
+          <label for="pregTextoCompartido">Texto compartido asociado (opcional)</label>
+          <button type="button" class="diag-link-accion" id="btnIrATextosDesdeModal">Gestionar textos compartidos</button>
+        </div>
+        <select id="pregTextoCompartido">
+          <option value="">Sin texto compartido (pregunta independiente)</option>
+        </select>
+        <div id="previewTextoSeleccionado" class="diag-texto-preview-box hidden"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="pregEnunciado">Enunciado de la pregunta *</label>
+        <textarea id="pregEnunciado" rows="5" required placeholder="Escribe aquí el enunciado completo de la pregunta..."></textarea>
+      </div>
+
+      <!-- OPCIONES DE RESPUESTA -->
+      <div class="form-group">
+        <div class="diag-label-bar">
+          <label>Opciones de respuesta *</label>
+          <span class="diag-contador-opciones" id="contadorOpcionesModal">4 / 4 opciones</span>
+        </div>
+        <p class="sugerencia-texto">Debes registrar entre 2 y 4 opciones. En el examen diagnóstico el orden de las opciones se mezcla de forma aleatoria para cada estudiante.</p>
+
+        <div id="listaOpcionesEditor" class="diag-opciones-editor"></div>
+
+        <button type="button" class="btn btn-secondary diag-btn-agregar-opcion" id="btnAgregarOpcion">
+          + Añadir otra opción
+        </button>
+      </div>
+
+      <!-- IMAGEN DE LA PREGUNTA -->
+      <div class="form-group diag-bloque-imagen">
+        <label>Imagen de apoyo de la pregunta (opcional)</label>
+        <input type="file" id="inputArchivoImagenPregunta" accept=".jpg,.jpeg,.png" class="hidden">
+
+        <div id="dropzoneImagenPregunta" class="diag-dropzone" role="button" tabindex="0">
+          <div class="diag-dropzone-icono">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <p class="diag-dropzone-titulo">Haz clic o arrastra una imagen aquí</p>
+          <p class="diag-dropzone-subtitulo">Formatos permitidos: JPG, JPEG o PNG (máx. 5 MB)</p>
+        </div>
+
+        <div id="panelImagenPreguntaActiva" class="diag-imagen-panel hidden">
+          <div class="diag-imagen-preview-wrapper">
+            <img id="imgPreviewPregunta" src="" alt="Vista previa de la imagen de la pregunta">
+            <p id="errorPreviewPregunta" class="diag-imagen-error-msg hidden">No se pudo cargar la vista previa desde el Storage. Puedes subir un nuevo archivo para reemplazarla.</p>
+          </div>
+
+          <div class="diag-imagen-controles">
+            <div class="form-group diag-grupo-nombre-img">
+              <label for="pregNombreImagen">Nombre de imagen *</label>
+              <input type="text" id="pregNombreImagen" maxlength="80" placeholder="Ej: grafica_trasplantes_organos" autocomplete="off">
+              <div class="diag-ruta-storage">
+                <span>Ruta en Storage:</span>
+                <code id="rutaStoragePreviewPregunta">IMG/DIAGNOSTICOS/MATEMATICAS/...</code>
+              </div>
+            </div>
+
+            <div class="diag-imagen-acciones">
+              <button type="button" class="btn btn-secondary diag-btn-chico" id="btnReemplazarImagenPregunta">
+                Cambiar archivo
+              </button>
+              <button type="button" class="btn diag-btn-peligro-suave diag-btn-chico" id="btnQuitarImagenPregunta">
+                Quitar imagen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mensajeModalPregunta"></div>
+
+      <div class="diag-modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelarModalPregunta">Cancelar</button>
+        <button type="submit" class="btn" id="btnGuardarPregunta">Guardar Pregunta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL EDITOR DE TEXTO COMPARTIDO (CREAR / EDITAR)
+     ========================================================= -->
+<div id="modalTexto" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalTexto">
+  <div class="modal-confirmacion diag-modal-editor">
+    <div class="diag-modal-header">
+      <div>
+        <span class="diag-modal-subtitulo" id="subtituloModalTexto">Matemáticas</span>
+        <h2 id="tituloModalTexto">Nuevo Texto Compartido</h2>
+      </div>
+      <button type="button" class="diag-btn-cerrar-modal" id="btnCerrarModalTexto" aria-label="Cerrar editor de texto">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form id="formTexto" class="diag-modal-body" novalidate>
+      <div class="diag-form-row">
+        <div class="form-group">
+          <label for="txtTitulo">Título del texto (opcional)</label>
+          <input type="text" id="txtTitulo" maxlength="160" placeholder="Ej: Texto 1 - Fragmento literario" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="txtEstado">Estado *</label>
+          <select id="txtEstado">
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="txtContenido">Contenido del texto compartido *</label>
+        <textarea id="txtContenido" rows="7" required placeholder="Escribe o pega aquí la lectura o contexto que compartirán las preguntas asociadas..."></textarea>
+      </div>
+
+      <!-- IMAGEN DEL TEXTO COMPARTIDO -->
+      <div class="form-group diag-bloque-imagen">
+        <label>Imagen de apoyo del texto compartido (opcional)</label>
+        <input type="file" id="inputArchivoImagenTexto" accept=".jpg,.jpeg,.png" class="hidden">
+
+        <div id="dropzoneImagenTexto" class="diag-dropzone" role="button" tabindex="0">
+          <div class="diag-dropzone-icono">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <p class="diag-dropzone-titulo">Haz clic o arrastra una imagen aquí</p>
+          <p class="diag-dropzone-subtitulo">Formatos permitidos: JPG, JPEG o PNG (máx. 5 MB)</p>
+        </div>
+
+        <div id="panelImagenTextoActiva" class="diag-imagen-panel hidden">
+          <div class="diag-imagen-preview-wrapper">
+            <img id="imgPreviewTexto" src="" alt="Vista previa de la imagen del texto">
+            <p id="errorPreviewTexto" class="diag-imagen-error-msg hidden">No se pudo cargar la vista previa desde el Storage. Puedes subir un nuevo archivo para reemplazarla.</p>
+          </div>
+
+          <div class="diag-imagen-controles">
+            <div class="form-group diag-grupo-nombre-img">
+              <label for="txtNombreImagen">Nombre de imagen *</label>
+              <input type="text" id="txtNombreImagen" maxlength="80" placeholder="Ej: infografia_lectura_1" autocomplete="off">
+              <div class="diag-ruta-storage">
+                <span>Ruta en Storage:</span>
+                <code id="rutaStoragePreviewTexto">IMG/DIAGNOSTICOS/MATEMATICAS/...</code>
+              </div>
+            </div>
+
+            <div class="diag-imagen-acciones">
+              <button type="button" class="btn btn-secondary diag-btn-chico" id="btnReemplazarImagenTexto">
+                Cambiar archivo
+              </button>
+              <button type="button" class="btn diag-btn-peligro-suave diag-btn-chico" id="btnQuitarImagenTexto">
+                Quitar imagen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mensajeModalTexto"></div>
+
+      <div class="diag-modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelarModalTexto">Cancelar</button>
+        <button type="submit" class="btn" id="btnGuardarTexto">Guardar Texto Compartido</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL DE PREVISUALIZACIÓN AMPLIADA DE IMAGEN
+     ========================================================= -->
+<div id="modalVistaImagen" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tituloVistaImagen">
+  <div class="modal-confirmacion diag-lightbox">
+    <div class="diag-modal-header">
+      <div>
+        <span class="diag-modal-subtitulo" id="rutaVistaImagen"></span>
+        <h2 id="tituloVistaImagen">Vista previa de imagen</h2>
+      </div>
+      <button type="button" class="diag-btn-cerrar-modal" id="btnCerrarVistaImagen" aria-label="Cerrar imagen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="diag-lightbox-body">
+      <img id="imgVistaAmpliada" src="" alt="Vista ampliada">
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL DE CONFIRMACIÓN (Reutiliza mostrarModalConfirmacion global)
+     ========================================================= -->
+<div id="modalConfirmacion" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tituloConfirmacion">
+  <div class="modal-confirmacion">
+    <h2 id="tituloConfirmacion">¿Confirmar acción?</h2>
+    <p id="mensajeConfirmacion">Esta acción no se puede deshacer.</p>
+    <div class="modal-buttons">
+      <button type="button" class="btn" id="btnConfirmarModal">Sí, continuar</button>
+      <button type="button" class="btn btn-secondary" id="btnCancelarModal">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="loaderDiagnosticos" class="loader hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../Global/global.js"></script>
+<script src="../../Global/consultas.js"></script>
+<script src="../../Global/supabase.js"></script>
+<script src="../compartido/admin-auth.js"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
