@@ -36,7 +36,7 @@
   
   <div class="welcome-right">
     <div class="welcome-content">
-      <h1 class="welcome-title-main">Formulario De Asistencia <br> a Tutorías - PMA</h1>
+      <h1 class="welcome-title-main">Formulario de Asistencia a Tutorías - PMA</h1>
       <p class="texto-bienvenida welcome-texto-bienvenida">
       Este formulario tiene como propósito registrar la asistencia a las sesiones de tutoría del programa de mejoramiento académico.
       </p>
@@ -270,22 +270,6 @@ ACTUALIZACIÓN DE DATOS
         <!-- PÁGINA 1 -->
 <div id="paginaFormulario1" class="pagina-formulario">
   <div class="form-group">
-    <label>Tipo de acompañamiento académico *</label>
-    <select id="tipoAcompanamiento" required onchange="toggleTituloCurso()">
-      <option value="">Seleccione una opción</option>
-      <option value="Tutoría">Tutoría</option>
-      <option value="Curso y/o capacitación">Curso y/o capacitación</option>
-    </select>
-  </div>
-
-  <div class="form-group hidden" id="grupoTituloCurso">
-    <label>Título del curso/capacitación *</label>
-    <input type="text" id="tituloCurso" class="uppercase-input" placeholder="Ingrese el título del curso" 
-    oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,\-]/g, '')" onblur="this.value = this.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ñ/g, 'n').replace(/Ñ/g, 'N').toUpperCase(); limpiarEspacios(this)"
-    autocomplete="off">
-  </div>
-
-  <div class="form-group">
     <label>Sede de la tutoría *</label>
     <small id="avisoSedeTutoria" class="sugerencia-texto">Seleccione la sede o modalidad donde recibió la tutoría</small>
     <select id="sedeTutoria" required onchange="cargarInstructores()">
@@ -300,15 +284,16 @@ ACTUALIZACIÓN DE DATOS
     <label>¿Quién impartió la tutoría? *</label>
     <select id="tipoInstructor" required onchange="cargarInstructores()">
       <option value="">Seleccione una opción</option>
-      <option value="Tutor">Tutor</option>
-      <option value="Profesor">Profesor</option>
+      <option value="Tutor">Tutor (Becario)</option>
+      <option value="Profesor">Docente</option>
     </select>
   </div>
 
   <div class="form-group hidden" id="grupoFacultadDepartamento">
-    <label>Facultad/Departamento *</label>
+    <label>Facultad  *</label>
+    <small id="avisoSedeTutoria" class="sugerencia-texto">Corresponde a la Facultad del Docente</small>
     <select id="facultadDepartamento" onchange="cargarProfesoresPorFacultad()">
-      <option value="">Seleccione una facultad/departamento</option>
+      <option value="">Seleccione una Facultad</option>
       <option value="DCB">Departamento de Ciencias Básicas</option>
       <option value="FCE">Facultad de Ciencias Empresariales</option>
       <option value="FCSH">Facultad de Ciencias Sociales y Humanas</option>
@@ -533,9 +518,8 @@ ACTUALIZACIÓN DE DATOS
     </div>
   </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="../Global/global.js"></script>
+  <script src="../Global/reintentos.js"></script>
   <script src="../Global/consultas.js"></script>
   <script src="../Global/supabase.js"></script>
   <script src="script.js"></script>

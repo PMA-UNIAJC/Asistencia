@@ -261,7 +261,7 @@
   const api = {
     async buscarEstudiante(documento) {
       return await ConsultasPublicas.consultarUno('estudiantes', {
-        select: 'documento,nombre,programa,sede,grupo',
+        select: 'documento,nombre,programa_id,sede,grupo',
         eq: { field: 'documento', value: documento }
       }, ESQUEMA_DIAGNOSTICOS);
     },
@@ -375,7 +375,7 @@
       return prepararPreguntas(banco.filas, textos);
     },
 
-    // Sin reintentos automáticos: la RPC registra una única presentación.
+    // El control de los 3 reintentos y la verificación anti-duplicados lo gestiona Global/reintentos.js.
     enviarPrueba(payload) {
       return ConsultasPublicas.rpc('enviar_prueba', payload, {
         esquema: ESQUEMA_DIAGNOSTICOS,
@@ -411,6 +411,7 @@
 
     // ---------- Estado ----------
     const estado = {
+      pantallaActual: 'pantallaBienvenida',
       estudiante: null,
       documentoRegistro: '',
       programasCargados: false,
@@ -450,18 +451,21 @@
       'nombreUsuario', 'textoSeccion', 'textoRespondidas', 'barraProgreso', 'pistaProgreso',
       'mapaPreguntas', 'mensajeFormulario', 'formExamen', 'contenedorSeccion',
       'btnAnterior', 'btnSiguiente', 'btnEnviar', 'btnCancelarExamen',
-      'textoResultado', 'cajaResultado', 'resumenResultado', 'btnFinalizar',
+      'pantallaResultado', 'nombreUsuarioResultado', 'textoResultado', 'cajaResultado', 'resumenResultado', 'btnFinalizar',
       'tituloAviso', 'textoAviso', 'btnVolverAviso',
       'modalConfirmacion', 'tituloConfirmacion', 'mensajeConfirmacion',
       'btnConfirmarModal', 'btnCancelarModal'
     ].forEach(function (id) { r[id] = $(id); });
 
 
-    if (r.contenedorSeccion) {
+    function bloquearSeleccionYCopia(contenedor) {
+      if (!contenedor) return;
       ['copy', 'cut', 'contextmenu', 'selectstart', 'dragstart'].forEach(function (evt) {
-        r.contenedorSeccion.addEventListener(evt, function (e) { e.preventDefault(); });
+        contenedor.addEventListener(evt, function (e) { e.preventDefault(); });
       });
     }
+    bloquearSeleccionYCopia(r.contenedorSeccion);
+    bloquearSeleccionYCopia(r.pantallaResultado);
 
     document.querySelectorAll('[data-examen="titulo"]').forEach(function (el) {
       el.textContent = config.titulo;
@@ -581,6 +585,7 @@
         div.classList.add('hidden');
       });
       $(id).classList.remove('hidden');
+      estado.pantallaActual = id;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -593,7 +598,7 @@
       // Precarga paralela silenciosa del catálogo de programas y del banco activo de preguntas
       // para evitar esperas al registrarse o al iniciar la prueba diagnóstica.
       Promise.all([
-        ConsultasPublicas.obtenerProgramasListaPlana(),
+        ConsultasPublicas.obtenerProgramasConRelacion(),
         api.obtenerBancoPreguntasBase(config.tablaPreguntas, config.textosCompartidos)
       ]).catch(function () {});
 
@@ -642,6 +647,15 @@
       window.history.pushState({ examen: config.prueba }, '', window.location.href);
     }
 
+    function confirmarSalidaRegistro() {
+      mostrarModalConfirmacion(
+        '¿Seguro que deseas cancelar?',
+        'Se perderán todos los datos del formulario que has ingresado.',
+        'Sí, estoy seguro',
+        volverInicio
+      );
+    }
+
     function confirmarSalidaExamen() {
       mostrarModalConfirmacion(
         '¿Salir del examen?',
@@ -655,6 +669,13 @@
       if (estado.enCurso && !estado.entregado) {
         registrarHistorial();
         if (!estado.enviando) confirmarSalidaExamen();
+        return;
+      }
+      if (estado.pantallaActual === 'pantallaRegistro') {
+        registrarHistorial();
+        if (!estado.ocupado && (!r.modalConfirmacion || r.modalConfirmacion.classList.contains('hidden'))) {
+          confirmarSalidaRegistro();
+        }
         return;
       }
       volverInicio();
@@ -1006,6 +1027,7 @@
       r.regDocumento.value = documento;
       r.regDocumentoConfirmar.value = '';
       mostrarPantalla('pantallaRegistro');
+      registrarHistorial();
       r.regDocumentoConfirmar.focus({ preventScroll: true });
     }
 
@@ -1048,7 +1070,7 @@
           return;
         }
         if (!estado.programasCargados) {
-          await ConsultasPublicas.poblarSelectProgramasPlana('regPrograma');
+          await ConsultasPublicas.poblarSelectProgramasPorId('regPrograma');
           estado.programasCargados = r.regPrograma.options.length > 1;
         }
         limpiarMensaje('mensajeRegistro');
@@ -1065,6 +1087,13 @@
       }
     }
 
+    function obtenerProgramaIdSeleccionado() {
+      const valor = (r.regPrograma && r.regPrograma.value ? String(r.regPrograma.value) : '').trim();
+      if (!valor) return null;
+      const numero = Number(valor);
+      return Number.isInteger(numero) && numero > 0 ? numero : null;
+    }
+
     function leerDatosRegistro() {
       const limpiar = function (input) { return normalizarNombreSinEspacios(input.value || ''); };
       const primerNombre = limpiar(r.regPrimerNombre);
@@ -1075,7 +1104,7 @@
         documento: estado.documentoRegistro,
         // Mismo formato de nombre que PMA: APELLIDOS + NOMBRES
         nombre: [primerApellido, segundoApellido, primerNombre, segundoNombre].filter(Boolean).join(' '),
-        programa: r.regPrograma.value,
+        programa_id: obtenerProgramaIdSeleccionado(),
         sede: (r.regSede.value || '').trim().toUpperCase(),
         grupo: normalizarCodigoGrupo(r.regGrupo.value || '')
       };
@@ -1097,7 +1126,7 @@
         { valido: function () { return lleno(r.regPrimerNombre); }, mensaje: 'Por favor ingrese su primer nombre.', elemento: function () { return r.regPrimerNombre; } },
         { valido: function () { return lleno(r.regPrimerApellido); }, mensaje: 'Por favor ingrese su primer apellido.', elemento: function () { return r.regPrimerApellido; } },
         { valido: function () { return lleno(r.regSegundoApellido); }, mensaje: 'Por favor ingrese su segundo apellido.', elemento: function () { return r.regSegundoApellido; } },
-        { valido: function () { return !!r.regPrograma.value; }, mensaje: 'Por favor seleccione su programa académico.', elemento: function () { return r.regPrograma; } },
+        { valido: function () { return obtenerProgramaIdSeleccionado() !== null; }, mensaje: 'Por favor seleccione su programa académico.', elemento: function () { return r.regPrograma; } },
         { valido: function () { return !!r.regSede.value; }, mensaje: 'Por favor seleccione su sede.', elemento: function () { return r.regSede; } },
         {
           valido: function () {
@@ -1119,10 +1148,11 @@
         return;
       }
       const datos = leerDatosRegistro();
+      const opcionPrograma = (r.regPrograma.selectedIndex >= 0) ? r.regPrograma.options[r.regPrograma.selectedIndex] : null;
       const filas = [
         ['Documento:', datos.documento],
         ['Nombre completo:', datos.nombre],
-        ['Programa:', datos.programa],
+        ['Programa:', opcionPrograma ? opcionPrograma.text : ''],
         ['Sede:', r.regSede.options[r.regSede.selectedIndex].text],
         ['Grupo:', datos.grupo]
       ];
@@ -1160,28 +1190,69 @@
       const datos = leerDatosRegistro();
 
       estado.ocupado = true;
-      estadoBoton(r.btnConfirmarRegistro, true, 'Registrando...');
-      mostrarCargando('mensajeRegistro', 'Registrando datos...');
       try {
-        await api.registrarEstudiante(datos);
-        limpiarMensaje('mensajeRegistro');
-        abrirInstrucciones(datos); // estudiante nuevo: no puede tener presentaciones
-      } catch (error) {
-        let errorFinal = error;
-        if (error.codigo === '23505') {
-          // Ya existía (registro paralelo o reintento): continuar con el registro existente.
-          try {
+        const ejecucion = await ejecutarEnvioConReintentos({
+          clave: 'diagnostico:registro:' + datos.documento,
+          datos: datos,
+          boton: r.btnConfirmarRegistro,
+          contenedorMensaje: 'mensajeRegistro',
+          textoBotonEnviando: 'Registrando...',
+          textoBotonOriginal: 'Confirmar y continuar',
+          textoCargando: 'Registrando datos...',
+          contextoError: 'No fue posible completar el registro',
+          mostrarErrorAutomatico: false,
+          lanzarError: true,
+          mensajeReintento: function (intento, maxIntentos) {
+            return 'Problema temporal de conexión. Reintentando registro (intento ' + intento + ' de ' + maxIntentos + ')...';
+          },
+          mostrarCargandoFn: mostrarCargando,
+          actualizarCargandoFn: mostrarCargando,
+          manejarBotonFn: estadoBoton,
+          interpretarError: textoError,
+          enviar: async function () {
+            await api.registrarEstudiante(datos);
+            return { nuevo: true, estudiante: datos };
+          },
+          verificarYaRegistrado: async function () {
             const existente = await api.buscarEstudiante(datos.documento);
-            if (existente) {
-              await continuarConEstudiante(existente, 'mensajeRegistro');
-              return;
+            return existente ? { nuevo: false, estudiante: existente } : null;
+          },
+          conciliarError: async function (error) {
+            if (error && error.codigo === '23505') {
+              const existente = await api.buscarEstudiante(datos.documento);
+              if (existente) {
+                return { exito: true, resultado: { nuevo: false, estudiante: existente } };
+              }
             }
-          } catch (error2) {
-            errorFinal = error2;
+            return null;
           }
+        });
+
+        limpiarMensaje('mensajeRegistro');
+        const info = ejecucion && ejecucion.resultado ? ejecucion.resultado : { nuevo: true, estudiante: datos };
+        if (info.nuevo && !ejecucion.recuperadoDeIntentoPrevio) {
+          abrirInstrucciones(datos); // estudiante nuevo: no puede tener presentaciones
+        } else {
+          await continuarConEstudiante(info.estudiante || datos, 'mensajeRegistro');
         }
-        if (error.codigo === '23503') {
+      } catch (error) {
+        if (error && error.codigo === '23503') {
           ocultarConfirmacionRegistro();
+          const detalleFk = ((error.message || '') + ' ' + (error.details || '')).toLowerCase();
+          if (detalleFk.indexOf('programa') !== -1) {
+            estado.programasCargados = false;
+            ConsultasPublicas.poblarSelectProgramasPorId('regPrograma', { forzar: true })
+              .then(function () {
+                estado.programasCargados = r.regPrograma.options.length > 1;
+              })
+              .catch(function () {});
+            mostrarMensaje(
+              'mensajeRegistro',
+              'El programa seleccionado ya no se encuentra disponible. Por favor seleccione nuevamente su programa académico.',
+              'error'
+            );
+            return;
+          }
           cargarGruposDeSede(datos.sede, { forzar: true });
           mostrarMensaje(
             'mensajeRegistro',
@@ -1190,7 +1261,10 @@
           );
           return;
         }
-        mostrarMensaje('mensajeRegistro', textoError(errorFinal, 'No fue posible completar el registro.'), 'error');
+        const mensajeBase = (error && error.agotadosPorErrorTemporal)
+          ? 'No fue posible completar el registro tras 3 intentos. Tus datos siguen en el formulario; revisa tu conexión e inténtalo nuevamente.'
+          : 'No fue posible completar el registro.';
+        mostrarMensaje('mensajeRegistro', textoError(error, mensajeBase), 'error');
       } finally {
         estado.ocupado = false;
         estadoBoton(r.btnConfirmarRegistro, false, 'Confirmar y continuar');
@@ -1202,7 +1276,7 @@
       estado.estudiante = {
         documento: estudiante.documento,
         nombre: estudiante.nombre || '',
-        programa: estudiante.programa || '',
+        programa_id: estudiante.programa_id !== undefined && estudiante.programa_id !== null ? estudiante.programa_id : null,
         sede: estudiante.sede || '',
         grupo: estudiante.grupo || ''
       };
@@ -1507,20 +1581,57 @@
 
       estado.enviando = true;
       bloquearExamen(true);
-      estadoBoton(r.btnEnviar, true, 'Entregando...');
-      mostrarCargando('mensajeFormulario', 'Entregando examen...');
+
+      const claveOperacion = 'diagnostico:entrega:' + config.prueba + ':' + estado.estudiante.documento;
 
       try {
-        // Si un intento anterior quedó sin respuesta, primero se verifica en el servidor.
-        if (estado.envioIncierto) {
-          const previa = await api.buscarPresentacion(estado.estudiante.documento, config.prueba);
-          if (previa) {
-            finalizarEntrega(null);
-            return;
+        const ejecucion = await ejecutarEnvioConReintentos({
+          clave: claveOperacion,
+          datos: payload,
+          boton: r.btnEnviar,
+          contenedorMensaje: 'mensajeFormulario',
+          textoBotonEnviando: 'Entregando...',
+          textoBotonOriginal: 'Entregar examen',
+          textoCargando: 'Entregando examen...',
+          huboIntentoInciertoInicial: estado.envioIncierto,
+          mostrarErrorAutomatico: false,
+          lanzarError: true,
+          mensajeReintento: function (intento, maxIntentos) {
+            return 'Problema temporal de conexión. Verificando y reintentando entrega del examen (intento ' + intento + ' de ' + maxIntentos + ')...';
+          },
+          mostrarCargandoFn: mostrarCargando,
+          actualizarCargandoFn: mostrarCargando,
+          manejarBotonFn: estadoBoton,
+          enviar: async function (ctx) {
+            if (ctx && ctx.intento > 1) {
+              estado.envioIncierto = true;
+            }
+            return await api.enviarPrueba(payload);
+          },
+          verificarYaRegistrado: async function () {
+            const previa = await api.buscarPresentacion(estado.estudiante.documento, config.prueba);
+            if (previa) {
+              estado.envioIncierto = false;
+              return { __recuperadoServidor: true, presentacion: previa };
+            }
+            return null;
+          },
+          conciliarError: async function (error, contexto) {
+            const info = interpretarError(error);
+            if (info.tipo === 'YA_PRESENTADA' && ((contexto && contexto.huboIntentoIncierto) || estado.envioIncierto)) {
+              estado.envioIncierto = false;
+              return { exito: true, resultado: { __recuperadoServidor: true } };
+            }
+            return null;
           }
+        });
+
+        const respuesta = ejecucion ? ejecucion.resultado : null;
+        if (respuesta && respuesta.__recuperadoServidor) {
+          finalizarEntrega(null);
+        } else {
+          finalizarEntrega(respuesta);
         }
-        const respuesta = await api.enviarPrueba(payload);
-        finalizarEntrega(respuesta);
       } catch (error) {
         await manejarErrorEntrega(error);
       }
@@ -1531,6 +1642,10 @@
       console.error('[Examen ' + config.prueba + '] Error al entregar:', error);
 
       if (info.tipo === 'YA_PRESENTADA') {
+        if (estado.envioIncierto) {
+          finalizarEntrega(null);
+          return;
+        }
         estado.entregado = true;
         estado.enCurso = false;
         estado.enviando = false;
@@ -1541,18 +1656,21 @@
       }
 
       if (info.tipo === 'RED' || info.tipo === 'DESCONOCIDO') {
-        // No se sabe si el servidor guardó: verificar antes de permitir otro intento.
+        // Después de agotar los 3 intentos automáticos, verificamos una última vez en el servidor.
         estado.envioIncierto = true;
         try {
           const previa = await api.buscarPresentacion(estado.estudiante.documento, config.prueba);
           if (previa) {
+            if (typeof limpiarEnvioIncierto === 'function') {
+              limpiarEnvioIncierto('diagnostico:entrega:' + config.prueba + ':' + estado.estudiante.documento);
+            }
             finalizarEntrega(null);
             return;
           }
           liberarEntrega('Entregar examen');
           mostrarMensaje(
             'mensajeFormulario',
-            'No fue posible entregar el examen por un problema de conexión. Comprobamos que todavía no ha sido registrado. Tus respuestas siguen marcadas: revisa tu conexión e inténtalo de nuevo.',
+            'No fue posible entregar el examen tras 3 intentos automáticos por un problema de conexión. Comprobamos que todavía no ha sido registrado. Tus respuestas siguen marcadas: revisa tu conexión e inténtalo de nuevo.',
             'error',
             { persistente: true }
           );
@@ -1561,7 +1679,7 @@
           liberarEntrega('Verificar y reintentar');
           mostrarMensaje(
             'mensajeFormulario',
-            'No pudimos confirmar si tu examen fue recibido. Tus respuestas siguen marcadas. Revisa tu conexión y pulsa "Verificar y reintentar": antes de reenviar comprobaremos si ya quedó registrado.',
+            'Se realizaron 3 intentos de envío pero no pudimos confirmar si tu examen fue recibido por falta de conexión. Tus respuestas siguen marcadas. Revisa tu conexión y pulsa "Verificar y reintentar": antes de reenviar comprobaremos si ya quedó registrado.',
             'error',
             { persistente: true }
           );
@@ -1605,6 +1723,12 @@
       desactivarAvisoSalida();
       limpiarExamen();
 
+      if (r.nombreUsuarioResultado) {
+        r.nombreUsuarioResultado.textContent = (r.nombreUsuario && r.nombreUsuario.textContent)
+          ? r.nombreUsuario.textContent
+          : ('Estudiante: ' + censurarNombre(estado.estudiante ? estado.estudiante.nombre : ''));
+      }
+
       if (respuestaRpc) {
         const resultado = calcularResultado(respuestaRpc, totalLocal);
         r.textoResultado.textContent =
@@ -1637,8 +1761,11 @@
     r.formLogin.addEventListener('submit', iniciarSesion);
     r.btnVolverLogin.addEventListener('click', volverInicio);
 
+    const solicitarSalidaRegistro = function () {
+      if (!estado.ocupado) confirmarSalidaRegistro();
+    };
     r.formVerificarDocumento.addEventListener('submit', verificarDocumentoRegistro);
-    r.btnCancelarVerificacion.addEventListener('click', volverInicio);
+    r.btnCancelarVerificacion.addEventListener('click', solicitarSalidaRegistro);
 
     if (r.regSede) {
       r.regSede.addEventListener('change', function () {
@@ -1756,7 +1883,7 @@
         if (!r.confirmacionDatos.classList.contains('hidden') && !estado.ocupado) ocultarConfirmacionRegistro();
       });
     });
-    r.btnCancelarRegistro.addEventListener('click', volverInicio);
+    r.btnCancelarRegistro.addEventListener('click', solicitarSalidaRegistro);
 
     r.btnIniciarExamen.addEventListener('click', iniciarExamen);
     r.btnCancelarInstrucciones.addEventListener('click', volverInicio);

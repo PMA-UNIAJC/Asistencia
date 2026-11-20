@@ -73,7 +73,6 @@ def renderizar_sidebar():
                 "Facultades",
                 "Matriculados",
                 "Cruce",
-                "Informe General",
                 "Estudiantes Supabase",
                 "Visitas a Grupos"
             ],
@@ -105,7 +104,7 @@ def renderizar_modulo_facultades(fac_procesar_archivo):
         • Filtra estudiantes con nota entre <strong>0.0 y 2.9</strong> (reprobados).<br>
         • Genera un archivo Excel por cada facultad encontrada.<br>
         • Cada archivo contiene hoja GENERAL + una hoja por programa académico.<br>
-        • Genera adicionalmente el archivo <strong>INFORME GENERAL.xlsx</strong> con todas las facultades unidas.<br>
+        • Genera adicionalmente el archivo <strong>INFORME GENERAL.xlsx</strong> con todas las facultades unidas y las hojas <strong>GENERAL, COMUNICACION y MATEMATICAS</strong>.<br>
         • Corrige ortografía automáticamente (tildes en nombres de materias y programas).
     </div>
     """, unsafe_allow_html=True)
@@ -264,7 +263,7 @@ def renderizar_modulo_cruce(cruce_procesar_archivo):
         <strong>Archivos Necesarios</strong><br>
         TUTORIAS — descargado desde el Panel Admin del formulario ("Descargar Informe").<br>
         MATRICULADOS — archivo ya procesado por el módulo "Matriculados".<br>
-        INFORME GENERAL — archivo ya procesado por el módulo "Informe General".
+        INFORME GENERAL — archivo generado en el módulo "Facultades".
     </div>
     """, unsafe_allow_html=True)
 
@@ -308,61 +307,6 @@ def renderizar_modulo_cruce(cruce_procesar_archivo):
             ) if not archivo
         ]
         _mostrar_aviso_subida(f"⬆️ Faltan archivos por subir: <strong>{' · '.join(faltantes_c)}</strong>")
-
-
-def renderizar_modulo_informe_general(inf_procesar_archivo):
-    st.markdown("""
-    <div class="module-header">
-        <h1>Procesador de Informe General</h1>
-        <p>Procesa el archivo de informe general y genera hojas organizadas:<br>
-        <strong>GENERAL · COMUNICACION · MATEMATICAS</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="info-card">
-        <strong>¿Qué hace este módulo?</strong><br>
-        • Lee la hoja <strong>ORIGINAL</strong> del archivo (o la primera hoja si no existe).<br>
-        • Normaliza y mapea las columnas al formato estándar.<br>
-        • Genera hoja <strong>GENERAL</strong> con todas las materias.<br>
-        • Filtra y genera hojas separadas de <strong>COMUNICACION</strong> y <strong>MATEMATICAS</strong>.<br>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="warning-card">
-        <strong>Archivo Necesario</strong><br>
-        Debe subirse el Archivo "Informe General" generado en el modulo de "Procesador de Facultades".
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="upload-label">📂 INFORME GENERAL (CREADO POR "PROCESADOR DE FACULTADES")</div>', unsafe_allow_html=True)
-    archivo_inf = st.file_uploader(
-        "Sube el archivo Excel de Informe General",
-        type=["xlsx"],
-        key="uploader_inf",
-        label_visibility="collapsed"
-    )
-
-    st.markdown("---")
-
-    if archivo_inf:
-        if st.button("▶  Procesar Informe General", key="btn_inf", use_container_width=True):
-            with st.spinner("Procesando informe general..."):
-                try:
-                    resultado = inf_procesar_archivo(archivo_inf)
-                    st.success("✅ Proceso completado exitosamente.")
-                    st.download_button(
-                        label="⬇️  Descargar archivo procesado",
-                        data=resultado,
-                        file_name="INFORME_GENERAL_PROCESADO.xlsx",
-                        mime=MIME_XLSX,
-                        key="dl_inf"
-                    )
-                except Exception as e:
-                    st.error(f"❌ Error al procesar: {str(e)}")
-    else:
-        _mostrar_aviso_subida()
 
 
 def renderizar_modulo_estudiantes_supabase(sup_procesar_archivo):
@@ -488,7 +432,6 @@ def renderizar_interfaz(
     fac_procesar_archivo=None,
     mat_procesar_archivo=None,
     cruce_procesar_archivo=None,
-    inf_procesar_archivo=None,
     sup_procesar_archivo=None,
     vis_procesar_archivo=None,
 ):
@@ -498,7 +441,6 @@ def renderizar_interfaz(
             fac_procesar_archivo,
             mat_procesar_archivo,
             cruce_procesar_archivo,
-            inf_procesar_archivo,
             sup_procesar_archivo,
             vis_procesar_archivo,
         )
@@ -511,8 +453,6 @@ def renderizar_interfaz(
         renderizar_modulo_matriculados(mat_procesar_archivo)
     elif modulo == "Cruce":
         renderizar_modulo_cruce(cruce_procesar_archivo)
-    elif modulo == "Informe General":
-        renderizar_modulo_informe_general(inf_procesar_archivo)
     elif modulo == "Estudiantes Supabase":
         renderizar_modulo_estudiantes_supabase(sup_procesar_archivo)
     elif modulo == "Visitas a Grupos":

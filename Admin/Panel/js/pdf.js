@@ -44,7 +44,7 @@ async function descargarPDFAAA() {
       { header: 'Tipo',         key: 'tipo_acompanamiento', w: 0.09 },
       { header: 'Nombres y Apellidos', key: 'nombres_y_apellidos', w: 0.14 },
       { header: 'Grupo',        key: 'grupo',               w: 0.05 },
-      { header: 'Programa',     key: 'programa_estudiante', w: 0.12 },
+      { header: 'Programa',     key: 'programa',            w: 0.12 },
       { header: 'Profesor',     key: 'profesor',            w: 0.10 },
       { header: 'Asignatura',   key: 'asignatura',          w: 0.10 },
       { header: 'Motivo',       key: 'motivo',              w: 0.09 },
@@ -105,6 +105,8 @@ async function descargarPDFAAA() {
           valor = formatearFechaColombia(fila.fecha_hora, { formato: 'fecha' });
         } else if (col.key === 'nombres_y_apellidos') {
           valor = String(fila.nombres_y_apellidos || fila.nombre || '');
+        } else if (col.key === 'programa') {
+          valor = resolverProgramaYFacultad(fila).programa;
         } else {
           valor = String(fila[col.key] || '');
         }
@@ -228,13 +230,26 @@ async function descargarPDF() {
     }
 
     function dibujarListaBarras(items, total) {
+      if (!Array.isArray(items) || items.length === 0) {
+        checkY(8);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'italic');
+        pdf.setTextColor(120, 120, 120);
+        pdf.text('No hay datos disponibles', margin, y);
+        pdf.setTextColor(0, 0, 0);
+        y += 8;
+        return;
+      }
+
       items.forEach(([nombre, cantidad]) => {
         checkY(8);
-        const pct = ((cantidad / total) * 100).toFixed(1);
+        const pct = calcularPorcentajePMA(cantidad, total);
+        const pctNum = parseFloat(pct) || 0;
         pdf.setFontSize(9);
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(50, 50, 50);
-        const nombreCorto = nombre.length > 55 ? nombre.substring(0, 52) + '...' : nombre;
+        const textoNombre = String(nombre || 'Sin especificar');
+        const nombreCorto = textoNombre.length > 55 ? textoNombre.substring(0, 52) + '...' : textoNombre;
         pdf.text(nombreCorto, margin, y);
         const barX = margin + 120;
         const barW = 40;
@@ -242,7 +257,10 @@ async function descargarPDF() {
         pdf.setFillColor(230, 236, 245);
         pdf.rect(barX, y - 4, barW, barH, 'F');
         pdf.setFillColor(30, 60, 114);
-        pdf.rect(barX, y - 4, Math.max(0.5, (parseFloat(pct) / 100) * barW), barH, 'F');
+        const fillW = pctNum > 0 ? Math.max(0.5, (pctNum / 100) * barW) : 0;
+        if (fillW > 0) {
+          pdf.rect(barX, y - 4, fillW, barH, 'F');
+        }
         pdf.setTextColor(30, 60, 114);
         pdf.setFont('helvetica', 'bold');
         pdf.text(`${cantidad} (${pct}%)`, barX + barW + 3, y);
@@ -253,6 +271,17 @@ async function descargarPDF() {
     }
 
     function dibujarTabla(headers, filas, colWidths) {
+  if (!Array.isArray(filas) || filas.length === 0) {
+    checkY(8);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(120, 120, 120);
+    pdf.text('No hay registros disponibles', margin, y);
+    pdf.setTextColor(0, 0, 0);
+    y += 8;
+    return;
+  }
+
   const rowH = 7;
   const headerH = 8;
   const totalW = contentW;
@@ -313,19 +342,9 @@ async function descargarPDF() {
 }
 
     function generarGraficaCanvas(datos, titulo) {
-      const meses = new Map();
-      const nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-      datos.forEach(item => {
-        const fecha = convertirFechaAColombia(item.fecha);
-        const mes = fecha.getMonth();
-        const año = fecha.getFullYear();
-        const key = `${año}-${String(mes+1).padStart(2,'0')}`;
-        if (!meses.has(key)) meses.set(key, { label: `${nombresMeses[mes]} ${año}`, cantidad: 0 });
-        meses.get(key).cantidad++;
-      });
-      const ordenadas = [...meses.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-      const labels = ordenadas.map(([, v]) => v.label);
-      const valores = ordenadas.map(([, v]) => v.cantidad);
+      const serie = calcularSerieMensualTutoriasPMA(datos);
+      const labels = serie.labels.length > 0 ? serie.labels : ['Sin datos'];
+      const valores = serie.valores.length > 0 ? serie.valores : [0];
 
       const canvas = document.createElement('canvas');
       canvas.width = 820; canvas.height = 300;
@@ -384,101 +403,31 @@ async function descargarPDF() {
       y += gH + 8;
     }
 
-    // ── CALCULAR DATOS
-    const datosTodos = dataFormularios;
-    const datosTutores = datosTodos.filter(i => i.tipo_instructor === 'Tutor');
-    const datosProfesores = datosTodos.filter(i => i.tipo_instructor === 'Profesor');
-
-    function calcularStats(datos, tipo) {
-      const stats = { total: datos.length, sedesTutorias: {}, calificacionesPorInstructor: {}, facultadDepartamento: {}, sumaCalificacionesTotal: 0, sumaCalificacionesPMA: 0 };
-      const estudiantesUnicos = new Set();
-      const materiasCuenta = {}, semestresCuenta = {}, programasCuenta = {}, facultadesCuenta = {}, motivosCuenta = {};
-      const tutoriasPorInstructor = {}, documentosPorInstructor = {};
-      const profesoresPorFacultad = {}, documentosPorFacultadProfesor = {};
-
-      datos.forEach(item => {
-        const instructor = item.instructor;
-        const sede = String(item.sede_tutoria || '').trim().toUpperCase() || 'SIN ESPECIFICAR';
-        stats.sedesTutorias[sede] = (stats.sedesTutorias[sede] || 0) + 1;
-        const cal = item.calificacion || 0, dud = item.dudas_resueltas || 0, dom = item.dominio_tema || 0;
-        const amb = item.ambiente || 0, rec = item.recomienda_pma || 0;
-        const promT = (cal + dud + dom) / 3;
-        const promPMA = (cal + dud + dom + amb + rec) / 5;
-        if (!stats.calificacionesPorInstructor[instructor]) stats.calificacionesPorInstructor[instructor] = { suma: 0, cantidad: 0 };
-        stats.calificacionesPorInstructor[instructor].suma += promT;
-        stats.calificacionesPorInstructor[instructor].cantidad += 1;
-        stats.sumaCalificacionesTotal += promT;
-        stats.sumaCalificacionesPMA += promPMA;
-
-        if (tipo === 'general') {
-          estudiantesUnicos.add(item.documento);
-          materiasCuenta[item.asignatura || 'Sin especificar'] = (materiasCuenta[item.asignatura || 'Sin especificar'] || 0) + 1;
-          semestresCuenta[item.semestre || 'Sin especificar'] = (semestresCuenta[item.semestre || 'Sin especificar'] || 0) + 1;
-          programasCuenta[item.programa || 'Sin especificar'] = (programasCuenta[item.programa || 'Sin especificar'] || 0) + 1;
-          facultadesCuenta[item.facultad || 'Sin especificar'] = (facultadesCuenta[item.facultad || 'Sin especificar'] || 0) + 1;
-          motivosCuenta[item.motivo_consulta || 'Sin especificar'] = (motivosCuenta[item.motivo_consulta || 'Sin especificar'] || 0) + 1;
-        }
-        if (tipo === 'tutores' && instructor) {
-          tutoriasPorInstructor[instructor] = (tutoriasPorInstructor[instructor] || 0) + 1;
-          if (!documentosPorInstructor[instructor]) documentosPorInstructor[instructor] = new Set();
-          const doc = item.documento != null ? String(item.documento).trim() : '';
-          if (doc) documentosPorInstructor[instructor].add(doc);
-        }
-        if (tipo === 'profesores') {
-          if (item.facultad_departamento) stats.facultadDepartamento[item.facultad_departamento] = (stats.facultadDepartamento[item.facultad_departamento] || 0) + 1;
-          const fac = item.facultad_departamento || 'Sin Facultad';
-          if (instructor) {
-            if (!profesoresPorFacultad[fac]) profesoresPorFacultad[fac] = {};
-            profesoresPorFacultad[fac][instructor] = (profesoresPorFacultad[fac][instructor] || 0) + 1;
-            if (!documentosPorFacultadProfesor[fac]) documentosPorFacultadProfesor[fac] = {};
-            if (!documentosPorFacultadProfesor[fac][instructor]) documentosPorFacultadProfesor[fac][instructor] = new Set();
-            const doc = item.documento != null ? String(item.documento).trim() : '';
-            if (doc) documentosPorFacultadProfesor[fac][instructor].add(doc);
-          }
-        }
-      });
-
-      const promediosPorInstructor = {};
-      Object.keys(stats.calificacionesPorInstructor).forEach(inst => {
-        const info = stats.calificacionesPorInstructor[inst];
-        promediosPorInstructor[inst] = (info.suma / info.cantidad).toFixed(2);
-      });
-
-      return { stats, estudiantesUnicos, materiasCuenta, semestresCuenta, programasCuenta, facultadesCuenta, motivosCuenta, tutoriasPorInstructor, documentosPorInstructor, profesoresPorFacultad, documentosPorFacultadProfesor, promediosPorInstructor };
+    function dibujarPesosRanking(ranking) {
+      checkY(18);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(`${ranking.pesoT}% Cantidad de Tutorías`, margin, y); y += 5;
+      pdf.text(`${ranking.pesoB}% Cantidad de Beneficiados`, margin, y); y += 5;
+      pdf.text(`${ranking.pesoC}% Calificación`, margin, y); y += 8;
+      pdf.setTextColor(0, 0, 0);
     }
 
-    function calcularRankingPDF(datosFiltrados, promediosPorInstructor) {
-      const wT = 0.35, wB = 0.45, wC = 0.20;
-      const tutoriasPorInst = {}, docsPorInst = {};
-      datosFiltrados.forEach(item => {
-        const inst = item.instructor; if (!inst) return;
-        tutoriasPorInst[inst] = (tutoriasPorInst[inst] || 0) + 1;
-        if (!docsPorInst[inst]) docsPorInst[inst] = new Set();
-        const doc = item.documento != null ? String(item.documento).trim() : '';
-        if (doc) docsPorInst[inst].add(doc);
-      });
-      const datos = Object.keys(tutoriasPorInst).map(nombre => ({
-        nombre, tutorias: tutoriasPorInst[nombre], beneficiados: docsPorInst[nombre]?.size || 0, calificacion: parseFloat(promediosPorInstructor[nombre] || 0)
-      }));
-      function rankGrupo(grupo) {
-        if (!grupo.length) return [];
-        const maxT = Math.max(...grupo.map(d => d.tutorias));
-        const maxB = Math.max(...grupo.map(d => d.beneficiados));
-        const maxC = Math.max(...grupo.map(d => d.calificacion));
-        return grupo.map(d => ({
-          ...d,
-          puntaje: ((maxT > 0 ? (d.tutorias/maxT)*100 : 0) * wT) + ((maxB > 0 ? (d.beneficiados/maxB)*100 : 0) * wB) + ((maxC > 0 ? (d.calificacion/maxC)*100 : 0) * wC)
-        })).sort((a, b) => b.puntaje - a.puntaje);
-      }
-      return {
-        norte: rankGrupo(datos.filter(d => datosCache.tutoresNorte.some(t => t.nombre === d.nombre))),
-        sur: rankGrupo(datos.filter(d => datosCache.tutoresSur.some(t => t.nombre === d.nombre)))
-      };
-    }
+    // ── OBTENER CÁLCULOS CENTRALIZADOS DESDE pma.js
+    const stGeneral = calcularEstadisticasPMA(dataFormularios, 'general');
+    const stTutores = calcularEstadisticasPMA(dataFormularios, 'tutores');
+    const stProfesores = calcularEstadisticasPMA(dataFormularios, 'profesores');
+    const datosTutores = stTutores.datosFiltrados;
+    const datosProfesores = stProfesores.datosFiltrados;
 
-    const stGeneral = calcularStats(datosTodos, 'general');
-    const stTutores = calcularStats(datosTutores, 'tutores');
-    const stProfesores = calcularStats(datosProfesores, 'profesores');
+    const pesosRanking = obtenerPesosRankingPMA();
+    const ranking = calcularRankingTutoresPMA(datosTutores, {
+      statsTutores: stTutores,
+      pesoT: pesosRanking.pesoT,
+      pesoB: pesosRanking.pesoB,
+      pesoC: pesosRanking.pesoC
+    });
 
 
     // SECCIÓN 1 — ESTADÍSTICAS GENERALES
@@ -487,26 +436,23 @@ async function descargarPDF() {
 
     dibujarTarjetas([
       { valor: stGeneral.stats.total, etiqueta: 'Total de Registros' },
-      { valor: stGeneral.estudiantesUnicos.size, etiqueta: 'Beneficiados' },
-      { valor: (stGeneral.stats.sumaCalificacionesPMA / stGeneral.stats.total).toFixed(2), etiqueta: 'Calificación PMA' }
+      { valor: stGeneral.cantidadBeneficiados, etiqueta: 'Beneficiados' },
+      { valor: stGeneral.promedioCalificacionPMA, etiqueta: 'Calificación PMA' }
     ]);
 
-    const top5Mat = Object.entries(stGeneral.materiasCuenta).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const top5Sem = Object.entries(stGeneral.semestresCuenta).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const top5Prog = Object.entries(stGeneral.programasCuenta).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const todasFac = Object.entries(stGeneral.facultadesCuenta).sort((a,b)=>b[1]-a[1]);
-    const todosMotivos = Object.entries(stGeneral.motivosCuenta).sort((a,b)=>b[1]-a[1]);
-
     dibujarSubtitulo('Top 5 Materias con Más Tutorías');
-    dibujarListaBarras(top5Mat, stGeneral.stats.total);
+    dibujarListaBarras(stGeneral.top5Materias, stGeneral.stats.total);
     dibujarSubtitulo('Top 5 Semestres con Más Tutorías');
-    dibujarListaBarras(top5Sem.map(([s,c]) => [s === 'Sin especificar' ? s : `Semestre ${s}`, c]), stGeneral.stats.total);
+    dibujarListaBarras(
+      stGeneral.top5Semestres.map(([s, c]) => [s === 'Sin especificar' ? s : `Semestre ${s}`, c]),
+      stGeneral.stats.total
+    );
     dibujarSubtitulo('Facultades con Más Tutorías');
-    dibujarListaBarras(todasFac, stGeneral.stats.total);
+    dibujarListaBarras(stGeneral.todasFacultades, stGeneral.stats.total);
     dibujarSubtitulo('Top 5 Programas con Más Tutorías');
-    dibujarListaBarras(top5Prog, stGeneral.stats.total);
+    dibujarListaBarras(stGeneral.top5Programas, stGeneral.stats.total);
     dibujarSubtitulo('Motivos de Consulta');
-    dibujarListaBarras(todosMotivos, stGeneral.stats.total);
+    dibujarListaBarras(stGeneral.todosMotivos, stGeneral.stats.total);
 
   
     // SECCIÓN 2 — ESTADÍSTICAS DE TUTORES
@@ -516,25 +462,22 @@ async function descargarPDF() {
 
     dibujarTarjetas([
       { valor: stTutores.stats.total, etiqueta: 'Total Tutorías' },
-      { valor: (stTutores.stats.sumaCalificacionesTotal / stTutores.stats.total).toFixed(2), etiqueta: 'Calificación Promedio' }
+      { valor: stTutores.promedioCalificacion, etiqueta: 'Calificación Promedio' }
     ]);
 
     dibujarSubtitulo('Cantidad de Tutorías por Sede');
     dibujarTabla(
       ['Sede', 'Cantidad', '%'],
-      Object.entries(stTutores.stats.sedesTutorias).sort((a,b)=>b[1]-a[1]).map(([sede, cant]) => [
-        sede, cant, ((cant / stTutores.stats.total) * 100).toFixed(1) + '%'
+      stTutores.sedesOrdenadas.map(([sede, cant]) => [
+        sede, cant, calcularPorcentajePMA(cant, stTutores.stats.total) + '%'
       ]),
       [contentW * 0.5, contentW * 0.25, contentW * 0.25]
     );
 
     dibujarSubtitulo('Tutores de Sede Norte');
-    const tutoresNorteData = Object.entries(stTutores.tutoriasPorInstructor)
-      .filter(([inst]) => datosCache.tutoresNorte.some(t => t.nombre === inst))
-      .sort((a,b) => b[1]-a[1]);
     dibujarTabla(
       ['Nombre del Tutor', 'Tutorías', 'Beneficiados', 'Calificación'],
-      tutoresNorteData.map(([inst, cant]) => [
+      stTutores.instructoresNorte.map(([inst, cant]) => [
         inst, cant,
         stTutores.documentosPorInstructor[inst]?.size || 0,
         stTutores.promediosPorInstructor[inst] || 'N/A'
@@ -544,12 +487,9 @@ async function descargarPDF() {
 
     pdf.addPage(); y = margin;
     dibujarSubtitulo('Tutores de Sede Sur');
-    const tutoresSurData = Object.entries(stTutores.tutoriasPorInstructor)
-      .filter(([inst]) => datosCache.tutoresSur.some(t => t.nombre === inst))
-      .sort((a,b) => b[1]-a[1]);
     dibujarTabla(
       ['Nombre del Tutor', 'Tutorías', 'Beneficiados', 'Calificación'],
-      tutoresSurData.map(([inst, cant]) => [
+      stTutores.instructoresSur.map(([inst, cant]) => [
         inst, cant,
         stTutores.documentosPorInstructor[inst]?.size || 0,
         stTutores.promediosPorInstructor[inst] || 'N/A'
@@ -557,40 +497,25 @@ async function descargarPDF() {
       [contentW * 0.55, contentW * 0.15, contentW * 0.15, contentW * 0.15]
     );
 
-    const ranking = calcularRankingPDF(datosTutores, stTutores.promediosPorInstructor);
     pdf.addPage(); y = margin;
     dibujarSubtitulo('Ranking Mejor Tutor');
-    checkY(8);
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(80, 80, 80);
-    pdf.text(`${ranking.pesoT !== undefined ? ranking.pesoT : 35}% Cantidad de Tutorías`, margin, y); y += 5;
-    pdf.text(`${ranking.pesoB !== undefined ? ranking.pesoB : 45}% Cantidad de Beneficiados`, margin, y); y += 5;
-    pdf.text(`${ranking.pesoC !== undefined ? ranking.pesoC : 20}% Calificación`, margin, y); y += 8;
-    pdf.setTextColor(0, 0, 0);
+    dibujarPesosRanking(ranking);
 
     dibujarSubtitulo('Sede Norte');
     dibujarTabla(
       ['#', 'Tutor', 'Puntaje'],
-      ranking.norte.map((d, i) => [i+1, d.nombre, d.puntaje.toFixed(2) + '%']),
+      ranking.norte.map((d, i) => [i + 1, d.nombre, d.puntaje.toFixed(2) + '%']),
       [contentW * 0.08, contentW * 0.72, contentW * 0.20]
     );
 
     pdf.addPage(); y = margin;
     dibujarSubtitulo('Ranking Mejor Tutor');
-    checkY(8);
-    pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(80, 80, 80);
-    pdf.text('35% Cantidad de Tutorías', margin, y); y += 5;
-    pdf.text('45% Cantidad de Beneficiados', margin, y); y += 5;
-    pdf.text('20% Calificación', margin, y); y += 8;
-    pdf.setTextColor(0, 0, 0);
+    dibujarPesosRanking(ranking);
 
     dibujarSubtitulo('Sede Sur');
     dibujarTabla(
       ['#', 'Tutor', 'Puntaje'],
-      ranking.sur.map((d, i) => [i+1, d.nombre, d.puntaje.toFixed(2) + '%']),
+      ranking.sur.map((d, i) => [i + 1, d.nombre, d.puntaje.toFixed(2) + '%']),
       [contentW * 0.08, contentW * 0.72, contentW * 0.20]
     );
 
@@ -620,20 +545,20 @@ async function descargarPDF() {
 
     dibujarTarjetas([
       { valor: stProfesores.stats.total, etiqueta: 'Total Tutorías' },
-      { valor: (stProfesores.stats.sumaCalificacionesTotal / stProfesores.stats.total).toFixed(2), etiqueta: 'Calificación Promedio' }
+      { valor: stProfesores.promedioCalificacion, etiqueta: 'Calificación Promedio' }
     ]);
 
     dibujarSubtitulo('Cantidad de Tutorías por Facultad/Departamento');
     dibujarTabla(['Facultad/Departamento', 'Cantidad', '%'],
-      Object.entries(stProfesores.stats.facultadDepartamento).sort((a,b)=>b[1]-a[1]).map(([fac, cant]) => [
-        obtenerNombreFacultad(fac), cant, ((cant / stProfesores.stats.total) * 100).toFixed(1) + '%'
+      stProfesores.facultadesOrdenadas.map(([fac, cant]) => [
+        obtenerNombreFacultad(fac), cant, calcularPorcentajePMA(cant, stProfesores.stats.total) + '%'
       ])
     );
 
-    Object.keys(stProfesores.profesoresPorFacultad).sort().forEach(fac => {
+    stProfesores.facultadesConProfesores.forEach(fac => {
       dibujarSubtitulo('Tutorías — ' + obtenerNombreFacultad(fac));
       dibujarTabla(['Nombre del Profesor', 'Tutorías', 'Beneficiados', 'Calificación'],
-        Object.entries(stProfesores.profesoresPorFacultad[fac]).sort((a,b)=>b[1]-a[1]).map(([prof, cant]) => [
+        Object.entries(stProfesores.profesoresPorFacultad[fac]).sort((a, b) => b[1] - a[1]).map(([prof, cant]) => [
           prof, cant,
           stProfesores.documentosPorFacultadProfesor[fac]?.[prof]?.size || 0,
           stProfesores.promediosPorInstructor[prof] || 'N/A'

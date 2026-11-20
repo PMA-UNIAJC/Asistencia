@@ -479,9 +479,13 @@ if (typeof ConsultasAdmin !== 'undefined' && typeof ConsultasAdmin.alInvalidar =
   ConsultasAdmin.alInvalidar(async function (etiquetas, esRemoto) {
     if (!esRemoto || !Array.isArray(etiquetas)) return;
     const tablaReg = `registro_visitas_${sedeActual}`;
+    const tablaCat = `visitas_${sedeActual}`;
     const tablaTut = `tutores_${sedeActual}`;
     const afectaActual = etiquetas.some(function (et) {
       return et === '*' ||
+        et === 'esquema:visitas' ||
+        et === `tabla:${tablaCat}` ||
+        et === `tabla:visitas.${tablaCat}` ||
         et === `tabla:${tablaReg}` ||
         et === `tabla:visitas.${tablaReg}` ||
         et === `tabla:${tablaTut}` ||

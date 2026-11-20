@@ -38,7 +38,8 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
   const PREFIJO_SESSION_PUBLICO = 'pma_pub_cache_v1:';
 
   // Códigos SQLSTATE/PostgREST deterministas que NUNCA se resuelven reintentando
-  const CODIGOS_NO_REINTENTABLES = new Set([
+  // (Se sincroniza con Global/reintentos.js si ya fue cargado)
+  const CODIGOS_NO_REINTENTABLES = (window.ReintentosEnvio && window.ReintentosEnvio.CODIGOS_NO_REINTENTABLES) || new Set([
     '23502', // not_null_violation
     '23503', // foreign_key_violation
     '23505', // unique_violation
@@ -612,7 +613,17 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
   // 6. MOTOR DE RED CON REINTENTOS INTELIGENTES, TIMEOUT Y CANCELACIÓN
   // ==========================================================================
 
+  function obtenerMaxIntentosGlobal() {
+    if (window.ReintentosEnvio && typeof window.ReintentosEnvio.obtenerMaxIntentos === 'function') {
+      return window.ReintentosEnvio.obtenerMaxIntentos();
+    }
+    return 3;
+  }
+
   function calcularEsperaBackoff(intento, retryAfterHeader) {
+    if (window.ReintentosEnvio && typeof window.ReintentosEnvio.calcularEsperaReintento === 'function') {
+      return window.ReintentosEnvio.calcularEsperaReintento(intento, retryAfterHeader);
+    }
     if (retryAfterHeader) {
       const segundos = Number(retryAfterHeader);
       if (Number.isFinite(segundos) && segundos > 0) {
@@ -647,7 +658,10 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
   }
 
   function evaluarSiEsReintentable(error, permitirReintentoServidor) {
-    if (!error) return false;
+    if (!error || !permitirReintentoServidor) return false;
+    if (window.ReintentosEnvio && typeof window.ReintentosEnvio.esErrorTemporalReintentable === 'function') {
+      return window.ReintentosEnvio.esErrorTemporalReintentable(error);
+    }
     if (error.cancelado || error.sesionExpirada) return false;
 
     const codigo = String(error.codigo || '');
@@ -657,15 +671,15 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
     // Errores puros de red o timeout al conectar
     if (error.red || error.timeout) {
-      return !!permitirReintentoServidor;
+      return true;
     }
 
     const status = Number(error.status) || 0;
     if (status === 408 || status === 429) {
-      return !!permitirReintentoServidor;
+      return true;
     }
     if (status === 500 || status === 502 || status === 503 || status === 504) {
-      return !!permitirReintentoServidor;
+      return true;
     }
 
     // Cualquier otro 4xx (400, 401, 403, 404, 406, 409, 416, 422) jamás se reintenta
@@ -737,7 +751,10 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
       const permitirReintentoServidor = op.permitirReintento !== undefined
         ? !!op.permitirReintento
         : (esLecturaIdempotente || metodo === 'DELETE' || metodo === 'PATCH');
-      const totalIntentos = Math.max(1, Number(op.intentos) || (permitirReintentoServidor ? 3 : 1));
+      const totalIntentos = Math.max(
+        1,
+        Number(op.intentos) || (permitirReintentoServidor ? obtenerMaxIntentosGlobal() : 1)
+      );
       const timeoutMs = Number(op.timeoutMs) > 0 ? Number(op.timeoutMs) : TIMEOUT_DEFECTO_MS;
       const signalExterno = op.signal || null;
 
@@ -831,7 +848,22 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
         let datosJson = null;
         if (textoRespuesta) {
           try {
-            datosJson = JSON.parse(textoRespuesta);
+            datosJson = JSON.parse(textoRespuesta, function (_clave, valor) {
+              if (
+                typeof valor === 'string' &&
+                valor.length >= 19 &&
+                valor.length <= 35 &&
+                valor.charCodeAt(4) === 45 &&
+                valor.charCodeAt(7) === 45 &&
+                /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}(?::?\d{2})?)?$/i.test(valor) &&
+                typeof window.interpretarFechaColombia === 'function' &&
+                typeof window.obtenerFechaISOColombia === 'function' &&
+                window.interpretarFechaColombia(valor)
+              ) {
+                return window.obtenerFechaISOColombia(valor);
+              }
+              return valor;
+            });
           } catch (e) {
             datosJson = null;
           }

@@ -7,10 +7,11 @@
   <title>Administración de Diagnósticos - PMA</title>
   <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
 
+  <style>html:not([data-admin-autorizado="true"]){background:#0a1628 !important;background-image:linear-gradient(135deg,#0a1628 0%,#1a2f5a 50%,#0a1628 100%) !important;min-height:100vh;}html:not([data-admin-autorizado="true"]) body{visibility:hidden !important;opacity:0 !important;}</style>
+  <link rel="stylesheet" href="../compartido/admin-guard.css">
   <link rel="stylesheet" href="../../Global/global.css">
   <link rel="stylesheet" href="../Panel/admin.css">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="../compartido/admin-guard.css">
 </head>
 <body>
 
@@ -202,10 +203,6 @@
     </div>
 
     <form id="formPregunta" class="diag-modal-body" novalidate>
-      <div id="avisoRespuestasEdicion" class="alert-box hidden">
-        <strong>Pregunta con respuestas registradas</strong>
-        <span id="textoAvisoRespuestasEdicion"></span>
-      </div>
 
       <div class="diag-form-row">
         <div class="form-group">
@@ -443,6 +440,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../Global/global.js"></script>
+<script src="../../Global/reintentos.js"></script>
 <script src="../../Global/consultas.js"></script>
 <script src="../../Global/supabase.js"></script>
 <script src="../compartido/admin-auth.js"></script>

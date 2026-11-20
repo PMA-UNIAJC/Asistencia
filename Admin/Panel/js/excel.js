@@ -164,14 +164,15 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const { facultad: nombreFacultad, programa: nombrePrograma } = resolverProgramaYFacultad(fila);
     
     return {
       'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento),
       'NOMBRE': fila.nombre || '',
       'SEMESTRE': fila.semestre || '',
-      'FACULTAD': fila.facultad || '',
-      'PROGRAMA': fila.programa || '',
+      'FACULTAD': nombreFacultad,
+      'PROGRAMA': nombrePrograma,
       'ASIGNATURA': fila.asignatura || '',
       'TEMA': fila.tema || ''
     };
@@ -309,14 +310,15 @@ function generarExcelPorGrupoMatriculados(datos, mapaGrupos, grupoFiltro) {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const { facultad: nombreFacultad, programa: nombrePrograma } = resolverProgramaYFacultad(fila);
 
     return {
       'FECHA': serialDate,
       'HORA': horaFormateada,
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': fila.nombre || '',
-      'FACULTAD': fila.facultad || '',
-      'PROGRAMA': fila.programa || '',
+      'FACULTAD': nombreFacultad,
+      'PROGRAMA': nombrePrograma,
       'GRUPO': grupoReal,
       'ASIGNATURA': fila.asignatura || '',
       'TEMA': fila.tema || '',
@@ -413,13 +415,14 @@ function generarExcelPorDocumento(datos, documentos, mapaGrupos) {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
     const grupo = obtenerGrupoMatriculado(mapaGrupos, fila.documento);
+    const { programa: nombrePrograma } = resolverProgramaYFacultad(fila);
 
     return {
       'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': fila.nombre || '',
       'GRUPO': grupo,
-      'PROGRAMA': fila.programa || '',
+      'PROGRAMA': nombrePrograma,
       'ASIGNATURA': fila.asignatura || '',
       'TEMA': fila.tema || ''
     };
@@ -458,13 +461,14 @@ function generarExcelSimplificado(datos, desde, hasta) {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const { programa: nombrePrograma } = resolverProgramaYFacultad(fila);
     return {
       'FECHA': serialDate,
       'HORA': horaFormateada,
       'DOCUMENTO': parseInt(fila.documento),
       ';': ';',
       'NOMBRE': fila.nombre,
-      'PROGRAMA': fila.programa,
+      'PROGRAMA': nombrePrograma,
       'INSTRUCTOR': fila.instructor,
       'ASIGNATURA': fila.asignatura,
       'TEMA': fila.tema
@@ -504,17 +508,16 @@ function generarExcelCompleto(datos, nombreArchivo) {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const { facultad: nombreFacultad, programa: nombrePrograma } = resolverProgramaYFacultad(fila);
     
     return {
       'FECHA': serialDate,
       'HORA': horaFormateada,
       'DOCUMENTO': parseInt(fila.documento),
       'NOMBRE': fila.nombre,
-      'FACULTAD': fila.facultad,
-      'PROGRAMA': fila.programa,
+      'FACULTAD': nombreFacultad,
+      'PROGRAMA': nombrePrograma,
       'SEMESTRE': fila.semestre,
-      'TIPO ACOMPAÑAMIENTO': fila.tipo_acompanamiento,
-      'TÍTULO CURSO': fila.titulo_curso || '',
       'SEDE ESTUDIANTE': fila.sede_estudiante || '',
       'SEDE TUTORÍA': fila.sede_tutoria,
       'TIPO INSTRUCTOR': fila.tipo_instructor,
@@ -541,8 +544,8 @@ function generarExcelCompleto(datos, nombreArchivo) {
 
 ws['!cols'] = [
     { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 },
-    { wch: 35 }, { wch: 35 }, { wch: 10 }, { wch: 20 },
-    { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 },
+    { wch: 35 }, { wch: 35 }, { wch: 10 },
+    { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 },
     { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 12 },
     { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 40 }
   ];
@@ -559,6 +562,7 @@ function generarExcelDocentes(datos, desde, hasta) {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const { programa: nombrePrograma } = resolverProgramaYFacultad(fila);
     
     return {
       'FECHA': serialDate,
@@ -566,7 +570,7 @@ function generarExcelDocentes(datos, desde, hasta) {
       'DOCUMENTO': parseInt(fila.documento),
       ';': ';',
       'NOMBRE': fila.nombre,
-      'PROGRAMA': fila.programa,
+      'PROGRAMA': nombrePrograma,
       'FACULTAD/DEPARTAMENTO': fila.facultad_departamento || '',
       'INSTRUCTOR': fila.instructor,
       'ASIGNATURA': fila.asignatura,
@@ -641,6 +645,7 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
     const fechaColombia = convertirFechaAColombia(fila.fecha_hora);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
+    const { programa: nombrePrograma, facultad: nombreFacultad } = resolverProgramaYFacultad(fila);
     
     return {
       'FECHA': serialDate,
@@ -653,8 +658,8 @@ function generarExcelAAACompleto(datos, nombreArchivo) {
       'CORREO ESTUDIANTE': fila.correo_estudiante || '',
       'GRUPO': fila.grupo || '',
       'SEDE': fila.sede || '',
-      'FACULTAD': fila.facultad_estudiante || '',
-      'PROGRAMA': fila.programa_estudiante || '',
+      'FACULTAD': nombreFacultad,
+      'PROGRAMA': nombrePrograma,
       'SEMESTRE': fila.semestre || '',
       'ENTERADO': fila.enterado || '',
       'PROFESOR': fila.profesor || '',
@@ -754,8 +759,9 @@ function generarExcelPVU(datos, nombreArchivo, mapaMatriculados) {
     const serialDate = convertirFechaASerialExcel(fechaColombia);
 
     // Cruce por DOCUMENTO (tipo BUSCARV) contra el archivo Matriculados.
-    // Si no hay coincidencia, se dejan Facultad y Programa vacíos.
+    // Si no aparece en Matriculados o falta algún dato, se completa Facultad y Programa vía resolverProgramaYFacultad.
     const infoMatriculado = obtenerDatosMatriculado(mapaMatriculados, fila.documento);
+    const { programa: nombrePrograma, facultad: nombreFacultad } = resolverProgramaYFacultad(fila);
 
     return {
       'FECHA': serialDate,
@@ -763,8 +769,8 @@ function generarExcelPVU(datos, nombreArchivo, mapaMatriculados) {
       'FECHA DE ASISTENCIA': fila.fecha_asistencia || '',
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': (infoMatriculado && infoMatriculado.nombre) ? infoMatriculado.nombre : (fila.nombre || ''),
-      'FACULTAD': infoMatriculado ? infoMatriculado.facultad : '',
-      'PROGRAMA': (infoMatriculado && infoMatriculado.programa) ? infoMatriculado.programa : (fila.programa || ''),
+      'FACULTAD': (infoMatriculado && infoMatriculado.facultad) ? infoMatriculado.facultad : nombreFacultad,
+      'PROGRAMA': (infoMatriculado && infoMatriculado.programa) ? infoMatriculado.programa : nombrePrograma,
       'SEDE': infoMatriculado ? infoMatriculado.sede : '',
       'JORNADA': fila.jornada || '',
       'SATISFACCION': fila.satisfaccion || '',
@@ -936,13 +942,14 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
     const instructor = (fila.instructor || '').trim();
     const area = areasPorInstructor[instructor] ||
       ((fila.facultad_departamento || '').trim().toUpperCase() === 'DCB' ? 'DCB' : '');
+    const { facultad: nombreFacultad, programa: nombrePrograma } = resolverProgramaYFacultad(fila);
 
     return {
       'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': fila.nombre || '',
-      'FACULTAD': corregirAcentos(fila.facultad || ''),
-      'PROGRAMA': corregirAcentos(fila.programa || ''),
+      'FACULTAD': corregirAcentos(nombreFacultad),
+      'PROGRAMA': corregirAcentos(nombrePrograma),
       'SEDE ESTUDIANTE': fila.sede_estudiante || '',
       'AREA': area,
       'TEMA': corregirAcentos(fila.tema || ''),
@@ -1135,11 +1142,107 @@ const ENCABEZADOS_EXCEL_DIAGNOSTICOS = [
   'RESULTADO'
 ];
 
-function generarExcelDiagnosticos(datos, nombreArchivo) {
+const ENCABEZADOS_EXCEL_DIAGNOSTICOS_GRUPOS = [
+  'GRUPO',
+  'MATEMATICAS',
+  'COMUNICACION',
+  'LECTURA'
+];
+
+function construirHojaResumenGruposDiagnosticos(datos, gruposCatalogo) {
+  const mapaGrupos = new Map();
+
+  function asegurarGrupo(nombreGrupo) {
+    if (!mapaGrupos.has(nombreGrupo)) {
+      mapaGrupos.set(nombreGrupo, {
+        MATEMATICAS: new Set(),
+        COMUNICACION: new Set(),
+        LECTURA: new Set()
+      });
+    }
+    return mapaGrupos.get(nombreGrupo);
+  }
+
+  // Inicializar con los grupos registrados en diagnosticos.grupos (si existen)
+  (gruposCatalogo || []).forEach(item => {
+    const grupoNorm = String(item?.grupo ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+    if (grupoNorm) {
+      asegurarGrupo(grupoNorm);
+    }
+  });
+
+  // Contabilizar cuántos estudiantes de cada grupo han respondido cada prueba
+  (datos || []).forEach((fila, idx) => {
+    const est = (window.DiagnosticosPanel && typeof window.DiagnosticosPanel.extraerEstudiante === 'function')
+      ? (window.DiagnosticosPanel.extraerEstudiante(fila) || {})
+      : (Array.isArray(fila.estudiantes) ? (fila.estudiantes[0] || {}) : (fila.estudiantes || {}));
+
+    const grupoNorm = String(est.grupo ?? '').replace(/\s+/g, ' ').trim().toUpperCase() || 'SIN GRUPO';
+    const pruebaNorm = String(fila.prueba ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase();
+
+    if (pruebaNorm !== 'MATEMATICAS' && pruebaNorm !== 'COMUNICACION' && pruebaNorm !== 'LECTURA') {
+      return;
+    }
+
+    const docTexto = String(fila.documento ?? '').trim();
+    const claveEstudiante = docTexto || `__fila_${fila.id ?? idx}`;
+
+    const registroGrupo = asegurarGrupo(grupoNorm);
+    registroGrupo[pruebaNorm].add(claveEstudiante);
+  });
+
+  const nombresGruposOrdenados = Array.from(mapaGrupos.keys()).sort((a, b) => {
+    if (a === 'SIN GRUPO') return 1;
+    if (b === 'SIN GRUPO') return -1;
+    return a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' });
+  });
+
+  const datosGruposExcel = nombresGruposOrdenados.map(grupo => {
+    const conteos = mapaGrupos.get(grupo);
+    return {
+      'GRUPO': grupo,
+      'MATEMATICAS': conteos.MATEMATICAS.size,
+      'COMUNICACION': conteos.COMUNICACION.size,
+      'LECTURA': conteos.LECTURA.size
+    };
+  });
+
+  const wsGrupos = XLSX.utils.json_to_sheet(datosGruposExcel, {
+    header: ENCABEZADOS_EXCEL_DIAGNOSTICOS_GRUPOS
+  });
+  const rangeGrupos = XLSX.utils.decode_range(wsGrupos['!ref']);
+
+  for (let row = 1; row <= rangeGrupos.e.r; row++) {
+    for (let col = 1; col <= 3; col++) {
+      const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+      if (wsGrupos[cellRef] && typeof wsGrupos[cellRef].v === 'number') {
+        wsGrupos[cellRef].t = 'n';
+        wsGrupos[cellRef].z = '0';
+      }
+    }
+  }
+
+  wsGrupos['!autofilter'] = { ref: XLSX.utils.encode_range(rangeGrupos) };
+  wsGrupos['!cols'] = [
+    { wch: 15 }, // GRUPO
+    { wch: 16 }, // MATEMATICAS
+    { wch: 16 }, // COMUNICACION
+    { wch: 14 }  // LECTURA
+  ];
+
+  return wsGrupos;
+}
+
+function generarExcelDiagnosticos(datos, nombreArchivo, gruposCatalogo) {
   const datosExcel = (datos || []).map(fila => {
-    const est = Array.isArray(fila.estudiantes)
-      ? (fila.estudiantes[0] || {})
-      : (fila.estudiantes || {});
+    const est = (window.DiagnosticosPanel && typeof window.DiagnosticosPanel.extraerEstudiante === 'function')
+      ? (window.DiagnosticosPanel.extraerEstudiante(fila) || {})
+      : (Array.isArray(fila.estudiantes) ? (fila.estudiantes[0] || {}) : (fila.estudiantes || {}));
+    const { programa: nombrePrograma, facultad: nombreFacultad } = resolverProgramaYFacultad(fila);
     const docTexto = String(fila.documento ?? '').trim();
     const docNumerico = /^\d+$/.test(docTexto) ? parseInt(docTexto, 10) : docTexto;
 
@@ -1156,8 +1259,8 @@ function generarExcelDiagnosticos(datos, nombreArchivo) {
     return {
       'DOCUMENTO': !Number.isNaN(docNumerico) ? docNumerico : docTexto,
       'NOMBRE': est.nombre || '',
-      'FACULTAD': '',
-      'PROGRAMA': est.programa || '',
+      'FACULTAD': nombreFacultad,
+      'PROGRAMA': nombrePrograma,
       'SEDE': est.sede ? String(est.sede).trim().toUpperCase() : '',
       'GRUPO': est.grupo || '',
       'PRUEBA': fila.prueba || '',
@@ -1212,6 +1315,9 @@ function generarExcelDiagnosticos(datos, nombreArchivo) {
 
   XLSX.utils.book_append_sheet(wb, ws, 'RESULTADOS DIAGNOSTICOS');
 
+  const wsGrupos = construirHojaResumenGruposDiagnosticos(datos, gruposCatalogo);
+  XLSX.utils.book_append_sheet(wb, wsGrupos, 'GRUPOS');
+
   const fechaHoy = obtenerFechaHoyColombia();
   XLSX.writeFile(wb, `${nombreArchivo}_${fechaHoy}.xlsx`);
 }
@@ -1226,14 +1332,19 @@ async function descargarDiagnosticos(event) {
   }
 
   try {
-    const data = await ConsultasAdmin.obtenerResultadosDiagnosticos();
+    const [data, gruposCatalogo] = await Promise.all([
+      ConsultasAdmin.obtenerResultadosDiagnosticos(),
+      typeof ConsultasAdmin.obtenerGruposDiagnosticos === 'function'
+        ? ConsultasAdmin.obtenerGruposDiagnosticos().catch(() => [])
+        : Promise.resolve([])
+    ]);
 
     if (!data || data.length === 0) {
       alert('No hay resultados de diagnósticos para descargar');
       return;
     }
 
-    generarExcelDiagnosticos(data, 'Resultados_Diagnosticos');
+    generarExcelDiagnosticos(data, 'Resultados_Diagnosticos', gruposCatalogo);
     alert(`${data.length} registros de diagnósticos descargados exitosamente`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);

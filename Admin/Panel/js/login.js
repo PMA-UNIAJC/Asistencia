@@ -59,16 +59,19 @@ async function verificarSesionAdmin() {
 
     if (verificacion.autorizado) {
       mostrarPantalla('pantallaAdmin');
+      document.documentElement.setAttribute('data-admin-autorizado', 'true');
       return;
     }
 
     mostrarPantalla('pantallaAdminLogin');
+    document.documentElement.setAttribute('data-admin-autorizado', 'true');
     if (motivoRedireccion) {
       mostrarMensaje('mensajeAdminLogin', motivoRedireccion, 'error');
     }
   } catch (error) {
     console.error('Error verificando sesión:', error);
     mostrarPantalla('pantallaAdminLogin');
+    document.documentElement.setAttribute('data-admin-autorizado', 'true');
     if (motivoRedireccion) {
       mostrarMensaje('mensajeAdminLogin', motivoRedireccion, 'error');
     }

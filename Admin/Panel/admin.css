@@ -92,10 +92,6 @@
   transform: scale(0.95);
 }
 
-.btn-forzar-actualizacion {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-}
-
 .btn-cerrar-sesion {
   background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
 }

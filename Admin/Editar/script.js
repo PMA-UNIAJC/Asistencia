@@ -2,11 +2,42 @@
 let documentoOriginal = null;   // Documento con el que se buscó
 let datosOriginales    = null;   // Snapshot del registro al cargar
 
+const CAMPOS_EDICION_ESTUDIANTE = [
+  'edit_documento',
+  'edit_nombre',
+  'edit_facultad',
+  'edit_programa',
+  'edit_sede',
+  'edit_semestre'
+];
+const elementosEdicionVinculados = new WeakSet();
+let solicitudCargaEdicionId = 0;
+let busquedaEstudianteEnCurso = false;
+
+function verificarCambiosEdicion() {
+  const btnGuardar = document.getElementById('btnGuardar');
+  if (!btnGuardar || !datosOriginales) return;
+  const hayCambios = obtenerCambios().length > 0;
+  btnGuardar.disabled = !hayCambios;
+  btnGuardar.style.opacity = hayCambios ? '1' : '0.5';
+}
+
+function registrarListenersFormularioEdicion() {
+  CAMPOS_EDICION_ESTUDIANTE.forEach(id => {
+    const campo = document.getElementById(id);
+    if (!campo || elementosEdicionVinculados.has(campo)) return;
+    campo.addEventListener('input', verificarCambiosEdicion);
+    campo.addEventListener('change', verificarCambiosEdicion);
+    elementosEdicionVinculados.add(campo);
+  });
+}
+
 // ── Inicialización ──────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   const acceso = await AdminAuth.protegerPagina({ urlLogin: '../Panel/index.html' });
   if (!acceso.autorizado) return;
+  registrarListenersFormularioEdicion();
 });
 
 
@@ -37,6 +68,8 @@ function mostrarSeccion(seccion) {
 // ── Buscar estudiante ────────────────────────────────────────────────────────
 
 async function buscarEstudiante() {
+  if (busquedaEstudianteEnCurso) return;
+
   const inputEl  = document.getElementById('inputBuscarDocumento');
   const documento = inputEl.value.trim();
 
@@ -46,6 +79,8 @@ async function buscarEstudiante() {
   }
 
   const btnBuscar = document.getElementById('btnBuscar');
+  const solicitudActual = ++solicitudCargaEdicionId;
+  busquedaEstudianteEnCurso = true;
   btnBuscar.disabled = true;
   btnBuscar.textContent = 'Buscando...';
   mostrarCargando('mensajeBusqueda');
@@ -55,6 +90,8 @@ async function buscarEstudiante() {
       eq: { field: 'documento', value: documento }
     });
 
+    if (solicitudActual !== solicitudCargaEdicionId) return;
+
     if (!estudiante) {
       mostrarMensaje('mensajeBusqueda', `No se encontró ningún estudiante con este documento.`, 'error');
       return;
@@ -63,13 +100,22 @@ async function buscarEstudiante() {
     documentoOriginal = estudiante.documento;
     datosOriginales   = { ...estudiante };
 
-    cargarFormularioEdicion(estudiante);
+    const cargado = await cargarFormularioEdicion(estudiante, solicitudActual);
+    if (solicitudActual !== solicitudCargaEdicionId) return;
+    if (!cargado) {
+      documentoOriginal = null;
+      datosOriginales   = null;
+      mostrarMensaje('mensajeBusqueda', 'No se pudo cargar el catálogo de facultades y programas. Intente nuevamente.', 'error');
+      return;
+    }
+
     document.getElementById('mensajeBusqueda').textContent = '';
 
   } catch (err) {
     mostrarMensaje('mensajeBusqueda', ConsultasAdmin.interpretarError(err, 'Error consultando estudiante'), 'error');
     console.error(err);
   } finally {
+    busquedaEstudianteEnCurso = false;
     btnBuscar.disabled = false;
     btnBuscar.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -83,49 +129,49 @@ async function buscarEstudiante() {
 
 // ── Cargar datos en el formulario ────────────────────────────────────────────
 
-function cargarFormularioEdicion(est) {
-    document.getElementById('edit_documento').value = est.documento || '';
-  document.getElementById('edit_nombre')   .value = est.nombre    || '';
-  cargarFacultadesEdicion(est.facultad || '', est.programa || '');
-  document.getElementById('edit_semestre')        .value = est.semestre        || '';
+async function cargarFormularioEdicion(est, solicitudId = null) {
+  const tokenCarga = solicitudId !== null ? solicitudId : ++solicitudCargaEdicionId;
+  registrarListenersFormularioEdicion();
 
-  // Sede: select — setTimeout
-  setTimeout(() => {
-    document.getElementById('edit_sede').value = (est.sede || '').trim().toUpperCase();
-}, 0);
+  const seccionEdicion = document.getElementById('seccionEdicion');
+  const btnGuardar = document.getElementById('btnGuardar');
 
-  // Badge doc original
-  document.getElementById('badgeDocOriginal').textContent = `Documento Original: ${documentoOriginal}`;
-
-  // Mostrar alerta de sincronización
-  document.getElementById('alertaSincronizacion').style.display = 'block';
-
-  // Ocultar resumen previo
+  // Ocultar secciones previas y mantener bloqueado Guardar mientras se sincronizan catálogos
+  seccionEdicion.classList.add('hidden');
   document.getElementById('resumenCambios').classList.add('hidden');
   document.getElementById('mensajeGuardado').textContent = '';
-
-  // Mostrar sección edición
-  document.getElementById('seccionEdicion').classList.remove('hidden');
-  document.getElementById('seccionEdicion').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  // Deshabilitar botón guardar hasta que haya cambios
-  const btnGuardar = document.getElementById('btnGuardar');
   btnGuardar.disabled = true;
   btnGuardar.style.opacity = '0.5';
 
-    const campos = ['edit_documento','edit_nombre','edit_facultad',
-    'edit_programa','edit_sede','edit_semestre'];
+  document.getElementById('edit_documento').value = est.documento || '';
+  document.getElementById('edit_nombre')   .value = est.nombre    || '';
+  document.getElementById('edit_semestre') .value = est.semestre  || '';
+  document.getElementById('edit_sede')     .value = (est.sede || '').trim().toUpperCase();
 
-  campos.forEach(id => {
-    document.getElementById(id).addEventListener('input', verificarCambios);
-    document.getElementById(id).addEventListener('change', verificarCambios);
-  });
+  // Badge doc original y alerta de sincronización
+  document.getElementById('badgeDocOriginal').textContent = `Documento Original: ${documentoOriginal}`;
+  document.getElementById('alertaSincronizacion').style.display = 'block';
 
-  function verificarCambios() {
-    const hayCambios = obtenerCambios().length > 0;
-    btnGuardar.disabled = !hayCambios;
-    btnGuardar.style.opacity = hayCambios ? '1' : '0.5';
+  const { facultad, programa } = resolverProgramaYFacultad(est);
+  const catalogosCargados = await cargarFacultadesEdicion(
+    facultad || est.facultad || '',
+    programa || est.programa || '',
+    est,
+    tokenCarga
+  );
+
+  if (!catalogosCargados || tokenCarga !== solicitudCargaEdicionId) {
+    return false;
   }
+
+  // Asegurar botón Guardar bloqueado tras finalizar el rellenado completo
+  btnGuardar.disabled = true;
+  btnGuardar.style.opacity = '0.5';
+
+  // Mostrar sección edición únicamente cuando todas las dependencias estén listas
+  seccionEdicion.classList.remove('hidden');
+  seccionEdicion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return true;
 }
 
 // ── Guardar cambios ──────────────────────────────────────────────────────────
@@ -143,8 +189,12 @@ function guardarCambios() {
 
 
   // confirmación
-const cambios = obtenerCambios();
-const msgConfirmacion = 'Se actualizarán los datos del estudiante en todos los registros.';
+  const cambios = obtenerCambios();
+  if (cambios.length === 0) {
+    mostrarMensaje('mensajeGuardado', 'No hay cambios pendientes para guardar.', 'error');
+    return;
+  }
+  const msgConfirmacion = 'Se actualizarán los datos del estudiante únicamente en la tabla public.estudiantes.';
 
   mostrarModalConfirmacion(
     '¿Guardar cambios?',
@@ -164,16 +214,29 @@ async function ejecutarGuardado() {
     const nuevosDatos = leerFormulario();
     const cambios     = obtenerCambios();
 
-    // Actualización atómica transaccional en PostgreSQL (public.estudiantes + public.formularios)
-    const resultado = await ConsultasAdmin.actualizarEstudianteTransaccional(documentoOriginal, nuevosDatos);
-    const registrosActualizados = Number(resultado && resultado.registros_formularios) || 0;
+    // Actualización exclusiva en public.estudiantes (sin modificar otras tablas)
+    const resultado = await ConsultasAdmin.actualizarEstudiante(documentoOriginal, nuevosDatos);
+    const filasActualizadas = Array.isArray(resultado && resultado.datos) ? resultado.datos : [];
+    const registrosActualizados = typeof (resultado && resultado.totalActualizados) === 'number'
+      ? resultado.totalActualizados
+      : filasActualizadas.length;
 
-    mostrarMensaje('mensajeGuardado', 'Cambios guardados correctamente.', 'success');
+    if (registrosActualizados <= 0 || filasActualizadas.length === 0) {
+      mostrarMensaje(
+        'mensajeGuardado',
+        'No se encontró ningún registro con ese documento en public.estudiantes para actualizar.',
+        'error'
+      );
+      return;
+    }
+
+    const registroGuardado = filasActualizadas[0] || nuevosDatos;
+    mostrarMensaje('mensajeGuardado', 'Cambios guardados correctamente en public.estudiantes.', 'success');
     mostrarResumen(cambios, registrosActualizados);
 
-    // Actualizar estado interno con los nuevos datos
-    documentoOriginal = nuevosDatos.documento;
-    datosOriginales   = { ...nuevosDatos };
+    // Actualizar estado interno con los datos realmente guardados
+    documentoOriginal = registroGuardado.documento || nuevosDatos.documento;
+    datosOriginales   = { ...registroGuardado };
     document.getElementById('badgeDocOriginal').textContent = `Documento Original: ${documentoOriginal}`;
 
   } catch (err) {
@@ -221,130 +284,144 @@ function obtenerCambios() {
   return cambios;
 }
 
-function mostrarResumen(cambios, registrosFormularios) {
+function mostrarResumen(cambios, registrosEstudiantes) {
   const contenedor = document.getElementById('contenidoResumen');
   const seccion    = document.getElementById('resumenCambios');
 
-// Ocultar sección de edición y búsqueda
-document.querySelector('.edicion-container').classList.add('hidden');
-document.getElementById('seccionBusqueda').classList.add('hidden');
+  // Ocultar sección de edición y búsqueda
+  document.querySelector('.edicion-container').classList.add('hidden');
+  document.getElementById('seccionBusqueda').classList.add('hidden');
 
-  if (cambios.length === 0) {
-    contenedor.innerHTML = `<div class="resumen-sin-cambios">No hubo cambios en los datos del estudiante.</div>`;
+  const fragmento = document.createDocumentFragment();
+
+  if (!Array.isArray(cambios) || cambios.length === 0) {
+    const avisoSinCambios = document.createElement('div');
+    avisoSinCambios.className = 'resumen-sin-cambios';
+    avisoSinCambios.textContent = 'No hubo cambios en los datos del estudiante.';
+    fragmento.appendChild(avisoSinCambios);
   } else {
-    let html = '';
     cambios.forEach(c => {
-      html += `
-        <div class="list-item" style="flex-direction:column;align-items:flex-start;gap:2px;">
-          <span class="cambio-label">${c.etiqueta}</span>
-          <span class="cambio-antes">${c.antes || '(vacío)'}</span>
-          <span class="cambio-despues">→ ${c.despues || '(vacío)'}</span>
-        </div>`;
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      item.style.flexDirection = 'column';
+      item.style.alignItems = 'flex-start';
+      item.style.gap = '2px';
+
+      const spanLabel = document.createElement('span');
+      spanLabel.className = 'cambio-label';
+      spanLabel.textContent = c.etiqueta || '';
+
+      const spanAntes = document.createElement('span');
+      spanAntes.className = 'cambio-antes';
+      spanAntes.textContent = c.antes || '(vacío)';
+
+      const spanDespues = document.createElement('span');
+      spanDespues.className = 'cambio-despues';
+      spanDespues.textContent = `→ ${c.despues || '(vacío)'}`;
+
+      item.appendChild(spanLabel);
+      item.appendChild(spanAntes);
+      item.appendChild(spanDespues);
+      fragmento.appendChild(item);
     });
-    contenedor.innerHTML = html;
   }
 
-  if (registrosFormularios > 0) {
-    contenedor.innerHTML += `
-      <div class="resumen-formularios">
-        ${registrosFormularios} registro(s) de asistencia actualizados en formularios.
-      </div>`;
-  } else {
-    contenedor.innerHTML += `
-      <div class="resumen-sin-cambios">
-        No se encontraron registros de asistencia para este documento en formularios.
-      </div>`;
-  }
+  const totalActualizados = Number(registrosEstudiantes) || 0;
+  const bannerResultado = document.createElement('div');
+  bannerResultado.className = 'resumen-formularios';
+  bannerResultado.textContent =
+    `Actualización exitosa en public.estudiantes: ${totalActualizados} ` +
+    `${totalActualizados === 1 ? 'registro actualizado' : 'registros actualizados'}.`;
+  fragmento.appendChild(bannerResultado);
 
   // Botón Aceptar que reinicia la página
-  contenedor.innerHTML += `
-    <button class="btn" style="margin-top:15px;" onclick="location.reload()">Aceptar</button>`;
+  const btnAceptar = document.createElement('button');
+  btnAceptar.type = 'button';
+  btnAceptar.className = 'btn';
+  btnAceptar.style.marginTop = '15px';
+  btnAceptar.textContent = 'Aceptar';
+  btnAceptar.addEventListener('click', () => location.reload());
+  fragmento.appendChild(btnAceptar);
+
+  contenedor.textContent = '';
+  contenedor.appendChild(fragmento);
 
   seccion.classList.remove('hidden');
   seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 
-// ── Caché compartido de Facultades/Programas ─────────────────────────────────
-// Delega en ConsultasAdmin.obtenerFacultadesProgramas() y conserva el mapa local de IDs
-let _facultadesIdCache = null; // { facultad: id }
-
-async function obtenerFacultadesProgramasMap(forzarRecarga = false) {
-  const data = await ConsultasAdmin.obtenerFacultadesProgramas({
-    forzar: Boolean(forzarRecarga)
-  });
-
-  const mapa = {};
-  const mapaIds = {};
-  (data || []).forEach(item => {
-    const facultadNombre = item.nombre;
-    if (!facultadNombre) return;
-    mapaIds[facultadNombre] = item.id;
-    const listaProgramas = Array.isArray(item.programas)
-      ? item.programas.map(p => p.nombre).filter(Boolean).sort((a, b) => a.localeCompare(b))
-      : [];
-    mapa[facultadNombre] = listaProgramas;
-  });
-
-  _facultadesIdCache = mapaIds;
-  return mapa;
-}
-
+// ── Catálogo compartido de Facultades y Programas ────────────────────────────
 function invalidarCacheFacultadesProgramas() {
-  _facultadesIdCache = null;
   ConsultasAdmin.invalidar(['tabla:facultades', 'tabla:programas', 'grupo:catalogos']);
 }
 
-async function cargarFacultadesEdicion(facultadActual, programaActual) {
+function asegurarOpcionSelectSiFalta(select, valor) {
+  if (!select || !valor || select.value) return;
+  const option = document.createElement('option');
+  option.value = valor;
+  option.textContent = valor;
+  option.selected = true;
+  select.appendChild(option);
+  select.disabled = false;
+}
+
+async function cargarFacultadesEdicion(facultadActual, programaActual, estudianteRef = null, solicitudId = null) {
+  const selectFacultad = document.getElementById('edit_facultad');
+  const selectPrograma = document.getElementById('edit_programa');
+  if (selectFacultad) selectFacultad.disabled = true;
+  if (selectPrograma) selectPrograma.disabled = true;
+
   try {
-    const facultadesMap = await obtenerFacultadesProgramasMap();
+    await ConsultasAdmin.asegurarCatalogoProgramasYFacultades();
+    if (solicitudId !== null && solicitudId !== solicitudCargaEdicionId) {
+      return false;
+    }
 
-    // Guardar en window para reutilizar en cargarProgramasEdicion
-    window._facultadesEdicionMap = facultadesMap;
+    const { facultad, programa } = resolverProgramaYFacultad(
+      estudianteRef || {
+        facultad: facultadActual || '',
+        programa: programaActual || ''
+      }
+    );
+    const facultadResuelta = facultad || facultadActual || '';
+    const programaResuelto = programa || programaActual || '';
 
-    // Poblar select de facultades
-    const selectFacultad = document.getElementById('edit_facultad');
-    selectFacultad.innerHTML = '<option value="">Seleccione una Facultad</option>';
-    Object.keys(facultadesMap).sort().forEach(f => {
-      const opt = document.createElement('option');
-      opt.value = f;
-      opt.textContent = f;
-      if (f === facultadActual) opt.selected = true;
-      selectFacultad.appendChild(opt);
+    if (selectFacultad) selectFacultad.disabled = false;
+    cargarFacultadesCascada('edit_facultad', 'edit_programa', {
+      primeraOpcionFacultad: 'Seleccione una Facultad',
+      primeraOpcionPrograma: 'Seleccione un programa',
+      primeraOpcionSinFacultad: 'Primero seleccione una Facultad',
+      facultadSeleccionada: facultadResuelta,
+      programaSeleccionado: programaResuelto
     });
 
-    // Cargar programas de la facultad actual
-    cargarProgramasEdicion(programaActual);
-
+    asegurarOpcionSelectSiFalta(selectFacultad, facultadResuelta);
+    if (programaResuelto && selectPrograma && !selectPrograma.value) {
+      cargarProgramasEdicion(programaResuelto);
+    }
+    return true;
   } catch (err) {
+    if (selectFacultad) selectFacultad.disabled = false;
     console.error('Error cargando facultades:', err);
+    return false;
   }
 }
 
 function cargarProgramasEdicion(programaSeleccionado = null) {
-  const facultad = document.getElementById('edit_facultad').value;
-  const selectPrograma = document.getElementById('edit_programa');
-
-  if (!facultad || !window._facultadesEdicionMap) {
-    selectPrograma.innerHTML = '<option value="">Primero seleccione una Facultad</option>';
-    selectPrograma.disabled = true;
-    return;
-  }
-
-  const programas = (window._facultadesEdicionMap[facultad] || []).sort();
-  selectPrograma.innerHTML = '<option value="">Seleccione un programa</option>';
-  programas.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p;
-    opt.textContent = p;
-    if (p === (programaSeleccionado || '')) opt.selected = true;
-    selectPrograma.appendChild(opt);
+  cargarProgramasCascada('edit_facultad', 'edit_programa', {
+    primeraOpcionPrograma: 'Seleccione un programa',
+    primeraOpcionSinFacultad: 'Primero seleccione una Facultad',
+    programaSeleccionado: programaSeleccionado || ''
   });
-  selectPrograma.disabled = false;
+  if (programaSeleccionado) {
+    asegurarOpcionSelectSiFalta(document.getElementById('edit_programa'), programaSeleccionado);
+  }
 }
 
 
 function limpiarEdicion() {
+  solicitudCargaEdicionId++;
   documentoOriginal = null;
   datosOriginales   = null;
 
@@ -589,17 +666,39 @@ async function cargarListaEliminar() {
       return;
     }
 
-    contenedor.innerHTML = data.map(item => `
-      <div class="list-item" style="gap:10px;">
-        <input type="checkbox" id="chk_${item.id}" value="${item.id}"
-          style="width:18px; height:18px; flex-shrink:0; cursor:pointer;"
-          onchange="actualizarBotonEliminar()">
-        <label for="chk_${item.id}" style="margin:0; font-weight:400; cursor:pointer; flex:1; display:flex; justify-content:space-between; align-items:center;">
-          <span>${item.nombre}</span>
-          <span style="font-size:11px; color:#888; margin-left:6px;">${item.area || ''}</span>
-        </label>
-      </div>
-    `).join('');
+    const fragmento = document.createDocumentFragment();
+    data.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      row.style.gap = '10px';
+
+      const idStr = String(item.id ?? '');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `chk_${idStr}`;
+      checkbox.value = idStr;
+      checkbox.style.cssText = 'width:18px; height:18px; flex-shrink:0; cursor:pointer;';
+      checkbox.addEventListener('change', actualizarBotonEliminar);
+
+      const label = document.createElement('label');
+      label.htmlFor = checkbox.id;
+      label.style.cssText = 'margin:0; font-weight:400; cursor:pointer; flex:1; display:flex; justify-content:space-between; align-items:center;';
+
+      const spanNombre = document.createElement('span');
+      spanNombre.textContent = item.nombre || '';
+
+      const spanArea = document.createElement('span');
+      spanArea.style.cssText = 'font-size:11px; color:#888; margin-left:6px;';
+      spanArea.textContent = item.area || '';
+
+      label.appendChild(spanNombre);
+      label.appendChild(spanArea);
+      row.appendChild(checkbox);
+      row.appendChild(label);
+      fragmento.appendChild(row);
+    });
+    contenedor.textContent = '';
+    contenedor.appendChild(fragmento);
 
     // Guardar referencia a la tabla actual
     window._tablaEliminar = tabla;
@@ -686,20 +785,20 @@ btn.innerHTML = `
 
 async function inicializarSeccionFacultades() {
   try {
-    const mapa = await obtenerFacultadesProgramasMap();
-    poblarSelectFacultadFP(document.getElementById('fp_facultad'), mapa, true);
-    poblarSelectFacultadFP(document.getElementById('elfp_facultad'), mapa, false);
+    await ConsultasAdmin.asegurarCatalogoProgramasYFacultades();
+    poblarSelectFacultadFP(document.getElementById('fp_facultad'), true);
+    poblarSelectFacultadFP(document.getElementById('elfp_facultad'), false);
   } catch (err) {
     console.error('Error cargando facultades:', err);
   }
 }
 
-function poblarSelectFacultadFP(select, mapa, incluirOpcionNueva) {
+function poblarSelectFacultadFP(select, incluirOpcionNueva) {
   select.innerHTML = '<option value="">Seleccione una Facultad</option>';
-  Object.keys(mapa).sort().forEach(f => {
+  obtenerFacultadesCatalogo().forEach(f => {
     const opt = document.createElement('option');
-    opt.value = f;
-    opt.textContent = f;
+    opt.value = f.nombre;
+    opt.textContent = f.nombre;
     select.appendChild(opt);
   });
   if (incluirOpcionNueva) {
@@ -768,11 +867,10 @@ async function guardarFacultadPrograma() {
   mostrarCargando('mensajeFP');
 
   try {
-    if (!_facultadesIdCache) {
-      await obtenerFacultadesProgramasMap();
-    }
+    await ConsultasAdmin.asegurarCatalogoProgramasYFacultades();
 
-    let facultadId = _facultadesIdCache ? _facultadesIdCache[facultad] : null;
+    const facExistente = obtenerFacultadCatalogoPorNombre(facultad);
+    let facultadId = facExistente ? facExistente.id : null;
 
     if (!facultadId) {
       try {
@@ -816,12 +914,13 @@ async function guardarFacultadPrograma() {
     });
 
     invalidarCacheFacultadesProgramas();
-    const mapa = await obtenerFacultadesProgramasMap(true);
-    poblarSelectFacultadFP(document.getElementById('fp_facultad'), mapa, true);
-    poblarSelectFacultadFP(document.getElementById('elfp_facultad'), mapa, false);
+    await ConsultasAdmin.obtenerFacultadesProgramas({ forzar: true });
+    poblarSelectFacultadFP(document.getElementById('fp_facultad'), true);
+    poblarSelectFacultadFP(document.getElementById('elfp_facultad'), false);
 
-    mostrarMensaje('mensajeFP', `${programas.length} programa(s) guardado(s) correctamente en "${facultad}".`, 'success');
-    document.getElementById('fp_facultad').value = facultad;
+    const facSeleccionada = obtenerFacultadCatalogoPorNombre(facultad)?.nombre || facultad;
+    mostrarMensaje('mensajeFP', `${programas.length} programa(s) guardado(s) correctamente en "${facSeleccionada}".`, 'success');
+    document.getElementById('fp_facultad').value = facSeleccionada;
     actualizarCamposFP();
 
   } catch (err) {
@@ -878,16 +977,31 @@ async function cargarListaEliminarFP() {
       return;
     }
 
-    contenedor.innerHTML = data.map((item, i) => `
-      <div class="list-item" style="gap:10px;">
-        <input type="checkbox" id="chkfp_${i}" value="${encodeURIComponent(item.id)}" data-nombre="${encodeURIComponent(item.nombre)}"
-          style="width:18px; height:18px; flex-shrink:0; cursor:pointer;"
-          onchange="actualizarBotonEliminarFP()">
-        <label for="chkfp_${i}" style="margin:0; font-weight:400; cursor:pointer; flex:1;">
-          ${item.nombre}
-        </label>
-      </div>
-    `).join('');
+    const fragmento = document.createDocumentFragment();
+    data.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      row.style.gap = '10px';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `chkfp_${i}`;
+      checkbox.value = encodeURIComponent(item.id);
+      checkbox.dataset.nombre = encodeURIComponent(item.nombre || '');
+      checkbox.style.cssText = 'width:18px; height:18px; flex-shrink:0; cursor:pointer;';
+      checkbox.addEventListener('change', actualizarBotonEliminarFP);
+
+      const label = document.createElement('label');
+      label.htmlFor = checkbox.id;
+      label.style.cssText = 'margin:0; font-weight:400; cursor:pointer; flex:1;';
+      label.textContent = item.nombre || '';
+
+      row.appendChild(checkbox);
+      row.appendChild(label);
+      fragmento.appendChild(row);
+    });
+    contenedor.textContent = '';
+    contenedor.appendChild(fragmento);
 
     // Guardar referencia a la facultad de la lista actual
     window._facultadEliminarFP = facultad;
@@ -949,10 +1063,10 @@ async function eliminarSeleccionadosFP() {
 
         cargarListaEliminarFP();
 
-        const mapa = await obtenerFacultadesProgramasMap(true);
-        poblarSelectFacultadFP(document.getElementById('fp_facultad'), mapa, true);
-        poblarSelectFacultadFP(document.getElementById('elfp_facultad'), mapa, false);
-        document.getElementById('elfp_facultad').value = facultad;
+        await ConsultasAdmin.obtenerFacultadesProgramas({ forzar: true });
+        poblarSelectFacultadFP(document.getElementById('fp_facultad'), true);
+        poblarSelectFacultadFP(document.getElementById('elfp_facultad'), false);
+        document.getElementById('elfp_facultad').value = obtenerFacultadCatalogoPorNombre(facultad)?.nombre || facultad;
 
       } catch (err) {
         mostrarMensaje('mensajeELFP', ConsultasAdmin.interpretarError(err, 'Error al eliminar'), 'error');
@@ -971,13 +1085,4 @@ async function eliminarSeleccionadosFP() {
       }
     }
   );
-}
-
-if (typeof ConsultasAdmin !== 'undefined' && typeof ConsultasAdmin.alInvalidar === 'function') {
-  ConsultasAdmin.alInvalidar(function (etiquetas) {
-    if (!Array.isArray(etiquetas)) return;
-    if (etiquetas.includes('*') || etiquetas.includes('grupo:catalogos') || etiquetas.includes('tabla:facultades') || etiquetas.includes('tabla:programas')) {
-      _facultadesIdCache = null;
-    }
-  });
 }

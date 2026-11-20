@@ -9,7 +9,8 @@
    PC / ESCRITORIO
    ========================================= */
 
-#contenedorSeccion {
+#contenedorSeccion,
+#pantallaResultado {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;

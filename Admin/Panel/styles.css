@@ -18,6 +18,14 @@ input[type="text"][id="adminDocumento"] {
   position: fixed;
 }
 
+/* Evita el parpadeo del cascarón blanco (.container) mientras #pantallaAdmin esté oculto */
+#contenidoFormulario > .container:has(> #pantallaAdmin.hidden) {
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
 .admin-input-wrapper {
   position: relative;
 }
@@ -47,7 +55,8 @@ input[type="text"][id="adminContrasena"] {
 
 /* ── GRÁFICAS ── */
 
-#graficaTutorias {
+#graficaTutorias,
+#graficaDiagnosticos {
   background: white;
   padding: 15px;
   border-radius: 8px;
@@ -464,6 +473,80 @@ input[type="text"][id="adminContrasena"] {
 }
 
 
+/* ── FILA HORIZONTAL DE FILTROS, TABLA DE PROGRAMAS Y ESTADOS ── */
+
+.panel-filtros-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+
+.panel-filtros-fila .form-group {
+  flex: 1 1 200px;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
+#statsGridDiagnosticos .stat-card {
+  min-width: 0;
+  padding: 20px 14px;
+}
+
+.diag-th-ordenable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.diag-th-ordenable:hover {
+  background: #152a52 !important;
+}
+
+.diag-sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.diag-sort-icon.activo {
+  opacity: 1;
+}
+
+.diag-promedio-general {
+  font-weight: 700;
+  color: #1e3c72;
+}
+
+.diag-estado-vacio,
+.diag-estado-error {
+  text-align: center;
+  padding: 16px 12px;
+  margin: 12px 0 0 0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.diag-estado-vacio {
+  color: #5b6472;
+  background: #f8fafc;
+  border: 1px dashed #cfd8e3;
+}
+
+.diag-estado-error {
+  color: #dc3545;
+  background: #fdf2f2;
+  border: 1px solid #f5c6cb;
+}
+
+#marcaUltimaActualizacionEstadisticas {
+  margin: 0 0 10px 0;
+}
+
+
 /* =========================================
    TABLET
    ========================================= */
@@ -476,5 +559,9 @@ input[type="text"][id="adminContrasena"] {
 
   .descargas-fila-paralela > .chart-container {
     width: 100%;
+  }
+
+  .panel-filtros-fila .form-group {
+    flex: 1 1 100%;
   }
 }

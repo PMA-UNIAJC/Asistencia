@@ -13,7 +13,9 @@ let paginaFormularioActual = 1;
 // ===================================
 async function precargarDatosFormulario() {
   const todosCargados =
-    datosCache.facultadesCarreras.length > 0 &&
+    (typeof estaCatalogoProgramasCargado === 'function'
+      ? estaCatalogoProgramasCargado()
+      : datosCache.facultadesCarreras.length > 0) &&
     datosCache.tutoresNorte.length > 0 &&
     datosCache.tutoresSur.length > 0 &&
     datosCache.profesores.length > 0 &&
@@ -204,36 +206,37 @@ function mostrarConfirmacion() {
   const nombreCompleto = `${primerApellido} ${segundoApellido} ${primerNombre} ${segundoNombre}`.replace(/\s+/g, ' ').trim();
   const semestre = (elementosDOM.regSemestre || document.getElementById('regSemestre'))?.value;
 
-  const html = `
-    <div class="confirmation-item">
-      <div class="confirmation-label">Documento:</div>
-      <div class="confirmation-value">${doc}</div>
-    </div>
-    <div class="confirmation-item">
-      <div class="confirmation-label">Nombre Completo:</div>
-      <div class="confirmation-value">${nombreCompleto}</div>
-    </div>
-    <div class="confirmation-item">
-      <div class="confirmation-label">Facultad:</div>
-      <div class="confirmation-value">${facultad}</div>
-    </div>
-    <div class="confirmation-item">
-      <div class="confirmation-label">Programa:</div>
-      <div class="confirmation-value">${programa}</div>
-    </div>
-    <div class="confirmation-item">
-      <div class="confirmation-label">Sede:</div>
-      <div class="confirmation-value">${sede}</div>
-    </div>
-    <div class="confirmation-item">
-      <div class="confirmation-label">Semestre:</div>
-      <div class="confirmation-value">${semestre}</div>
-    </div>
-  `;
+  const camposConfirmacion = [
+    { label: 'Documento:', value: doc || '' },
+    { label: 'Nombre Completo:', value: nombreCompleto || '' },
+    { label: 'Facultad:', value: facultad || '' },
+    { label: 'Programa:', value: programa || '' },
+    { label: 'Sede:', value: sede || '' },
+    { label: 'Semestre:', value: semestre || '' }
+  ];
+
+  const fragmento = document.createDocumentFragment();
+  camposConfirmacion.forEach(campo => {
+    const item = document.createElement('div');
+    item.className = 'confirmation-item';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'confirmation-label';
+    labelEl.textContent = campo.label;
+
+    const valueEl = document.createElement('div');
+    valueEl.className = 'confirmation-value';
+    valueEl.textContent = campo.value;
+
+    item.appendChild(labelEl);
+    item.appendChild(valueEl);
+    fragmento.appendChild(item);
+  });
 
   const datosConfirmacion = elementosDOM.datosConfirmacion || document.getElementById('datosConfirmacion');
   if (datosConfirmacion) {
-    datosConfirmacion.innerHTML = html;
+    datosConfirmacion.textContent = '';
+    datosConfirmacion.appendChild(fragmento);
   }
   if (elementosDOM.confirmacionDatos) {
     elementosDOM.confirmacionDatos.classList.remove('hidden');
@@ -314,13 +317,6 @@ async function registrarEstudiante(event) {
   
   const doc = document.getElementById('regDocumentoMostrar').value;
   const btnRegistro = document.getElementById('btnConfirmarRegistro');
-  
-  btnRegistro.disabled = true;
-  btnRegistro.textContent = 'Continuando...';
-  btnRegistro.style.opacity = '0.6';
-  btnRegistro.style.cursor = 'not-allowed';
-  
-  mostrarCargando('mensajeRegistro');
 
   const primerNombre = document.getElementById('regPrimerNombre').value.toUpperCase();
   const segundoNombre = document.getElementById('regSegundoNombre').value.toUpperCase();
@@ -336,26 +332,35 @@ async function registrarEstudiante(event) {
     semestre: parseInt(document.getElementById('regSemestre').value)
   };
 
-  try {
-    const resultado = await ConsultasPublicas.insertar('estudiantes', datos);
-    
-    if (resultado && resultado.length > 0) {
+  await ejecutarEnvioConReintentos({
+    clave: 'pma:registro:' + doc,
+    datos: datos,
+    boton: btnRegistro,
+    textoBotonEnviando: 'Continuando...',
+    textoBotonOriginal: 'Continuar',
+    contenedorMensaje: 'mensajeRegistro',
+    contextoError: 'No se pudo registrar el estudiante',
+    enviar: async function () {
+      const resultado = await ConsultasPublicas.insertar('estudiantes', datos, {
+        retorno: 'representation',
+        intentos: 1
+      });
+      if (!resultado || resultado.length === 0) {
+        throw new Error('No se pudo completar el registro.');
+      }
+      return resultado;
+    },
+    verificarYaRegistrado: async function () {
+      return await ConsultasPublicas.consultarUno('estudiantes', {
+        select: 'documento,nombre,facultad,programa,sede,semestre',
+        eq: { field: 'documento', value: datos.documento }
+      });
+    },
+    alExito: function () {
       document.getElementById('mensajeRegistro').innerHTML = '';
       mostrarFormularioParaEstudiante(datos);
-    } else {
-      mostrarMensaje('mensajeRegistro', 'Error: No se pudo completar el registro', 'error');
-      btnRegistro.disabled = false;
-      btnRegistro.textContent = 'Continuar';
-      btnRegistro.style.opacity = '1';
-      btnRegistro.style.cursor = 'pointer';
     }
-  } catch (error) {
-    mostrarMensaje('mensajeRegistro', ConsultasPublicas.interpretarError(error, 'No se pudo registrar el estudiante'), 'error');
-    btnRegistro.disabled = false;
-    btnRegistro.textContent = 'Continuar';
-    btnRegistro.style.opacity = '1';
-    btnRegistro.style.cursor = 'pointer';
-  }
+  });
 }
 
 // ===================================
@@ -363,13 +368,16 @@ async function registrarEstudiante(event) {
 // ===================================
 function mostrarFormularioParaEstudiante(estudiante) {
   const nombreCompleto = estudiante.nombre;
+  const infoAcademica = resolverProgramaYFacultad(estudiante);
 
   datosEstudiante = {
     documento: estudiante.documento,
     nombre: nombreCompleto,
     nombreCensurado: censurarNombre(nombreCompleto),
-    facultad: estudiante.facultad,
-    programa: estudiante.programa,
+    programa_id: infoAcademica.programa_id,
+    facultad_id: infoAcademica.facultad_id,
+    facultad: infoAcademica.facultad,
+    programa: infoAcademica.programa,
     sede: estudiante.sede || '',
     semestre: estudiante.semestre
   };
@@ -529,12 +537,12 @@ async function cargarInstructores() {
   }
   
   if (necesitaProfesores && datosCache.profesores.length === 0) {
-    console.warn('Datos de profesores no disponibles, recargando...');
+    console.warn('Datos de docentes no disponibles, recargando...');
     try {
       await precargarDatosFormulario();
     } catch (error) {
       console.error('Error recargando datos:', error);
-      mostrarMensaje('mensajeFormulario', 'Error al cargar los profesores. Por favor recargue la página.', 'error');
+      mostrarMensaje('mensajeFormulario', 'Error al cargar los docentes. Por favor recargue la página.', 'error');
       return;
     }
   }
@@ -584,20 +592,20 @@ async function cargarProfesoresPorFacultad() {
   if (!facultadDepartamento) return;
 
   if (datosCache.profesores.length === 0) {
-    console.warn('Datos de profesores no disponibles, recargando...');
+    console.warn('Datos de docentes no disponibles, recargando...');
     try {
       await precargarDatosFormulario();
     } catch (error) {
       console.error('Error recargando datos:', error);
-      mostrarMensaje('mensajeFormulario', 'Error al cargar los profesores. Por favor recargue la página.', 'error');
+      mostrarMensaje('mensajeFormulario', 'Error al cargar los docentes. Por favor recargue la página.', 'error');
       return;
     }
   }
 
   const selectInstructor = document.getElementById('instructor');
   document.getElementById('grupoInstructor').classList.remove('hidden');
-  document.getElementById('labelInstructor').textContent = 'Profesor *';
-  document.getElementById('avisoInstructor').textContent = '¿No estás seguro? Confirma con tu profesor.';
+  document.getElementById('labelInstructor').textContent = 'Docente *';
+  document.getElementById('avisoInstructor').textContent = '¿No estás seguro? Confirma con tu docente.';
 
   const profesores = datosCache.profesores.filter(
     prof => prof.facultad_departamento === facultadDepartamento
@@ -607,8 +615,8 @@ async function cargarProfesoresPorFacultad() {
 
   poblarSelectInstructor(selectInstructor, profesoresOrdenados, {
     tipoLabel: 'profesor',
-    textoVacio: 'No hay profesores disponibles',
-    mensajeNormal: '¿No estás seguro? Confirma con tu profesor.'
+    textoVacio: 'No hay docentes disponibles',
+    mensajeNormal: '¿No estás seguro? Confirma con tu docente.'
   });
 
   if (profesoresOrdenados.length > 0) {
@@ -851,21 +859,6 @@ function toggleOtroTema() {
   }
 }
 
-function toggleTituloCurso() {
-  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
-  const grupoTituloCurso = document.getElementById('grupoTituloCurso');
-  const inputTituloCurso = document.getElementById('tituloCurso');
-  
-  if (tipoAcompanamiento === 'Curso y/o capacitación') {
-    grupoTituloCurso.classList.remove('hidden');
-    inputTituloCurso.required = true;
-  } else {
-    grupoTituloCurso.classList.add('hidden');
-    inputTituloCurso.required = false;
-    inputTituloCurso.value = '';
-  }
-}
-
 // ===================================
 // BOTÓN CANCELAR Y CONFIRMACIÓN
 // ===================================
@@ -924,15 +917,82 @@ async function guardarFormulario(event) {
     }
   }
   
-  btnEnviar.disabled = true;
-  btnEnviar.textContent = 'Enviando...';
-  btnEnviar.style.opacity = '0.6';
-  btnEnviar.style.cursor = 'not-allowed';
-  
-  mostrarCargando('mensajeFormulario');
-  
+  let asignatura = document.getElementById('asignatura').value;
+  if (asignatura === 'Otra') {
+    asignatura = document.getElementById('otraAsignatura').value.trim();
+    if (!asignatura) {
+      mostrarMensaje('mensajeFormulario', 'Por favor especifique la asignatura', 'error');
+      manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
+      return;
+    }
+  }
+
+  const selectTema = document.getElementById('tema');
+  const inputTema = document.getElementById('otroTema');
+  let tema = '';
+
+  if (selectTema.value === 'Otro') {
+    tema = inputTema.value.trim();
+    if (!tema) {
+      mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
+      manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
+      return;
+    }
+  } else if (selectTema.style.display === 'none') {
+    tema = inputTema.value.trim();
+    if (!tema) {
+      mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema de la tutoría', 'error');
+      manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
+      return;
+    }
+  } else {
+    tema = selectTema.value;
+  }
+
   const instructorSeleccionado = document.getElementById('instructor').value;
-  
+  const facultadDepartamentoValue = document.getElementById('facultadDepartamento').value || null;
+  const sedeTutoriaValue = document.getElementById('sedeTutoria').value.trim().toUpperCase();
+
+  const claveEnvio = 'pma:formulario:' + datosEstudiante.documento;
+  const huellaDatos = [
+    datosEstudiante.documento,
+    instructorSeleccionado,
+    asignatura,
+    tema,
+    sedeTutoriaValue
+  ].join('|');
+  const previoIncierto = ReintentosEnvio.obtenerEnvioIncierto(claveEnvio);
+  const fechaISO = ReintentosEnvio.obtenerFechaEnvioIdempotente(claveEnvio, huellaDatos, obtenerFechaISOColombia);
+
+  const finalizarExitoFormularioPMA = function () {
+    ReintentosEnvio.limpiarEnvioIncierto(claveEnvio);
+    if (elementosDOM.mensajeFormulario) {
+      elementosDOM.mensajeFormulario.textContent = '';
+    }
+
+    const modal = document.getElementById('modalExitoFormulario');
+    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+
+    document.getElementById('formTutoria').reset();
+    document.getElementById('grupoFacultadDepartamento').classList.add('hidden');
+    document.getElementById('grupoInstructor').classList.add('hidden');
+    document.getElementById('grupoMateria').classList.add('hidden');
+    document.getElementById('grupoTema').classList.add('hidden');
+    document.getElementById('grupoCalificacion').classList.add('hidden');
+    document.getElementById('grupoMotivo').classList.add('hidden');
+    document.getElementById('grupoSugerencias').classList.add('hidden');
+    document.getElementById('btnEnviar').classList.add('hidden');
+    formularioEnviandose = false;
+
+    setTimeout(() => {
+      location.reload();
+    }, 3000);
+  };
+
+  manejarEstadoBoton(btnEnviar, true, 'Enviando...');
+  mostrarCargando('mensajeFormulario');
+
   const verificacion = await verificarRestriccionesEnvio([
     {
       // 1. Envío general independientemente del tutor (1 hora)
@@ -952,81 +1012,32 @@ async function guardarFormulario(event) {
         `Ya tienes una tutoría reciente con este tutor. Podrás registrar otra en ${tiempoRestante}, o puedes realizarla con otro tutor si lo prefieres.`
     }
   ]);
-  
+
   if (!verificacion.puedeRegistrar) {
+    // Si el registro encontrado corresponde exactamente a un intento incierto previo de este mismo envío,
+    // significa que el servidor sí lo había recibido y guardado antes de caer la conexión.
+    if (previoIncierto && verificacion.registro && verificacion.registro.fecha === previoIncierto.fechaISO) {
+      finalizarExitoFormularioPMA();
+      return;
+    }
+
     const mensajeElement = document.getElementById('mensajeFormulario');
-    
     mostrarMensaje('mensajeFormulario', verificacion.mensaje, 'error');
-    
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-    
+    manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
+
     setTimeout(() => {
       mensajeElement.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
       });
     }, 100);
-    
+
     return;
   }
 
-  let asignatura = document.getElementById('asignatura').value;
-  if (asignatura === 'Otra') {
-    asignatura = document.getElementById('otraAsignatura').value.trim();
-    if (!asignatura) {
-      mostrarMensaje('mensajeFormulario', 'Por favor especifique la asignatura', 'error');
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      btnEnviar.style.opacity = '1';
-      btnEnviar.style.cursor = 'pointer';
-      return;
-    }
-  }
-
-  const selectTema = document.getElementById('tema');
-  const inputTema = document.getElementById('otroTema');
-  let tema = '';
-
-  if (selectTema.value === 'Otro') {
-    tema = inputTema.value.trim();
-    if (!tema) {
-      mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema', 'error');
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      btnEnviar.style.opacity = '1';
-      btnEnviar.style.cursor = 'pointer';
-      return;
-    }
-  } else if (selectTema.style.display === 'none') {
-    tema = inputTema.value.trim();
-    if (!tema) {
-      mostrarMensaje('mensajeFormulario', 'Por favor especifique el tema de la tutoría', 'error');
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Enviar Formulario';
-      btnEnviar.style.opacity = '1';
-      btnEnviar.style.cursor = 'pointer';
-      return;
-    }
-  } else {
-    tema = selectTema.value;
-  }
-
-  const tipoAcompanamiento = document.getElementById('tipoAcompanamiento').value;
-  const tituloCurso = tipoAcompanamiento === 'Curso y/o capacitación' 
-    ? document.getElementById('tituloCurso').value
-    : null;
-  
-  const fechaISO = obtenerFechaISOColombia();
-  const facultadDepartamentoValue = document.getElementById('facultadDepartamento').value || null;
-  
   const datos = {
     documento: datosEstudiante.documento,
-    tipo_acompanamiento: tipoAcompanamiento,
-    titulo_curso: tituloCurso,
-    sede_tutoria: document.getElementById('sedeTutoria').value.trim().toUpperCase(),
+    sede_tutoria: sedeTutoriaValue,
     tipo_instructor: document.getElementById('tipoInstructor').value,
     facultad_departamento: facultadDepartamentoValue,
     instructor: instructorSeleccionado,
@@ -1042,39 +1053,33 @@ async function guardarFormulario(event) {
     fecha: fechaISO
   };
 
-  try {
-    await ConsultasPublicas.insertar('formularios', datos, { retorno: 'minimal', intentos: 1 });
-    
-    if (elementosDOM.mensajeFormulario) {
-      elementosDOM.mensajeFormulario.textContent = '';
-    }
-    
-    const modal = document.getElementById('modalExitoFormulario');
-    modal.style.display = 'flex';
-    modal.classList.remove('hidden');
-    
-    document.getElementById('formTutoria').reset();
-    document.getElementById('grupoTituloCurso').classList.add('hidden');
-    document.getElementById('grupoFacultadDepartamento').classList.add('hidden');
-    document.getElementById('grupoInstructor').classList.add('hidden');
-    document.getElementById('grupoMateria').classList.add('hidden');
-    document.getElementById('grupoTema').classList.add('hidden');
-    document.getElementById('grupoCalificacion').classList.add('hidden');
-    document.getElementById('grupoMotivo').classList.add('hidden');
-    document.getElementById('grupoSugerencias').classList.add('hidden');
-    document.getElementById('btnEnviar').classList.add('hidden');
-    formularioEnviandose = false;
-    
-    setTimeout(() => {
-      location.reload();
-    }, 3000);
-  } catch (error) {
-    mostrarMensaje('mensajeFormulario', ConsultasPublicas.interpretarError(error, 'No se pudo enviar el formulario'), 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    btnEnviar.style.opacity = '1';
-    btnEnviar.style.cursor = 'pointer';
-  }
+  await ejecutarEnvioConReintentos({
+    clave: claveEnvio,
+    datos: datos,
+    huellaDatos: huellaDatos,
+    fechaISO: fechaISO,
+    boton: btnEnviar,
+    textoBotonEnviando: 'Enviando...',
+    textoBotonOriginal: 'Enviar Formulario',
+    contenedorMensaje: 'mensajeFormulario',
+    contextoError: 'No se pudo enviar el formulario',
+    enviar: async function () {
+      return await ConsultasPublicas.insertar('formularios', datos, {
+        retorno: 'minimal',
+        intentos: 1
+      });
+    },
+    verificarYaRegistrado: async function () {
+      return await ConsultasPublicas.consultarUno('formularios', {
+        select: 'id,documento,fecha',
+        eq: [
+          { field: 'documento', value: datos.documento },
+          { field: 'fecha', value: datos.fecha }
+        ]
+      });
+    },
+    alExito: finalizarExitoFormularioPMA
+  });
 }
 
 function cerrarSesion() {
@@ -1172,8 +1177,6 @@ if ('scrollRestoration' in window.history) {
 // FUNCIONES DE PAGINACIÓN
 // ===================================
 function validarPagina1() {
-  const tipoAcompanamientoEl = document.getElementById('tipoAcompanamiento');
-  const tituloCursoEl = document.getElementById('tituloCurso');
   const sedeTutoriaEl = document.getElementById('sedeTutoria');
   const tipoInstructorEl = document.getElementById('tipoInstructor');
   const facultadDepartamentoEl = document.getElementById('facultadDepartamento');
@@ -1184,17 +1187,8 @@ function validarPagina1() {
   const otroTemaEl = document.getElementById('otroTema');
   const motivoConsultaEl = document.getElementById('motivoConsulta');
 
-  const tipoAcompanamiento = tipoAcompanamientoEl.value;
   const tipoInstructor = tipoInstructorEl.value;
   const asignatura = asignaturaEl.value;
-
-  if (!tipoAcompanamiento) {
-    return { valido: false, mensaje: 'Por favor seleccione un tipo de acompañamiento', elemento: tipoAcompanamientoEl };
-  }
-
-  if (tipoAcompanamiento === 'Curso y/o capacitación' && !tituloCursoEl.value.trim()) {
-    return { valido: false, mensaje: 'Por favor ingrese el título del curso/capacitación', elemento: tituloCursoEl };
-  }
 
   if (!sedeTutoriaEl.value) {
     return { valido: false, mensaje: 'Por favor seleccione una sede', elemento: sedeTutoriaEl };

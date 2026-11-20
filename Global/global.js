@@ -17,6 +17,9 @@ const datosCache = {
   materias: [],
   temas: []
 };
+if (typeof window !== 'undefined') {
+  window.datosCache = datosCache;
+}
 
 // Caché de elementos DOM frecuentemente accedidos
 const elementosDOM = {
@@ -254,6 +257,7 @@ function escaparHTML(texto) {
   return String(texto ?? '')
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
@@ -867,18 +871,426 @@ async function verificarRestriccionesEnvio(restricciones) {
 // 7. FACULTADES, PROGRAMAS Y SELECTS
 // ===================================
 let facultadesData = {};
+let facultadesProgramasData = {};
+
+const _catalogoAcademicoEstado = {
+  cargado: false,
+  actualizadoEn: 0,
+  facultades: [],
+  programas: [],
+  porProgramaId: new Map(),
+  porProgramaNombre: new Map(),
+  porFacultadId: new Map(),
+  porFacultadNombre: new Map()
+};
+
+function normalizarTextoCatalogoAcademico(valor) {
+  return String(valor ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizarClaveCatalogoAcademico(valor) {
+  return normalizarTextoCatalogoAcademico(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+}
+
+function normalizarIdCatalogoAcademico(valor) {
+  if (valor === undefined || valor === null) return null;
+  if (typeof valor === 'number') {
+    return Number.isFinite(valor) ? valor : null;
+  }
+  const texto = String(valor).trim();
+  if (!texto) return null;
+  if (/^\d+$/.test(texto)) {
+    const numero = Number(texto);
+    if (Number.isSafeInteger(numero)) return numero;
+  }
+  return texto;
+}
+
+function _crearResultadoProgramaYFacultad(programaId, programa, facultadId, facultad) {
+  return {
+    programa_id: normalizarIdCatalogoAcademico(programaId),
+    programa: normalizarTextoCatalogoAcademico(programa),
+    facultad_id: normalizarIdCatalogoAcademico(facultadId),
+    facultad: normalizarTextoCatalogoAcademico(facultad)
+  };
+}
+
+function _primerObjetoRelacion(valor) {
+  if (Array.isArray(valor)) {
+    for (let i = 0; i < valor.length; i++) {
+      if (valor[i] && typeof valor[i] === 'object' && !Array.isArray(valor[i])) {
+        return valor[i];
+      }
+    }
+    return null;
+  }
+  return valor && typeof valor === 'object' ? valor : null;
+}
+
+function _reiniciarIndicesCatalogoAcademico() {
+  facultadesData = {};
+  facultadesProgramasData = {};
+  _catalogoAcademicoEstado.facultades = [];
+  _catalogoAcademicoEstado.programas = [];
+  _catalogoAcademicoEstado.porProgramaId.clear();
+  _catalogoAcademicoEstado.porProgramaNombre.clear();
+  _catalogoAcademicoEstado.porFacultadId.clear();
+  _catalogoAcademicoEstado.porFacultadNombre.clear();
+}
 
 function procesarFacultadesData() {
-  facultadesData = {};
+  _reiniciarIndicesCatalogoAcademico();
 
-  for (const item of datosCache.facultadesCarreras) {
-    const facultadNombre = item.nombre;
-    if (!facultadNombre) continue;
-    const listaProgramas = Array.isArray(item.programas)
-      ? item.programas.map(p => p.nombre).filter(Boolean)
-      : [];
-    facultadesData[facultadNombre] = [...new Set(listaProgramas)];
+  const listaOrigen = Array.isArray(datosCache.facultadesCarreras) ? datosCache.facultadesCarreras : [];
+  const programasGlobales = [];
+  const idsProgramasGlobalesVistos = new Set();
+
+  for (const item of listaOrigen) {
+    if (!item || typeof item !== 'object') continue;
+
+    const facultadId = normalizarIdCatalogoAcademico(item.id);
+    const facultadNombre = normalizarTextoCatalogoAcademico(item.nombre);
+    const claveFac = normalizarClaveCatalogoAcademico(facultadNombre);
+
+    if (facultadId !== null && facultadNombre) {
+      const infoFac = { facultad_id: facultadId, facultad: facultadNombre };
+      _catalogoAcademicoEstado.porFacultadId.set(String(facultadId), infoFac);
+      if (claveFac && !_catalogoAcademicoEstado.porFacultadNombre.has(claveFac)) {
+        _catalogoAcademicoEstado.porFacultadNombre.set(claveFac, infoFac);
+      }
+    } else if (claveFac && !_catalogoAcademicoEstado.porFacultadNombre.has(claveFac)) {
+      _catalogoAcademicoEstado.porFacultadNombre.set(claveFac, {
+        facultad_id: facultadId,
+        facultad: facultadNombre
+      });
+    }
+
+    if (facultadNombre) {
+      _catalogoAcademicoEstado.facultades.push({
+        id: facultadId,
+        nombre: facultadNombre
+      });
+    }
+
+    const programasRaw = Array.isArray(item.programas)
+      ? item.programas
+      : (item.programas && typeof item.programas === 'object' ? [item.programas] : []);
+
+    const listaNombres = [];
+    const listaObjetos = [];
+    const idsVistosFac = new Set();
+
+    for (const p of programasRaw) {
+      if (!p || !p.nombre) continue;
+      const nombreProg = normalizarTextoCatalogoAcademico(p.nombre);
+      if (!nombreProg) continue;
+
+      const progId = normalizarIdCatalogoAcademico(p.id);
+      const facIdProg = normalizarIdCatalogoAcademico(p.facultad_id ?? facultadId);
+      const infoNormalizada = _crearResultadoProgramaYFacultad(
+        progId,
+        nombreProg,
+        facIdProg,
+        facultadNombre
+      );
+
+      if (infoNormalizada.programa_id !== null) {
+        _catalogoAcademicoEstado.porProgramaId.set(String(infoNormalizada.programa_id), infoNormalizada);
+      }
+
+      const claveProg = normalizarClaveCatalogoAcademico(nombreProg);
+      if (claveProg) {
+        if (!_catalogoAcademicoEstado.porProgramaNombre.has(claveProg)) {
+          _catalogoAcademicoEstado.porProgramaNombre.set(claveProg, []);
+        }
+        _catalogoAcademicoEstado.porProgramaNombre.get(claveProg).push(infoNormalizada);
+      }
+
+      const claveGlobal = infoNormalizada.programa_id !== null
+        ? 'id:' + String(infoNormalizada.programa_id)
+        : 'nom:' + claveProg + '|fac:' + claveFac;
+      if (!idsProgramasGlobalesVistos.has(claveGlobal)) {
+        idsProgramasGlobalesVistos.add(claveGlobal);
+        programasGlobales.push({
+          id: infoNormalizada.programa_id,
+          nombre: infoNormalizada.programa,
+          facultad_id: infoNormalizada.facultad_id,
+          facultad: infoNormalizada.facultad
+        });
+      }
+
+      if (!facultadNombre) continue;
+      listaNombres.push(nombreProg);
+
+      if (infoNormalizada.programa_id !== null) {
+        const claveId = String(infoNormalizada.programa_id);
+        if (!idsVistosFac.has(claveId)) {
+          idsVistosFac.add(claveId);
+          listaObjetos.push({
+            id: infoNormalizada.programa_id,
+            nombre: nombreProg,
+            facultad_id: infoNormalizada.facultad_id,
+            facultad: facultadNombre
+          });
+        }
+      }
+    }
+
+    if (facultadNombre) {
+      facultadesData[facultadNombre] = [...new Set(listaNombres)];
+      facultadesProgramasData[facultadNombre] = listaObjetos.sort((a, b) =>
+        a.nombre.localeCompare(b.nombre, 'es')
+      );
+    }
   }
+
+  _catalogoAcademicoEstado.facultades.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  _catalogoAcademicoEstado.programas = programasGlobales.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+function sincronizarCatalogoProgramasYFacultades(listaFacultades) {
+  datosCache.facultadesCarreras = Array.isArray(listaFacultades) ? listaFacultades : [];
+  procesarFacultadesData();
+  _catalogoAcademicoEstado.cargado = true;
+  _catalogoAcademicoEstado.actualizadoEn = Date.now();
+}
+
+function limpiarCatalogoProgramasYFacultades() {
+  datosCache.facultadesCarreras = [];
+  _reiniciarIndicesCatalogoAcademico();
+  _catalogoAcademicoEstado.cargado = false;
+  _catalogoAcademicoEstado.actualizadoEn = 0;
+}
+
+function estaCatalogoProgramasCargado() {
+  return Boolean(
+    _catalogoAcademicoEstado.cargado &&
+    Array.isArray(datosCache.facultadesCarreras) &&
+    datosCache.facultadesCarreras.length > 0
+  );
+}
+
+function _asegurarIndiceCatalogoSiExisteCache() {
+  if (
+    _catalogoAcademicoEstado.porProgramaId.size === 0 &&
+    _catalogoAcademicoEstado.porProgramaNombre.size === 0 &&
+    Array.isArray(datosCache.facultadesCarreras) &&
+    datosCache.facultadesCarreras.length > 0
+  ) {
+    procesarFacultadesData();
+  }
+}
+
+function obtenerFacultadesCatalogo() {
+  _asegurarIndiceCatalogoSiExisteCache();
+  return _catalogoAcademicoEstado.facultades.map(f => ({ id: f.id, nombre: f.nombre }));
+}
+
+function obtenerProgramasCatalogo() {
+  _asegurarIndiceCatalogoSiExisteCache();
+  return _catalogoAcademicoEstado.programas.map(p => ({
+    id: p.id,
+    nombre: p.nombre,
+    facultad_id: p.facultad_id,
+    facultad: p.facultad
+  }));
+}
+
+function obtenerFacultadCatalogoPorNombre(nombreFacultad) {
+  _asegurarIndiceCatalogoSiExisteCache();
+  const clave = normalizarClaveCatalogoAcademico(nombreFacultad);
+  if (!clave) return null;
+  const fac = _catalogoAcademicoEstado.porFacultadNombre.get(clave);
+  return fac ? { id: fac.facultad_id, nombre: fac.facultad } : null;
+}
+
+function _buscarProgramaEnCatalogoPorNombre(nombrePrograma, facultadIdReferencia, facultadNombreReferencia) {
+  _asegurarIndiceCatalogoSiExisteCache();
+  const claveProg = normalizarClaveCatalogoAcademico(nombrePrograma);
+  if (!claveProg) return null;
+
+  const candidatos = _catalogoAcademicoEstado.porProgramaNombre.get(claveProg);
+  if (!candidatos || candidatos.length === 0) return null;
+  if (candidatos.length === 1) return candidatos[0];
+
+  const facIdNorm = normalizarIdCatalogoAcademico(facultadIdReferencia);
+  if (facIdNorm !== null) {
+    const porId = candidatos.find(c => String(c.facultad_id) === String(facIdNorm));
+    if (porId) return porId;
+  }
+
+  const claveFac = normalizarClaveCatalogoAcademico(facultadNombreReferencia);
+  if (claveFac) {
+    const porFacNombre = candidatos.find(c => normalizarClaveCatalogoAcademico(c.facultad) === claveFac);
+    if (porFacNombre) return porFacNombre;
+  }
+
+  return candidatos[0];
+}
+
+function _resolverRegistroIndividual(fuente) {
+  if (!fuente || typeof fuente !== 'object') {
+    return _crearResultadoProgramaYFacultad(null, '', null, '');
+  }
+
+  _asegurarIndiceCatalogoSiExisteCache();
+
+  // 1. Prioridad 1: relación embebida (programas / facultades, objeto o arreglo)
+  const progRel = _primerObjetoRelacion(fuente.programas);
+  const facRel = _primerObjetoRelacion(progRel ? progRel.facultades : null) ||
+    _primerObjetoRelacion(fuente.facultades);
+
+  let programaId = normalizarIdCatalogoAcademico(progRel ? progRel.id : null);
+  if (programaId === null) {
+    programaId = normalizarIdCatalogoAcademico(fuente.programa_id);
+  }
+
+  let nombrePrograma = normalizarTextoCatalogoAcademico(progRel ? progRel.nombre : '');
+
+  let facultadId = normalizarIdCatalogoAcademico(facRel ? facRel.id : null);
+  if (facultadId === null && progRel) {
+    facultadId = normalizarIdCatalogoAcademico(progRel.facultad_id);
+  }
+  if (facultadId === null) {
+    facultadId = normalizarIdCatalogoAcademico(fuente.facultad_id);
+  }
+
+  let nombreFacultad = normalizarTextoCatalogoAcademico(facRel ? facRel.nombre : '');
+
+  // 2. Prioridad 2: catálogo centralizado por ID (programa_id / facultad_id)
+  if (programaId !== null && (!nombrePrograma || !nombreFacultad || facultadId === null)) {
+    const encontradoPorId = _catalogoAcademicoEstado.porProgramaId.get(String(programaId));
+    if (encontradoPorId) {
+      if (!nombrePrograma && encontradoPorId.programa) {
+        nombrePrograma = encontradoPorId.programa;
+      }
+      if (facultadId === null && encontradoPorId.facultad_id !== null) {
+        facultadId = encontradoPorId.facultad_id;
+      }
+      if (!nombreFacultad && encontradoPorId.facultad) {
+        nombreFacultad = encontradoPorId.facultad;
+      }
+    }
+  }
+
+  if (!nombreFacultad && facultadId !== null) {
+    const facPorId = _catalogoAcademicoEstado.porFacultadId.get(String(facultadId));
+    if (facPorId && facPorId.facultad) {
+      nombreFacultad = facPorId.facultad;
+    }
+  }
+
+  // 3. Prioridad 3: campos planos / históricos + cruce con catálogo por nombre normalizado
+  const programaPlano = normalizarTextoCatalogoAcademico(
+    fuente.programa ?? fuente.programa_estudiante ?? fuente.programa_nombre ?? fuente.nombre_programa
+  );
+  const facultadPlano = normalizarTextoCatalogoAcademico(
+    fuente.facultad ?? fuente.facultad_estudiante ?? fuente.facultad_nombre ?? fuente.nombre_facultad
+  );
+
+  if (programaPlano) {
+    const encontradoPorNombre = _buscarProgramaEnCatalogoPorNombre(programaPlano, facultadId, facultadPlano);
+    if (encontradoPorNombre) {
+      if (programaId === null) {
+        programaId = encontradoPorNombre.programa_id;
+      }
+      if (!nombrePrograma) {
+        nombrePrograma = encontradoPorNombre.programa;
+      }
+      if (facultadId === null) {
+        facultadId = encontradoPorNombre.facultad_id;
+      }
+      if (!nombreFacultad && encontradoPorNombre.facultad) {
+        nombreFacultad = encontradoPorNombre.facultad;
+      }
+    } else if (!nombrePrograma) {
+      nombrePrograma = programaPlano;
+    }
+  }
+
+  if (nombrePrograma && (!nombreFacultad || programaId === null || facultadId === null)) {
+    const encontradoPorNombreResuelto = _buscarProgramaEnCatalogoPorNombre(
+      nombrePrograma,
+      facultadId,
+      facultadPlano
+    );
+    if (encontradoPorNombreResuelto) {
+      if (programaId === null) {
+        programaId = encontradoPorNombreResuelto.programa_id;
+      }
+      if (facultadId === null) {
+        facultadId = encontradoPorNombreResuelto.facultad_id;
+      }
+      if (!nombreFacultad && encontradoPorNombreResuelto.facultad) {
+        nombreFacultad = encontradoPorNombreResuelto.facultad;
+      }
+    }
+  }
+
+  if (!nombreFacultad && facultadPlano) {
+    const claveFacPlano = normalizarClaveCatalogoAcademico(facultadPlano);
+    const facPorNombre = claveFacPlano ? _catalogoAcademicoEstado.porFacultadNombre.get(claveFacPlano) : null;
+    if (facPorNombre) {
+      if (facultadId === null) {
+        facultadId = facPorNombre.facultad_id;
+      }
+      nombreFacultad = facPorNombre.facultad;
+    } else {
+      nombreFacultad = facultadPlano;
+    }
+  } else if (nombreFacultad && facultadId === null) {
+    const claveFacResuelta = normalizarClaveCatalogoAcademico(nombreFacultad);
+    const facPorNombre = claveFacResuelta ? _catalogoAcademicoEstado.porFacultadNombre.get(claveFacResuelta) : null;
+    if (facPorNombre && facPorNombre.facultad_id !== null) {
+      facultadId = facPorNombre.facultad_id;
+    }
+  }
+
+  return _crearResultadoProgramaYFacultad(programaId, nombrePrograma, facultadId, nombreFacultad);
+}
+
+function resolverProgramaYFacultad(registro) {
+  const base = _primerObjetoRelacion(registro);
+  if (!base) {
+    return _crearResultadoProgramaYFacultad(null, '', null, '');
+  }
+
+  const resBase = _resolverRegistroIndividual(base);
+
+  if (base.estudiantes !== undefined && base.estudiantes !== null) {
+    const est = _primerObjetoRelacion(base.estudiantes);
+    if (est) {
+      const necesitaCompletar =
+        resBase.programa_id === null ||
+        !resBase.programa ||
+        resBase.facultad_id === null ||
+        !resBase.facultad;
+
+      if (necesitaCompletar) {
+        const resEst = _resolverRegistroIndividual(est);
+        const combinada = {
+          programa_id: resBase.programa_id !== null ? resBase.programa_id : resEst.programa_id,
+          programa: resBase.programa || resEst.programa,
+          facultad_id: resBase.facultad_id !== null ? resBase.facultad_id : resEst.facultad_id,
+          facultad: resBase.facultad || resEst.facultad
+        };
+        if (combinada.programa && (!combinada.facultad || combinada.programa_id === null || combinada.facultad_id === null)) {
+          return _resolverRegistroIndividual(combinada);
+        }
+        return _crearResultadoProgramaYFacultad(
+          combinada.programa_id,
+          combinada.programa,
+          combinada.facultad_id,
+          combinada.facultad
+        );
+      }
+    }
+  }
+
+  return resBase;
 }
 
 function _llenarOpcionesSelect(select, primeraOpcion, items) {
@@ -892,38 +1304,94 @@ function _llenarOpcionesSelect(select, primeraOpcion, items) {
 
   for (const item of items) {
     const option = document.createElement('option');
-    option.value = item;
-    option.textContent = item;
+    if (item && typeof item === 'object') {
+      option.value = String(item.id ?? item.value ?? '');
+      option.textContent = String(item.nombre ?? item.text ?? '');
+      if (item.facultad) {
+        option.dataset.facultad = item.facultad;
+      }
+      if (item.facultad_id !== undefined && item.facultad_id !== null) {
+        option.dataset.facultadId = String(item.facultad_id);
+      }
+    } else {
+      option.value = item;
+      option.textContent = item;
+    }
     fragment.appendChild(option);
   }
 
   select.appendChild(fragment);
 }
 
-function cargarFacultadesCascada(idSelectFacultad, idSelectPrograma) {
+function _encontrarValorSelectTolerante(select, valorBuscado) {
+  if (!select || valorBuscado === undefined || valorBuscado === null) return '';
+  const textoBuscado = normalizarTextoCatalogoAcademico(valorBuscado);
+  if (!textoBuscado) return '';
+
+  const claveBuscada = normalizarClaveCatalogoAcademico(textoBuscado);
+  let coincidenciaNormalizada = '';
+
+  for (let i = 0; i < select.options.length; i++) {
+    const opt = select.options[i];
+    if (!opt || opt.value === '') continue;
+    if (opt.value === textoBuscado || opt.textContent.trim() === textoBuscado) {
+      return opt.value;
+    }
+    if (
+      !coincidenciaNormalizada &&
+      (normalizarClaveCatalogoAcademico(opt.value) === claveBuscada ||
+        normalizarClaveCatalogoAcademico(opt.textContent) === claveBuscada)
+    ) {
+      coincidenciaNormalizada = opt.value;
+    }
+  }
+
+  return coincidenciaNormalizada;
+}
+
+function cargarFacultadesCascada(idSelectFacultad, idSelectPrograma, opciones) {
   const selectFacultad = document.getElementById(idSelectFacultad);
   if (!selectFacultad) return;
 
-  const facultades = Object.keys(facultadesData).sort((a, b) => a.localeCompare(b));
-  _llenarOpcionesSelect(selectFacultad, 'Seleccione una facultad', facultades);
+  const op = opciones || {};
+  const primeraOpcionFac = op.primeraOpcionFacultad || 'Seleccione una facultad';
+  const facultades = Object.keys(facultadesData).sort((a, b) => a.localeCompare(b, 'es'));
+  _llenarOpcionesSelect(selectFacultad, primeraOpcionFac, facultades);
 
-  cargarProgramasCascada(idSelectFacultad, idSelectPrograma);
+  if (op.facultadSeleccionada) {
+    const matchFac = _encontrarValorSelectTolerante(selectFacultad, op.facultadSeleccionada);
+    if (matchFac) {
+      selectFacultad.value = matchFac;
+    }
+  }
+
+  if (document.getElementById(idSelectPrograma)) {
+    cargarProgramasCascada(idSelectFacultad, idSelectPrograma, op);
+  }
 }
 
-function cargarProgramasCascada(idSelectFacultad, idSelectPrograma) {
+function cargarProgramasCascada(idSelectFacultad, idSelectPrograma, opciones) {
   const selectFacultad = document.getElementById(idSelectFacultad);
   const selectPrograma = document.getElementById(idSelectPrograma);
   if (!selectFacultad || !selectPrograma) return;
 
+  const op = opciones || {};
   const facultad = selectFacultad.value;
 
   if (!facultad) {
-    _llenarOpcionesSelect(selectPrograma, 'Seleccione primero una facultad', []);
+    _llenarOpcionesSelect(
+      selectPrograma,
+      op.primeraOpcionSinFacultad || 'Seleccione primero una facultad',
+      []
+    );
     selectPrograma.disabled = true;
     return;
   }
 
-  const programas = [...(facultadesData[facultad] || [])].sort((a, b) => a.localeCompare(b));
+  const usarId = Boolean(op.usarId || selectPrograma.dataset.usarId === 'true');
+  const programas = usarId
+    ? [...(facultadesProgramasData[facultad] || [])].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    : [...(facultadesData[facultad] || [])].sort((a, b) => a.localeCompare(b, 'es'));
 
   if (programas.length === 0) {
     _llenarOpcionesSelect(selectPrograma, 'No hay programas disponibles para esta facultad', []);
@@ -931,8 +1399,15 @@ function cargarProgramasCascada(idSelectFacultad, idSelectPrograma) {
     return;
   }
 
-  _llenarOpcionesSelect(selectPrograma, 'Seleccione un programa', programas);
+  _llenarOpcionesSelect(selectPrograma, op.primeraOpcionPrograma || 'Seleccione un programa', programas);
   selectPrograma.disabled = false;
+
+  if (op.programaSeleccionado) {
+    const matchProg = _encontrarValorSelectTolerante(selectPrograma, op.programaSeleccionado);
+    if (matchProg) {
+      selectPrograma.value = matchProg;
+    }
+  }
 }
 
 function poblarSelect(selectElement, datos, opciones = {}) {
@@ -945,7 +1420,13 @@ function poblarSelect(selectElement, datos, opciones = {}) {
     opcionExtra = null
   } = opciones;
 
-  selectElement.innerHTML = primeraOpcion ? `<option value="">${primeraOpcion}</option>` : '';
+  selectElement.textContent = '';
+  if (primeraOpcion) {
+    const opcionDefault = document.createElement('option');
+    opcionDefault.value = '';
+    opcionDefault.textContent = primeraOpcion;
+    selectElement.appendChild(opcionDefault);
+  }
 
   if (!datos || datos.length === 0) return;
 

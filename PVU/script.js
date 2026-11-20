@@ -11,32 +11,52 @@ actualizarFechaHora();
 setInterval(actualizarFechaHora, 1000); // Se actualiza cada segundo
 
 // obtenerFechaISOColombia(), obtenerDiaSemanaColombia(), obtenerJornadaColombia(),
-// limpiarEspacios(), compararDocumentos(), verificarRestriccionEnvio() — funciones globales definidas en ../Global/global.js
-ConsultasPublicas.poblarSelectProgramasPlana('programa').catch(function (err) {
+// normalizarNombre(), limpiarEspacios(), compararDocumentos(), verificarRestriccionEnvio() — funciones globales definidas en ../Global/global.js
+ConsultasPublicas.poblarSelectProgramasPorId('programa').catch(function (err) {
   console.error('[PVU] Error precargando programas:', err);
 });
+
+function obtenerProgramaIdSeleccionado() {
+  const programaSelect = document.getElementById('programa');
+  const valor = (programaSelect && programaSelect.value ? String(programaSelect.value) : '').trim();
+  if (!valor) return null;
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero > 0 ? numero : null;
+}
+
+function normalizarCamposTextoPVU() {
+  const nombresInput = document.getElementById('nombres');
+  const apellidosInput = document.getElementById('apellidos');
+  const comentarioTextarea = document.getElementById('comentario');
+
+  const nombres = nombresInput ? normalizarNombre(nombresInput.value) : '';
+  const apellidos = apellidosInput ? normalizarNombre(apellidosInput.value) : '';
+  if (nombresInput) nombresInput.value = nombres;
+  if (apellidosInput) apellidosInput.value = apellidos;
+
+  let comentario = '';
+  if (comentarioTextarea) {
+    comentarioTextarea.value = comentarioTextarea.value
+      .replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9 ,.\-]/g, '')
+      .toUpperCase();
+    limpiarEspacios(comentarioTextarea);
+    comentario = comentarioTextarea.value.trim();
+  }
+
+  return { nombres, apellidos, comentario };
+}
 
 // Función para obtener los datos del formulario
 function obtenerDatosFormulario() {
   const documentoInput = document.getElementById('documento');
-  const nombresInput = document.getElementById('nombres');
-  const apellidosInput = document.getElementById('apellidos');
-  const programaSelect = document.getElementById('programa');
-  const comentarioTextarea = document.getElementById('comentario');
   const satisfaccion = document.querySelector('input[name="satisfaccion"]:checked')?.value;
 
-  // Limpiar espacios en todos los campos antes de enviar
+  // Limpiar y normalizar campos antes de empaquetar (garantiza integridad aunque no haya blur)
   limpiarEspacios(documentoInput);
-  limpiarEspacios(nombresInput);
-  limpiarEspacios(apellidosInput);
-  limpiarEspacios(comentarioTextarea);
-  
-  // Obtener valores después de limpiar
-  const documento = documentoInput.value.trim();
-  let nombres = nombresInput.value.trim();
-  let apellidos = apellidosInput.value.trim();
-  let comentarioLimpio = comentarioTextarea.value.trim();
+  const { nombres, apellidos, comentario: comentarioLimpio } = normalizarCamposTextoPVU();
 
+  // Obtener valores después de normalizar
+  const documento = documentoInput.value.trim();
 
   // Unificar Nombres y Apellidos en un solo campo: APELLIDO(S) + NOMBRE(S)
   const nombreCompleto = `${apellidos} ${nombres}`.replace(/\s+/g, ' ').trim();
@@ -52,13 +72,34 @@ return {
   fechaAsistenciaMayus,
   satisfaccion: parseInt(satisfaccion),
   comentarioLimpio,
-  programa: programaSelect.value
+  programa_id: obtenerProgramaIdSeleccionado()
 };
 }
 
-// Función para registrar la asistencia en Supabase
-async function registrarAsistenciaPVU(datos) {
+function finalizarExitoPVU(claveEnvio) {
+  if (claveEnvio) {
+    ReintentosEnvio.limpiarEnvioIncierto(claveEnvio);
+  }
   const btnEnviar = document.getElementById('btnEnviar');
+  const mensajeEl = document.getElementById('mensajeFormulario');
+  if (mensajeEl) mensajeEl.textContent = '';
+
+  mostrarModalExito();
+
+  setTimeout(() => {
+    document.getElementById('formPVU').reset();
+    document.getElementById('errorDocumento').style.display = 'none';
+    manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
+    regresarABienvenida();
+  }, 2000);
+}
+
+// Función para registrar la asistencia en Supabase utilizando la lógica global de reintentos
+async function registrarAsistenciaPVU(datos, opcionesEnvio = {}) {
+  const btnEnviar = document.getElementById('btnEnviar');
+  const claveEnvio = opcionesEnvio.claveEnvio || ('pvu:formulario:' + datos.documento);
+  const huellaDatos = opcionesEnvio.huellaDatos || [datos.documento, datos.programa_id ?? datos.programa ?? '', datos.satisfaccion].join('|');
+  const fechaISO = opcionesEnvio.fechaISO || ReintentosEnvio.obtenerFechaEnvioIdempotente(claveEnvio, huellaDatos, obtenerFechaISOColombia);
 
   const datosEnvio = {
     documento: datos.documento,
@@ -67,23 +108,39 @@ async function registrarAsistenciaPVU(datos) {
     fecha_asistencia: datos.fechaAsistenciaMayus,
     satisfaccion: datos.satisfaccion,
     comentario: datos.comentarioLimpio,
-    programa: datos.programa,
-    fecha: obtenerFechaISOColombia()
+    programa_id: datos.programa_id,
+    fecha: fechaISO
   };
 
-  await ConsultasPublicas.insertar('pvu', datosEnvio, { retorno: 'minimal', intentos: 1 });
-
-  mostrarModalExito();
-
-  setTimeout(() => {
-    document.getElementById('formPVU').reset();
-    document.getElementById('errorDocumento').style.display = 'none';
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-    regresarABienvenida();
-  }, 2000);
-
-  return true;
+  return await ejecutarEnvioConReintentos({
+    clave: claveEnvio,
+    datos: datosEnvio,
+    huellaDatos: huellaDatos,
+    fechaISO: fechaISO,
+    boton: btnEnviar,
+    textoBotonEnviando: 'Enviando...',
+    textoBotonOriginal: 'Enviar Formulario',
+    contenedorMensaje: 'mensajeFormulario',
+    contextoError: 'Error al enviar el formulario',
+    enviar: async function () {
+      return await ConsultasPublicas.insertar('pvu', datosEnvio, {
+        retorno: 'minimal',
+        intentos: 1
+      });
+    },
+    verificarYaRegistrado: async function () {
+      return await ConsultasPublicas.consultarUno('pvu', {
+        select: 'id,documento,fecha',
+        eq: [
+          { field: 'documento', value: datosEnvio.documento },
+          { field: 'fecha', value: datosEnvio.fecha }
+        ]
+      });
+    },
+    alExito: function () {
+      finalizarExitoPVU(claveEnvio);
+    }
+  });
 }
 
 // Función para enviar el formulario
@@ -101,11 +158,9 @@ async function enviarFormulario(event) {
   const comentarioTextarea = document.getElementById('comentario');
   const satisfaccionRadio = document.querySelector('input[name="satisfaccion"]:checked');
 
-  // Limpiar espacios en todos los campos antes de validar
+  // Limpiar espacios y garantizar normalización de texto antes de validar
   limpiarEspacios(documentoInput);
-  limpiarEspacios(nombresInput);
-  limpiarEspacios(apellidosInput);
-  limpiarEspacios(comentarioTextarea);
+  normalizarCamposTextoPVU();
   
   // Validación de todos los campos mediante lista de reglas
   const reglasValidacion = [
@@ -137,7 +192,7 @@ async function enviarFormulario(event) {
       elemento: () => apellidosInput
     },
     {
-      valido: () => !!programaSelect.value,
+      valido: () => obtenerProgramaIdSeleccionado() !== null,
       mensaje: 'Por favor seleccione su programa académico',
       elemento: () => programaSelect
     },
@@ -173,9 +228,14 @@ async function enviarFormulario(event) {
   }
 
 
-    // Deshabilitar botón mientras se verifica y se envía
-  btnEnviar.disabled = true;
-  btnEnviar.textContent = 'Verificando...';
+  const claveEnvio = 'pvu:formulario:' + datos.documento;
+  const huellaDatos = [datos.documento, datos.programa_id, datos.satisfaccion].join('|');
+  const previoIncierto = ReintentosEnvio.obtenerEnvioIncierto(claveEnvio);
+  const fechaISO = ReintentosEnvio.obtenerFechaEnvioIdempotente(claveEnvio, huellaDatos, obtenerFechaISOColombia);
+
+  // Deshabilitar botón mientras se verifica y se envía
+  manejarEstadoBoton(btnEnviar, true, 'Verificando...');
+  mostrarCargando('mensajeFormulario');
 
   // Validar restricción general de envío (5 horas) mediante Global/global.js
   const verificacion = await verificarRestriccionEnvio({
@@ -187,22 +247,23 @@ async function enviarFormulario(event) {
   });
 
   if (!verificacion.puedeRegistrar) {
+    // Si el registro encontrado corresponde exactamente a un intento incierto previo de este mismo envío,
+    // significa que el servidor sí lo había recibido y guardado antes de interrumpirse la conexión.
+    if (previoIncierto && verificacion.registro && verificacion.registro.fecha === previoIncierto.fechaISO) {
+      finalizarExitoPVU(claveEnvio);
+      return;
+    }
+
     mostrarMensaje(verificacion.mensaje, 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
+    manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
     return;
   }
 
-  btnEnviar.textContent = 'Enviando...';
-
-  try {
-    await registrarAsistenciaPVU(datos);
-  } catch (error) {
-    console.error('Error al enviar formulario PVU:', error);
-    mostrarMensaje(ConsultasPublicas.interpretarError(error, 'Error al enviar el formulario'), 'error');
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-  }
+  await registrarAsistenciaPVU(datos, {
+    claveEnvio: claveEnvio,
+    huellaDatos: huellaDatos,
+    fechaISO: fechaISO
+  });
 }
 
 // scrollToError(), mostrarMensaje(), mostrarFormulario(), regresarABienvenida(),

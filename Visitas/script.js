@@ -17,6 +17,26 @@ let becarioSeleccionado = null;
 let registrosSede = [];        // filas de registro_visitas_{sede} (solo Asignada / Realizada)
 let tutoresSede = [];          // filas de tutores_{sede}
 let visitaSeleccionada = null; // fila de registro que se está diligenciando / eliminando
+let registroVisitaEnProceso = false;
+let temporizadorPostRegistro = null;
+
+function establecerBloqueoFormularioVisita(bloqueado) {
+  const estadoBloqueo = Boolean(bloqueado);
+  registroVisitaEnProceso = estadoBloqueo;
+
+  const formVisita = document.getElementById('formVisita');
+  if (formVisita) {
+    formVisita.setAttribute('aria-busy', estadoBloqueo ? 'true' : 'false');
+    formVisita.querySelectorAll('input, select, textarea, button').forEach(control => {
+      control.disabled = estadoBloqueo;
+    });
+  }
+
+  const btnVolver = document.querySelector('#vistaFormularioVisita .visitas-btn-volver');
+  if (btnVolver) {
+    btnVolver.disabled = estadoBloqueo;
+  }
+}
 
 const ORDEN_DIAS_SEMANA = {
   lunes: 1,
@@ -48,16 +68,51 @@ document.addEventListener('DOMContentLoaded', function () {
   mostrarVista('vistaSede');
 });
 
+const CONTENEDORES_MENSAJE_VISITAS = {
+  vistaSede: 'mensajeInicio',
+  vistaBecarios: 'mensajeBecarios',
+  vistaVisitasBecario: 'mensajeVisitasBecario',
+  vistaFormularioVisita: 'mensajeFormularioVisita'
+};
+
+function limpiarMensajeVisitas(idContenedor) {
+  if (!idContenedor) return;
+  if (typeof temporizadoresMensaje !== 'undefined' && temporizadoresMensaje[idContenedor]) {
+    clearTimeout(temporizadoresMensaje[idContenedor].scroll);
+    clearTimeout(temporizadoresMensaje[idContenedor].limpiar);
+    delete temporizadoresMensaje[idContenedor];
+  }
+  const el = document.getElementById(idContenedor);
+  if (el) el.textContent = '';
+}
+
+function obtenerContenedorMensajeActivo() {
+  const vistaActiva = document.querySelector('.visitas-tab-content:not(.hidden)');
+  if (vistaActiva && CONTENEDORES_MENSAJE_VISITAS[vistaActiva.id]) {
+    return CONTENEDORES_MENSAJE_VISITAS[vistaActiva.id];
+  }
+  return 'mensajeInicio';
+}
+
 // ===================================
 // SEDE Y ÁREA
 // ===================================
 async function seleccionarSede(sede) {
+  limpiarMensajeVisitas('mensajeInicio');
+  limpiarMensajeVisitas('mensajeBecarios');
   sedeActual = sede;
+
+  try {
+    await cargarDatosSede({ contenedorMensaje: 'mensajeInicio', lanzarError: true });
+  } catch (error) {
+    sedeActual = null;
+    return;
+  }
+
   actualizarBotonesArea('M');
   document.getElementById('nombreSedeBecarios').textContent = sede.toUpperCase();
   document.getElementById('subtituloVista').textContent = `Sede ${sede.toUpperCase()}`;
 
-  await cargarDatosSede();
   renderizarListadoBecarios();
   mostrarVista('vistaBecarios');
 }
@@ -77,11 +132,16 @@ function actualizarBotonesArea(area) {
 
 function volverASede() {
   sedeActual = null;
+  limpiarMensajeVisitas('mensajeBecarios');
+  limpiarMensajeVisitas('mensajeVisitasBecario');
   document.getElementById('subtituloVista').textContent = 'Seleccione su sede';
   mostrarVista('vistaSede');
 }
 
-async function cargarDatosSede() {
+async function cargarDatosSede(opciones) {
+  const op = opciones || {};
+  const contenedorMensaje = op.contenedorMensaje || obtenerContenedorMensajeActivo();
+  const silencioso = Boolean(op.silencioso);
   mostrarLoaderInicio(true);
   try {
     const tablaCatalogo = `visitas_${sedeActual}`;
@@ -94,8 +154,15 @@ async function cargarDatosSede() {
     ]);
     registrosSede = Array.isArray(registros) ? registros : [];
     tutoresSede = Array.isArray(tutores) ? tutores : [];
+    return true;
   } catch (error) {
-    mostrarMensaje('mensajeInicio', ConsultasPublicas.interpretarError(error, 'Error al cargar los datos'), 'error');
+    if (!silencioso) {
+      mostrarMensaje(contenedorMensaje, ConsultasPublicas.interpretarError(error, 'Error al cargar los datos'), 'error');
+    }
+    if (op.lanzarError) {
+      throw error;
+    }
+    return false;
   } finally {
     mostrarLoaderInicio(false);
   }
@@ -155,6 +222,7 @@ function renderizarListadoBecarios() {
 // ===================================
 function seleccionarBecario(nombre) {
   becarioSeleccionado = nombre;
+  limpiarMensajeVisitas('mensajeVisitasBecario');
   document.getElementById('nombreBecarioSeleccionado').textContent = nombre;
   renderizarVisitasBecario();
   mostrarVista('vistaVisitasBecario');
@@ -162,6 +230,7 @@ function seleccionarBecario(nombre) {
 
 function volverABecarios() {
   becarioSeleccionado = null;
+  limpiarMensajeVisitas('mensajeVisitasBecario');
   renderizarListadoBecarios();
   mostrarVista('vistaBecarios');
 }
@@ -278,8 +347,15 @@ function renderizarVisitasBecario() {
 // FORMULARIO DE VISITA
 // ===================================
 function abrirFormularioVisita(idRegistro) {
+  if (registroVisitaEnProceso) return;
+
   visitaSeleccionada = registrosSede.find(r => r.id === idRegistro);
   if (!visitaSeleccionada) return;
+
+  if (temporizadorPostRegistro) {
+    clearTimeout(temporizadorPostRegistro);
+    temporizadorPostRegistro = null;
+  }
 
   const infoGrupo = obtenerInfoGrupo(visitaSeleccionada);
 
@@ -292,20 +368,27 @@ function abrirFormularioVisita(idRegistro) {
   `;
 
   document.getElementById('formVisita').reset();
-  document.getElementById('mensajeFormularioVisita').innerHTML = '';
+  establecerBloqueoFormularioVisita(false);
+  manejarEstadoBoton(document.getElementById('btnRegistrarVisita'), false, '', 'Registrar Visita');
+  limpiarMensajeVisitas('mensajeFormularioVisita');
   mostrarVista('vistaFormularioVisita');
 }
 
 function volverAVisitasBecario() {
+  if (registroVisitaEnProceso) return;
   visitaSeleccionada = null;
+  limpiarMensajeVisitas('mensajeFormularioVisita');
+  limpiarMensajeVisitas('mensajeVisitasBecario');
   renderizarVisitasBecario();
   mostrarVista('vistaVisitasBecario');
 }
 
 // normalizarNombre(), validarDocumentoInput(), validarDocumento(),
 // compararDocumentos(), validarCamposRequeridos(), scrollToError(),
-// obtenerFechaISOColombia(), manejarEstadoBoton(), ejecutarEnvioConReintentos()
+// obtenerFechaISOColombia(), manejarEstadoBoton()
 // — funciones globales definidas en ../Global/global.js
+// ejecutarEnvioConReintentos(), obtenerFechaEnvioIdempotente()
+// — funciones globales definidas en ../Global/reintentos.js
 
 function validarFormularioVisita() {
   const documentoVoceroInput = document.getElementById('visitaDocumentoVocero');
@@ -372,10 +455,10 @@ function validarFormularioVisita() {
   return true;
 }
 
-function obtenerDatosFormularioVisita() {
+function obtenerDatosFormularioVisita(fechaRealizacion) {
   return {
     estado: 'Realizada',
-    fecha_realizacion: obtenerFechaISOColombia(),
+    fecha_realizacion: fechaRealizacion || obtenerFechaISOColombia(),
     documento_vocero: document.getElementById('visitaDocumentoVocero').value,
     nombre_docente: normalizarNombre(document.getElementById('visitaNombreDocente').value),
     documento_docente: document.getElementById('visitaDocumentoDocente').value
@@ -384,40 +467,116 @@ function obtenerDatosFormularioVisita() {
 
 async function registrarVisita(evento) {
   evento.preventDefault();
-  if (!visitaSeleccionada) return;
+  if (registroVisitaEnProceso || !visitaSeleccionada) return;
 
   const boton = document.getElementById('btnRegistrarVisita');
+  if (boton && boton.disabled) return;
 
   if (!validarFormularioVisita()) {
     manejarEstadoBoton(boton, false, '', 'Registrar Visita');
     return;
   }
 
-  const datos = obtenerDatosFormularioVisita();
-  manejarEstadoBoton(boton, true, 'Guardando...');
+  const idVisita = visitaSeleccionada.id;
+  const grupoRegistrado = visitaSeleccionada.grupo;
+  const tablaRegistro = `registro_visitas_${sedeActual}`;
+  const claveOperacion = `visitas:registrar:${sedeActual}:${idVisita}`;
+  const fechaRealizacion = typeof obtenerFechaEnvioIdempotente === 'function'
+    ? obtenerFechaEnvioIdempotente(claveOperacion)
+    : obtenerFechaISOColombia();
+  const datos = obtenerDatosFormularioVisita(fechaRealizacion);
+
+  establecerBloqueoFormularioVisita(true);
+  let exitoRegistro = false;
 
   try {
-    await ConsultasPublicas.actualizar(
-      `registro_visitas_${sedeActual}`,
-      visitaSeleccionada.id,
+    const resultado = await ejecutarEnvioConReintentos({
+      clave: claveOperacion,
       datos,
-      { esquema: 'visitas', retorno: 'minimal' }
-    );
+      fechaISO: fechaRealizacion,
+      boton,
+      contenedorMensaje: 'mensajeFormularioVisita',
+      textoBotonEnviando: 'Guardando...',
+      textoBotonOriginal: 'Registrar Visita',
+      textoCargando: 'Guardando visita...',
+      contextoError: 'No se pudo registrar la visita',
+      mensajeReintento: (intento, maxIntentos) =>
+        `Problema temporal de conexión. Reintentando guardar visita (intento ${intento} de ${maxIntentos})...`,
+      interpretarError: (err, respaldo) => ConsultasPublicas.interpretarError(err, respaldo),
+      enviar: async () => {
+        const resActualizacion = await ConsultasPublicas.actualizar(
+          tablaRegistro,
+          idVisita,
+          datos,
+          { esquema: 'visitas', retorno: 'representation', contarFilas: true, intentos: 1 }
+        );
+        const filas = resActualizacion && Array.isArray(resActualizacion.datos)
+          ? resActualizacion.datos
+          : [];
+        const totalActualizados = resActualizacion && typeof resActualizacion.totalActualizados === 'number'
+          ? resActualizacion.totalActualizados
+          : filas.length;
 
-    const grupoRegistrado = visitaSeleccionada.grupo;
-    await cargarDatosSede();
-    mostrarModalExito('¡Visita Registrada!', `La visita del grupo ${grupoRegistrado} fue registrada correctamente.`);
+        if (totalActualizados === 0 || filas.length === 0 || filas[0]?.estado !== 'Realizada') {
+          throw new window.SupabaseMotor.ErrorConsultaSupabase(
+            'No se pudo confirmar el registro de la visita en el servidor. Es posible que la visita ya haya sido modificada o eliminada.',
+            { codigo: 'P0001', status: 409 }
+          );
+        }
 
-    setTimeout(() => {
-      visitaSeleccionada = null;
-      renderizarVisitasBecario();
-      mostrarVista('vistaVisitasBecario');
-    }, 2200);
+        return filas[0];
+      },
+      verificarYaRegistrado: async () => {
+        const fila = await ConsultasPublicas.consultarUno(tablaRegistro, {
+          select: 'id,estado',
+          eq: { field: 'id', value: idVisita },
+          intentos: 1
+        }, 'visitas');
+        return fila && fila.estado === 'Realizada' ? fila : null;
+      },
+      alExito: async () => {
+        exitoRegistro = true;
+        registrosSede = registrosSede.map(r => (
+          r.id === idVisita ? Object.assign({}, r, datos) : r
+        ));
 
-  } catch (error) {
-    mostrarMensaje('mensajeFormularioVisita', ConsultasPublicas.interpretarError(error, 'Error al guardar'), 'error');
+        let recargaOk = true;
+        try {
+          await cargarDatosSede({ silencioso: true, lanzarError: true });
+        } catch (errRecarga) {
+          recargaOk = false;
+        }
+
+        // Mantener botón y formulario bloqueados durante toda la transición visual del modal
+        establecerBloqueoFormularioVisita(true);
+        manejarEstadoBoton(boton, true, '¡Registrada!');
+        mostrarModalExito('¡Visita Registrada!', `La visita del grupo ${grupoRegistrado} fue registrada correctamente.`);
+
+        if (temporizadorPostRegistro) {
+          clearTimeout(temporizadorPostRegistro);
+        }
+        temporizadorPostRegistro = setTimeout(() => {
+          temporizadorPostRegistro = null;
+          visitaSeleccionada = null;
+          const formVisita = document.getElementById('formVisita');
+          if (formVisita) formVisita.reset();
+          establecerBloqueoFormularioVisita(false);
+          manejarEstadoBoton(boton, false, '', 'Registrar Visita');
+          renderizarVisitasBecario();
+          mostrarVista('vistaVisitasBecario');
+          if (!recargaOk) {
+            mostrarMensaje('mensajeVisitasBecario', 'La visita se registró, pero no se pudo actualizar el listado desde el servidor.', 'warning');
+          }
+        }, 2200);
+      }
+    });
+
+    exitoRegistro = exitoRegistro || Boolean(resultado && resultado.exito);
   } finally {
-    manejarEstadoBoton(boton, false, '', 'Registrar Visita');
+    if (!exitoRegistro) {
+      establecerBloqueoFormularioVisita(false);
+      manejarEstadoBoton(boton, false, '', 'Registrar Visita');
+    }
   }
 }
 
@@ -428,34 +587,84 @@ async function registrarVisita(evento) {
 // ===================================
 function cerrarModalNoRealizada() {
   document.getElementById('modalNoRealizada').classList.add('hidden');
+  visitaSeleccionada = null;
 }
 
 async function marcarNoRealizada() {
   if (!visitaSeleccionada) return;
 
   const boton = document.getElementById('btnConfirmarNoRealizada');
-  manejarEstadoBoton(boton, true, 'Guardando...');
+  if (boton && boton.disabled) return;
 
-  try {
-    await ConsultasPublicas.eliminar(
-      `registro_visitas_${sedeActual}`,
-      visitaSeleccionada.id,
-      { esquema: 'visitas' }
-    );
+  const idVisita = visitaSeleccionada.id;
+  const tablaRegistro = `registro_visitas_${sedeActual}`;
+  const claveOperacion = `visitas:no_realizada:${sedeActual}:${idVisita}`;
 
-    cerrarModalNoRealizada();
-    await cargarDatosSede();
-    mostrarModalExito('Visita actualizada', 'La visita fue liberada y el grupo vuelve a estar disponible.');
+  limpiarMensajeVisitas('mensajeVisitasBecario');
 
-    visitaSeleccionada = null;
-    renderizarVisitasBecario();
+  await ejecutarEnvioConReintentos({
+    clave: claveOperacion,
+    datos: { id: idVisita },
+    boton,
+    textoBotonEnviando: 'Guardando...',
+    textoBotonOriginal: 'Sí, no fue realizada',
+    mostrarLoader: false,
+    mostrarErrorAutomatico: false,
+    contextoError: 'Error al liberar la visita',
+    interpretarError: (err, respaldo) => ConsultasPublicas.interpretarError(err, respaldo),
+    enviar: async () => {
+      const eliminadas = await ConsultasPublicas.eliminar(
+        tablaRegistro,
+        idVisita,
+        { esquema: 'visitas', retorno: 'representation', intentos: 1 }
+      );
+      if (!Array.isArray(eliminadas) || eliminadas.length === 0) {
+        throw new window.SupabaseMotor.ErrorConsultaSupabase(
+          'No se pudo confirmar la liberación de la visita en el servidor. Es posible que ya haya sido eliminada o existan restricciones de permisos.',
+          { codigo: 'P0001', status: 409 }
+        );
+      }
+      return eliminadas[0];
+    },
+    verificarYaRegistrado: async () => {
+      const fila = await ConsultasPublicas.consultarUno(tablaRegistro, {
+        select: 'id',
+        eq: { field: 'id', value: idVisita },
+        intentos: 1
+      }, 'visitas');
+      return !fila ? { eliminada: true } : null;
+    },
+    alExito: async () => {
+      cerrarModalNoRealizada();
+      manejarEstadoBoton(boton, false, '', 'Sí, no fue realizada');
+      registrosSede = registrosSede.filter(r => r.id !== idVisita);
 
-  } catch (error) {
-    cerrarModalNoRealizada();
-    mostrarMensaje('mensajeInicio', ConsultasPublicas.interpretarError(error, 'Error al liberar la visita'), 'error');
-  } finally {
-    manejarEstadoBoton(boton, false, '', 'Sí, no fue realizada');
-  }
+      let recargaOk = true;
+      try {
+        await cargarDatosSede({ silencioso: true, lanzarError: true });
+      } catch (errRecarga) {
+        recargaOk = false;
+      }
+
+      mostrarModalExito('Visita actualizada', 'La visita fue liberada y el grupo vuelve a estar disponible.');
+
+      visitaSeleccionada = null;
+      renderizarVisitasBecario();
+      if (!recargaOk) {
+        mostrarMensaje('mensajeVisitasBecario', 'La visita fue liberada, pero no se pudo actualizar el listado desde el servidor.', 'warning');
+      }
+    },
+    alErrorFinal: (error, meta) => {
+      cerrarModalNoRealizada();
+      visitaSeleccionada = null;
+      manejarEstadoBoton(boton, false, '', 'Sí, no fue realizada');
+      mostrarMensaje(
+        'mensajeVisitasBecario',
+        meta && meta.mensaje ? meta.mensaje : ConsultasPublicas.interpretarError(error, 'Error al liberar la visita'),
+        'error'
+      );
+    }
+  });
 }
 
 function mostrarModalExito(titulo, mensaje) {

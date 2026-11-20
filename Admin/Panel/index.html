@@ -7,6 +7,8 @@
   <title>PMA - Panel de Administración</title>
   <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
   
+  <style>html:not([data-admin-autorizado="true"]){background:#0a1628 !important;background-image:linear-gradient(135deg,#0a1628 0%,#1a2f5a 50%,#0a1628 100%) !important;min-height:100vh;}html:not([data-admin-autorizado="true"]) body{visibility:hidden !important;opacity:0 !important;}</style>
+  <link rel="stylesheet" href="../compartido/admin-guard.css">
   <link rel="stylesheet" href="../../Global/global.css">
   <link rel="stylesheet" href="admin.css">
   <link rel="stylesheet" href="styles.css">
@@ -82,9 +84,6 @@
             <button class="btn-actualizar" id="btnActualizar" onclick="actualizarEstadisticas()" title="Actualizar estadísticas">
               <svg id="iconActualizar" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
             </button>
-              <button class="btn-actualizar btn-forzar-actualizacion" id="btnForzarActualizacion" onclick="solicitarForzarActualizacion()" title="Forzar actualización de datos de estudiantes">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-            </button>
             <button class="btn-actualizar btn-cerrar-sesion" id="btnCerrarSesion" onclick="cerrarSesionAdmin()" title="Cerrar sesión">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             </button>
@@ -118,35 +117,39 @@
 
           </div>
           <div id="tabEstadisticas" class="hidden">
-            <div class="stats-grid" id="statsGrid"></div>
+            <div id="statsGrid"></div>
             <div id="detallesStats"></div>
           </div>
           <div id="tabGraficas" class="hidden">
             <div class="chart-container">
               <h3 class="chart-title">Cantidad de Tutorías</h3>
-              <div class="form-group">
-                <label>Período</label>
-                <select id="filtroGraficaPeriodo" onchange="actualizarGrafica()">
-                  <option value="semanal">Por Semana (Lunes - Domingo)</option>
-                  <option value="mensual">Por Mes</option>
-                </select>
+              <div class="panel-filtros-fila">
+                <div class="form-group">
+                  <label>Período</label>
+                  <select id="filtroGraficaPeriodo" onchange="actualizarGrafica()">
+                    <option value="semanal">Por Semana (Lunes - Domingo)</option>
+                    <option value="mensual">Por Mes</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Tipo de Instructor</label>
+                  <select id="filtroGraficaTipo" onchange="actualizarGrafica()">
+                    <option value="todos">Todos</option>
+                    <option value="Tutor">Tutores</option>
+                    <option value="Profesor">Profesores</option>
+                  </select>
+                </div>
+                <div class="form-group" id="filtroSedeWrapper">
+                  <label>Sede</label>
+                  <select id="filtroGraficaSede" onchange="actualizarGrafica()">
+                    <option value="todas">Todas las Sedes</option>
+                    <option value="Norte">Sede Norte</option>
+                    <option value="Sur">Sede Sur</option>
+                  </select>
+                </div>
               </div>
-              <div class="form-group">
-                <label>Tipo de Instructor</label>
-                <select id="filtroGraficaTipo" onchange="actualizarGrafica()">
-                  <option value="todos">Todos</option>
-                  <option value="Tutor">Tutores</option>
-                  <option value="Profesor">Profesores</option>
-                </select>
-              </div>
-              <div class="form-group" id="filtroSedeWrapper">
-                <label>Sede</label>
-                <select id="filtroGraficaSede" onchange="actualizarGrafica()">
-                  <option value="todas">Todas las Sedes</option>
-                  <option value="Norte">Sede Norte</option>
-                  <option value="Sur">Sede Sur</option>
-                </select>
-              </div>
+              <div id="loaderGraficasPMA" class="loader hidden"></div>
+              <div id="estadoGraficasPMA" class="hidden"></div>
               <canvas id="graficaTutorias" class="grafica-canvas"></canvas>
             </div>
           </div>
@@ -268,18 +271,128 @@
 
           <div id="tabVisitas" class="hidden">
             <div class="admin-tabs admin-tabs-terciario">
-              <button class="admin-tab active">Descargar Visitas</button>
+              <button class="admin-tab active" onclick="cambiarTabVisitas(event, 'descargas')">Descargar Visitas</button>
               <button class="admin-tab" onclick="window.open('../Visitas/index.html', '_blank')">Asignar Visitas</button>
-
+              <button class="admin-tab" onclick="cambiarTabVisitas(event, 'importar')">Importar Visitas</button>
             </div>
-            <div class="chart-container">
-              <h3 class="chart-title">Descargar Reportes de Visitas</h3>
-              <p class="texto-descargas">Descargue los registros de visitas.</p>
-              <div class="form-group">
-                <label>Archivo Matriculados (Excel) *</label>
-                <input type="file" id="archivoMatriculadosVisitas" accept=".xlsx,.xls" class="buscador-grupo-input">
+
+            <div id="tabDescargasVisitas">
+              <div class="chart-container">
+                <h3 class="chart-title">Descargar Reportes de Visitas</h3>
+                <p class="texto-descargas">Descargue los registros de visitas.</p>
+                <div class="form-group">
+                  <label>Archivo Matriculados (Excel) *</label>
+                  <input type="file" id="archivoMatriculadosVisitas" accept=".xlsx,.xls" class="buscador-grupo-input">
+                </div>
+                <button class="btn" onclick="descargarVisitas()" id="btnDescargarVisitas">Descargar</button>
               </div>
-              <button class="btn" onclick="descargarVisitas()" id="btnDescargarVisitas">Descargar</button>
+            </div>
+
+            <div id="tabImportarVisitas" class="hidden">
+              <div class="chart-container">
+                <div class="supabase-header-row">
+                  <div>
+                    <h3 class="chart-title" style="margin-bottom: 6px;">Importar Visitas desde CSV</h3>
+                    <p class="texto-descargas" style="margin-bottom: 0;">
+                      Seleccione primero la sede correspondiente y luego cargue el archivo CSV generado en "Informe/Visitas a Grupos"
+                    </p>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                  <label for="selectSedeVisitasCSV">Sede destino del archivo CSV *</label>
+                  <select id="selectSedeVisitasCSV" onchange="manejarCambioSedeVisitasCSV(event)">
+                    <option value="">Seleccione una sede antes de cargar el archivo...</option>
+                    <option value="norte">Norte</option>
+                    <option value="sur">Sur</option>
+                  </select>
+                </div>
+
+                <div id="visitasSedeDestinoBanner" class="alert-box" style="margin-bottom: 18px;">
+                  <strong>Paso 1 obligatorio: Seleccione la sede destino</strong>
+                  Elija <strong>Sede Norte</strong> o <strong>Sede Sur</strong> antes de seleccionar el archivo CSV.
+                </div>
+
+                <div class="supabase-columns-box">
+                  <div class="supabase-columns-header">
+                    <span class="supabase-columns-title">Columnas obligatorias (en este orden exacto):</span>
+                  </div>
+                  <div class="supabase-columns-pills" id="visitasColumnasPills">
+                    <span class="supabase-col-pill"><span class="supabase-col-index">1</span><code>dia</code></span>
+                    <span class="supabase-col-pill"><span class="supabase-col-index">2</span><code>horario</code></span>
+                    <span class="supabase-col-pill"><span class="supabase-col-index">3</span><code>salon</code></span>
+                    <span class="supabase-col-pill"><span class="supabase-col-index">4</span><code>grupo</code></span>
+                    <span class="supabase-col-pill"><span class="supabase-col-index">5</span><code>semestre</code></span>
+                    <span class="supabase-col-pill"><span class="supabase-col-index">6</span><code>jornada</code></span>
+                  </div>
+                </div>
+
+                <div id="visitasDropzone" class="supabase-dropzone" role="button" tabindex="0">
+                  <input type="file" id="inputArchivoCSVVisitas" accept=".csv,text/csv" class="hidden" onchange="manejarCambioArchivoCSVVisitas(event)">
+                  <div class="supabase-dropzone-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  </div>
+                  <p class="supabase-dropzone-title">Arrastra y suelta tu archivo CSV aquí, o haz clic para seleccionarlo</p>
+                  <p class="supabase-dropzone-subtitle">Formato admitido: <strong>.csv</strong> (codificación UTF-8 recomendada, primera fila con encabezados)</p>
+                </div>
+
+                <div id="visitasArchivoInfo" class="supabase-archivo-info hidden">
+                  <div class="supabase-archivo-detalles">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    <div>
+                      <div id="visitasArchivoNombre" class="supabase-archivo-nombre"></div>
+                      <div id="visitasArchivoMeta" class="supabase-archivo-meta"></div>
+                    </div>
+                  </div>
+                  <button type="button" id="btnQuitarArchivoVisitas" class="supabase-btn-quitar" onclick="limpiarImportacionVisitas(event)">
+                    Quitar archivo
+                  </button>
+                </div>
+
+                <div id="visitasMensajeValidacion" class="mensaje hidden"></div>
+              </div>
+
+              <div id="visitasResultadoValidacion" class="chart-container chart-container-spacing hidden">
+                <h3 class="chart-title">Resumen de Validación del Archivo</h3>
+                <div class="stats-grid supabase-stats-grid">
+                  <div class="stat-card">
+                    <h3 id="statVisitasTotalFilas">0</h3>
+                    <p>Filas Leídas</p>
+                  </div>
+                  <div class="stat-card">
+                    <h3 id="statVisitasFilasValidas">0</h3>
+                    <p>Filas Válidas</p>
+                  </div>
+                  <div class="stat-card">
+                    <h3 id="statVisitasObservaciones">0</h3>
+                    <p>Observaciones</p>
+                  </div>
+                </div>
+
+                <div id="visitasContenedorObservaciones" class="supabase-observaciones-panel hidden">
+                  <div class="supabase-observaciones-header">
+                    <strong>Observaciones detectadas durante la validación</strong>
+                    <span id="visitasContadorObservaciones" class="supabase-observaciones-count"></span>
+                  </div>
+                  <div id="visitasListaObservaciones" class="supabase-observaciones-lista"></div>
+                </div>
+              </div>
+
+              <div id="visitasSeccionConfirmacion" class="chart-container chart-container-spacing hidden">
+                <h3 class="chart-title">Reemplazo en Supabase (<code id="visitasCodigoTablaConfirmacion" class="supabase-code-inline">visitas.visitas_{sede}</code>)</h3>
+                <p id="visitasResumenReemplazoTexto" class="texto-descargas"></p>
+
+                <label class="supabase-confirm-check" id="lblConfirmarReemplazoVisitas">
+                  <input type="checkbox" id="chkConfirmarReemplazoVisitas" disabled onchange="actualizarEstadoBotonReemplazoVisitas()">
+                  <span id="textoConfirmarReemplazoVisitas">Confirmo que deseo reemplazar todos los registros actuales de la sede seleccionada por los registros válidos de este archivo CSV.</span>
+                </label>
+
+                <div id="visitasMensajeReemplazo" class="mensaje hidden"></div>
+
+                <button type="button" class="btn" id="btnEjecutarReemplazoVisitas" onclick="solicitarReemplazoVisitasSupabase()" disabled>
+                  Reemplazar registros de visitas
+                </button>
+              </div>
             </div>
           </div>
 
@@ -292,7 +405,7 @@
                 <div>
                   <h3 class="chart-title" style="margin-bottom: 6px;">Importar Estudiantes desde CSV</h3>
                   <p class="texto-descargas" style="margin-bottom: 0;">
-                    Seleccione el CSV del excel generado en: "Informe/Estudiantes Supabase" con el listado de estudiantes para preparar la actualización de la tabla <code class="supabase-code-inline">public.estudiantes</code>.
+                    Seleccione el CSV del excel generado en: "Informe/Estudiantes Supabase" con el listado de estudiantes para reemplazar los registros de la tabla <code class="supabase-code-inline">public.estudiantes</code>.
                   </p>
                 </div>
               </div>
@@ -363,21 +476,18 @@
             </div>
 
             <div id="supabaseSeccionConfirmacion" class="chart-container chart-container-spacing hidden">
-              <h3 class="chart-title">Preparación para Reemplazo en Supabase (<code class="supabase-code-inline">public.estudiantes</code>)</h3>
+              <h3 class="chart-title">Reemplazo en Supabase (<code class="supabase-code-inline">public.estudiantes</code>)</h3>
               <p id="supabaseResumenReemplazoTexto" class="texto-descargas"></p>
 
-              <div class="alert-box" style="margin-bottom: 18px;">
-                <strong>Modo de preparación activo (Sin cambios en la base de datos)</strong>
-                En esta etapa la herramienta ejecuta únicamente la carga y validación local del archivo CSV. La operación futura de reemplazo total de registros sobre <code>public.estudiantes</code> se encuentra desactivada por seguridad y ningún dato será eliminado, insertado ni modificado en Supabase.
-              </div>
-
-              <label class="supabase-confirm-check">
-                <input type="checkbox" id="chkConfirmarReemplazoSupabase" disabled>
-                <span>Confirmo que deseo reemplazar todos los registros actuales de <code>public.estudiantes</code> por los registros válidos de este archivo CSV (disponible cuando se active la operación en base de datos).</span>
+              <label class="supabase-confirm-check" id="lblConfirmarReemplazoSupabase">
+                <input type="checkbox" id="chkConfirmarReemplazoSupabase" disabled onchange="actualizarEstadoBotonReemplazoSupabase()">
+                <span>Confirmo que deseo reemplazar todos los registros actuales de <code>public.estudiantes</code> por los registros válidos de este archivo CSV.</span>
               </label>
 
-              <button type="button" class="btn" id="btnEjecutarReemplazoSupabase" onclick="solicitarReemplazoEstudiantesSupabase()" disabled title="Operación en base de datos desactivada en esta etapa">
-                Reemplazar registros en public.estudiantes (Desactivado en esta etapa)
+              <div id="supabaseMensajeReemplazo" class="mensaje hidden"></div>
+
+              <button type="button" class="btn" id="btnEjecutarReemplazoSupabase" onclick="solicitarReemplazoEstudiantesSupabase()" disabled>
+                Reemplazar registros en public.estudiantes
               </button>
             </div>
           </div>
@@ -476,11 +586,67 @@
   <div class="admin-tabs admin-tabs-secundario">
     <button class="admin-tab active" onclick="cambiarTabDiagnosticos(event, 'descargas')">Descargar Datos</button>
     <button class="admin-tab" onclick="cambiarTabDiagnosticos(event, 'estadisticas')">Estadísticas</button>
+    <button class="admin-tab" onclick="cambiarTabDiagnosticos(event, 'graficas')">Gráficas</button>
     <button class="admin-tab" onclick="cambiarTabDiagnosticos(event, 'grupos')">Grupos</button>
     <button class="admin-tab" onclick="window.open('../Diagnosticos/index.html', '_blank')">Editar Diagnósticos</button>
   </div>
   <div id="tabEstadisticasDiagnosticos" class="hidden">
+    <div class="chart-container">
+      <h3 class="chart-title">Filtros de Estadísticas</h3>
+      <div class="panel-filtros-fila">
+        <div class="form-group">
+          <label for="filtroDiagEstPrueba">Prueba</label>
+          <select id="filtroDiagEstPrueba" onchange="actualizarEstadisticasDiagnosticos()">
+            <option value="todas">Todas</option>
+            <option value="MATEMATICAS">Matemáticas</option>
+            <option value="COMUNICACION">Comunicación</option>
+            <option value="LECTURA">Lectura</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filtroDiagEstSede">Sede</label>
+          <select id="filtroDiagEstSede" onchange="actualizarEstadisticasDiagnosticos()">
+            <option value="todas">Todas las Sedes</option>
+          </select>
+        </div>
+      </div>
+      <div id="loaderEstadisticasDiagnosticos" class="loader hidden"></div>
+      <div id="estadoEstadisticasDiagnosticos" class="hidden"></div>
+    </div>
     <div class="stats-grid" id="statsGridDiagnosticos"></div>
+    <div id="comparacionProgramasDiagnosticos"></div>
+  </div>
+  <div id="tabGraficasDiagnosticos" class="hidden">
+    <div class="chart-container">
+      <h3 class="chart-title">Evolución Temporal de Diagnósticos</h3>
+      <div class="panel-filtros-fila">
+        <div class="form-group">
+          <label for="filtroDiagGrafPeriodo">Período</label>
+          <select id="filtroDiagGrafPeriodo" onchange="actualizarGraficaDiagnosticos()">
+            <option value="diario">Por Día</option>
+            <option value="semanal" selected>Por Semana (Lunes - Domingo)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filtroDiagGrafPrueba">Prueba</label>
+          <select id="filtroDiagGrafPrueba" onchange="actualizarGraficaDiagnosticos()">
+            <option value="todas">Todas</option>
+            <option value="MATEMATICAS">Matemáticas</option>
+            <option value="COMUNICACION">Comunicación</option>
+            <option value="LECTURA">Lectura</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filtroDiagGrafSede">Sede</label>
+          <select id="filtroDiagGrafSede" onchange="actualizarGraficaDiagnosticos()">
+            <option value="todas">Todas las Sedes</option>
+          </select>
+        </div>
+      </div>
+      <div id="loaderGraficasDiagnosticos" class="loader hidden"></div>
+      <div id="estadoGraficasDiagnosticos" class="hidden"></div>
+      <canvas id="graficaDiagnosticos" class="grafica-canvas"></canvas>
+    </div>
   </div>
   <div id="tabDescargasDiagnosticos">
     <div class="chart-container">
@@ -633,17 +799,24 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <script src="../../Global/global.js"></script>
+  <script src="../../Global/reintentos.js"></script>
   <script src="../../Global/consultas.js"></script>
   <script src="../../Global/supabase.js"></script>
   <script src="../compartido/admin-auth.js"></script>
   <script src="js/login.js"></script>
   <script src="script.js"></script>
+  <script src="js/pma.js"></script>
+  <script src="js/pvu.js"></script>
+  <script src="js/aaa.js"></script>
+  <script src="js/diagnosticos.js"></script>
   <script src="js/graficas.js"></script>
   <script src="js/pdf.js"></script>
   <script src="js/matriculados.js"></script>
   <script src="js/excel.js"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/grupos.js"></script>
+  <script src="js/importar/comun.js"></script>
+  <script src="js/importar/estudiantes.js"></script>
+  <script src="js/importar/grupos.js"></script>
+  <script src="js/importar/visitas.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       verificarSesionAdmin();

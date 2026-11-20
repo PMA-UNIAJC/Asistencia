@@ -345,6 +345,14 @@ function limpiarCamposComunes() {
 }
 
 
+function obtenerProgramaIdSeleccionado() {
+  const programaEl = document.getElementById('programa');
+  const valor = (programaEl && programaEl.value ? String(programaEl.value) : '').trim();
+  if (!valor) return null;
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero > 0 ? numero : null;
+}
+
 function obtenerDatosFormulario() {
   const tipo = document.getElementById('tipoAcompanamiento').value;
 
@@ -372,8 +380,7 @@ function obtenerDatosFormulario() {
     correo_estudiante:    document.getElementById('correoPersonaCompleto').value.trim().toLowerCase(),
     grupo:                document.getElementById('grupo').value.trim(),
     sede:                 document.getElementById('sede').value.trim().toUpperCase(),
-    facultad_estudiante:  document.getElementById('facultad').value,
-    programa_estudiante:  document.getElementById('programa').value,
+    programa_id:          obtenerProgramaIdSeleccionado(),
     semestre:             document.getElementById('semestre').value,
     enterado:             document.getElementById('consciente').value,
     profesor:             document.getElementById('nombreSolicitante').value.trim(),
@@ -493,7 +500,7 @@ function validarFormulario() {
     },
     // 9. Programa
     {
-      valido:   () => !!programaEl.value && !programaEl.disabled,
+      valido:   () => obtenerProgramaIdSeleccionado() !== null && !programaEl.disabled,
       mensaje:  'Por favor seleccione un programa',
       elemento: () => programaEl
     },
@@ -577,8 +584,7 @@ async function enviarFormulario(event) {
   const btnEnviar = document.getElementById('btnEnviar');
 
   if (!validarFormulario()) {
-    btnEnviar.disabled  = false;
-    btnEnviar.textContent = 'Enviar Formulario';
+    manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
     return;
   }
 
@@ -591,29 +597,59 @@ async function enviarFormulario(event) {
     return;
   }
 
-  btnEnviar.disabled    = true;
-  btnEnviar.textContent = 'Enviando...';
-
-  try {
-    await registrarRemisionAAA(datos);
-  } catch (err) {
-    console.error('Error al registrar remisión AAA:', err);
-    mostrarMensaje(ConsultasPublicas.interpretarError(err, 'No se pudo enviar el formulario'), 'error');
-    btnEnviar.disabled    = false;
-    btnEnviar.textContent = 'Enviar Formulario';
-  }
+  await registrarRemisionAAA(datos);
 }
 
 
 async function registrarRemisionAAA(datos) {
   const btnEnviar = document.getElementById('btnEnviar');
-  const respuesta = await ConsultasPublicas.crearRemisionAAA(datos);
-  mostrarModalExito(respuesta.codigo_remision);
+  const claveEnvio = 'aaa:formulario:' + datos.documento;
+  const huellaDatos = [
+    datos.documento,
+    datos.tipo_acompanamiento,
+    datos.programa_id,
+    datos.profesor,
+    datos.asignatura,
+    datos.motivo
+  ].join('|');
 
-  btnEnviar.disabled    = false;
-  btnEnviar.textContent = 'Enviar Formulario';
+  datos.fecha_hora = ReintentosEnvio.obtenerFechaEnvioIdempotente(
+    claveEnvio,
+    huellaDatos,
+    () => datos.fecha_hora || obtenerFechaISOColombia()
+  );
 
-  return true;
+  return await ejecutarEnvioConReintentos({
+    clave: claveEnvio,
+    datos: datos,
+    huellaDatos: huellaDatos,
+    fechaISO: datos.fecha_hora,
+    boton: btnEnviar,
+    textoBotonEnviando: 'Enviando...',
+    textoBotonOriginal: 'Enviar Formulario',
+    contenedorMensaje: 'mensajeFormulario',
+    contextoError: 'No se pudo enviar el formulario',
+    enviar: async function () {
+      return await ConsultasPublicas.crearRemisionAAA(datos);
+    },
+    verificarYaRegistrado: async function () {
+      const existente = await ConsultasPublicas.consultarUno('acompanamiento', {
+        select: 'codigo_remision,documento,fecha_hora',
+        eq: [
+          { field: 'documento', value: datos.documento },
+          { field: 'fecha_hora', value: datos.fecha_hora }
+        ],
+        order: 'id.desc'
+      });
+      return existente && existente.codigo_remision ? existente : null;
+    },
+    alExito: function (respuesta) {
+      const mensajeEl = document.getElementById('mensajeFormulario');
+      if (mensajeEl) mensajeEl.textContent = '';
+      mostrarModalExito(respuesta.codigo_remision);
+      manejarEstadoBoton(btnEnviar, false, '', 'Enviar Formulario');
+    }
+  });
 }
 
 
@@ -650,10 +686,22 @@ async function buscarSeguimiento() {
   const loader = mostrarCargando(document.body);
 
   try {
-    const r = await ConsultasPublicas.consultarUno('acompanamiento', {
-      select: 'fecha_hora,tipo_acompanamiento,nombre,facultad_estudiante,programa_estudiante,grupo,estado_remision,informacion,fecha_actualizacion_info',
-      eq: { field: 'codigo_remision', value: codigo }
-    });
+    const promesaCatalogo = (
+      typeof estaCatalogoProgramasCargado === 'function' &&
+      !estaCatalogoProgramasCargado() &&
+      typeof ConsultasPublicas !== 'undefined' &&
+      typeof ConsultasPublicas.asegurarCatalogoProgramasYFacultades === 'function'
+    )
+      ? ConsultasPublicas.asegurarCatalogoProgramasYFacultades().catch(function () { return []; })
+      : Promise.resolve([]);
+
+    const [r] = await Promise.all([
+      ConsultasPublicas.consultarUno('acompanamiento', {
+        select: 'fecha_hora,tipo_acompanamiento,nombre,programa_id,grupo,estado_remision,informacion,fecha_actualizacion_info,programas(id,nombre,facultad_id,facultades(id,nombre))',
+        eq: { field: 'codigo_remision', value: codigo }
+      }),
+      promesaCatalogo
+    ]);
 
     if (!r) {
       document.getElementById('mensajeSeguimiento').textContent =
@@ -662,14 +710,33 @@ async function buscarSeguimiento() {
       return;
     }
 
+    let infoAcademica = resolverProgramaYFacultad(r);
+
+    // Respaldo defensivo solo si el registro histórico carece de programa_id y relación embebida
+    if (!infoAcademica.programa && !infoAcademica.facultad && r.programa_id == null && !r.programas) {
+      try {
+        const rHistorico = await ConsultasPublicas.consultarUno('acompanamiento', {
+          select: 'facultad_estudiante,programa_estudiante',
+          eq: { field: 'codigo_remision', value: codigo }
+        });
+        if (rHistorico) {
+          infoAcademica = resolverProgramaYFacultad({ ...r, ...rHistorico });
+        }
+      } catch (errHist) {
+        // Ignorar si las columnas históricas no existen en la tabla actual
+      }
+    }
+
+    const { programa: nombrePrograma, facultad: nombreFacultad } = infoAcademica;
+
     document.getElementById('mensajeSeguimiento').classList.add('hidden');
     document.getElementById('seg_fecha').textContent =
       formatearFechaColombia(r.fecha_hora, { formato: 'fechaHora' }) || '—';
 
     document.getElementById('seg_tipo').textContent           = r.tipo_acompanamiento || '—';
-    document.getElementById('seg_estudiante').textContent     = r.nombre || '—';
-    document.getElementById('seg_facultad').textContent       = r.facultad_estudiante || '—';
-    document.getElementById('seg_programa').textContent       = r.programa_estudiante || '—';
+    document.getElementById('seg_estudiante').textContent     = r.nombre ? censurarNombre(r.nombre) : '—';
+    document.getElementById('seg_facultad').textContent       = nombreFacultad || '—';
+    document.getElementById('seg_programa').textContent       = nombrePrograma || '—';
     document.getElementById('seg_grupo').textContent          = r.grupo || '—';
     document.getElementById('seg_estado').textContent         = r.estado_remision || '—';
     document.getElementById('seg_info').textContent           = r.informacion || 'No hay información. Aquí se mostrarán las observaciones de PMA';

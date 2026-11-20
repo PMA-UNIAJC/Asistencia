@@ -43,15 +43,21 @@
     }
   });
 
-  // Si en otra pestaña se invalida un catálogo público, limpiar también datosCache en memoria
+  // Si en otra pestaña se invalida un catálogo público, limpiar también datosCache y catálogo central en memoria
   clientePublico.alInvalidar(function (etiquetas) {
-    if (typeof datosCache === 'undefined' || !datosCache) return;
     const set = new Set(etiquetas || []);
     const limpiarTodo = set.has('*') || set.has('grupo:catalogos');
 
     if (limpiarTodo || set.has('tabla:facultades') || set.has('tabla:programas')) {
-      datosCache.facultadesCarreras = [];
+      if (typeof limpiarCatalogoProgramasYFacultades === 'function') {
+        limpiarCatalogoProgramasYFacultades();
+      } else if (typeof datosCache !== 'undefined' && datosCache) {
+        datosCache.facultadesCarreras = [];
+      }
     }
+
+    if (typeof datosCache === 'undefined' || !datosCache) return;
+
     if (limpiarTodo || set.has('tabla:tutores_norte')) {
       datosCache.tutoresNorte = [];
     }
@@ -73,6 +79,19 @@
   // CARGADORES INTELIGENTES DE CATÁLOGOS PÚBLICOS COMPARTIDOS
   // ==========================================================================
 
+  function sincronizarCatalogoPublico(lista) {
+    const catalogo = Array.isArray(lista) ? lista : [];
+    if (typeof sincronizarCatalogoProgramasYFacultades === 'function') {
+      sincronizarCatalogoProgramasYFacultades(catalogo);
+    } else if (typeof datosCache !== 'undefined' && datosCache) {
+      datosCache.facultadesCarreras = catalogo;
+      if (typeof procesarFacultadesData === 'function') {
+        procesarFacultadesData();
+      }
+    }
+    return catalogo;
+  }
+
   async function obtenerFacultadesProgramas(opciones) {
     const forzar = !!(opciones && opciones.forzar);
     const datos = await clientePublico.consultarTodo('facultades', {
@@ -87,49 +106,39 @@
       }
     }, 'public');
 
-    const lista = Array.isArray(datos) ? datos : [];
-    if (typeof datosCache !== 'undefined' && datosCache) {
-      datosCache.facultadesCarreras = lista;
-      if (typeof procesarFacultadesData === 'function') {
-        procesarFacultadesData();
-      }
+    return sincronizarCatalogoPublico(datos);
+  }
+
+  async function asegurarCatalogoProgramasYFacultades(opciones) {
+    const forzar = !!(opciones && opciones.forzar);
+    if (!forzar && typeof estaCatalogoProgramasCargado === 'function' && estaCatalogoProgramasCargado()) {
+      return (typeof datosCache !== 'undefined' && datosCache && Array.isArray(datosCache.facultadesCarreras))
+        ? datosCache.facultadesCarreras
+        : [];
     }
-    return lista;
+    return await obtenerFacultadesProgramas({ forzar: forzar });
   }
 
   async function obtenerProgramasListaPlana(opciones) {
     const forzar = !!(opciones && opciones.forzar);
 
-    if (!forzar) {
-      // Si ya tenemos el árbol facultades+programas en caché, derivamos la lista sin petición HTTP
-      const cacheArbol = clientePublico.obtenerCacheDirecto('pub:facultades_programas');
-      if (cacheArbol.encontrado && Array.isArray(cacheArbol.valor) && cacheArbol.valor.length > 0) {
-        const nombres = [];
-        cacheArbol.valor.forEach(function (fac) {
-          if (Array.isArray(fac.programas)) {
-            fac.programas.forEach(function (prog) {
-              if (prog && prog.nombre) nombres.push(String(prog.nombre).trim());
-            });
-          }
+    try {
+      const programas = await obtenerProgramasConRelacion({ forzar: forzar });
+      const nombres = (programas || [])
+        .map(function (prog) { return prog && prog.nombre ? String(prog.nombre).trim() : ''; })
+        .filter(Boolean);
+      if (nombres.length > 0) {
+        return Array.from(new Set(nombres)).sort(function (a, b) {
+          return a.localeCompare(b, 'es');
         });
-        if (nombres.length > 0) {
-          return Array.from(new Set(nombres)).sort(function (a, b) {
-            return a.localeCompare(b, 'es');
-          });
-        }
       }
+    } catch (error) {
+      console.warn('[ConsultasPublicas] Respaldo plano desde tabla programas:', error);
     }
 
     const filas = await clientePublico.consultarTodo('programas', {
       select: 'nombre',
-      order: 'nombre.asc',
-      cache: {
-        clave: 'pub:programas_plana',
-        ttl: TTL_CATALOGOS_ACADEMICOS,
-        persistirSesion: true,
-        forzar: forzar,
-        etiquetas: ['tabla:programas', 'grupo:catalogos']
-      }
+      order: 'nombre.asc'
     }, 'public');
 
     return Array.from(
@@ -153,6 +162,90 @@
       return programasUnicos;
     } catch (error) {
       console.error('[ConsultasPublicas] Error al cargar programas:', error);
+      selectPrograma.innerHTML = '<option value="" disabled selected>Error al cargar programas</option>';
+      throw error;
+    }
+  }
+
+  function ordenarProgramasRelacionales(items) {
+    const porId = new Map();
+    (items || []).forEach(function (item) {
+      if (!item || item.id === undefined || item.id === null || !item.nombre) return;
+      const clave = String(item.id);
+      if (!porId.has(clave)) {
+        porId.set(clave, item);
+      }
+    });
+    return Array.from(porId.values()).sort(function (a, b) {
+      return a.nombre.localeCompare(b.nombre, 'es');
+    });
+  }
+
+  /**
+   * Obtiene los programas activos con su PK (`id`) y relación a `public.facultades`
+   * para formularios que almacenan FK (`programa_id`) en lugar de texto plano.
+   */
+  async function obtenerProgramasConRelacion(opciones) {
+    const forzar = !!(opciones && opciones.forzar);
+
+    try {
+      await asegurarCatalogoProgramasYFacultades({ forzar: forzar });
+      if (typeof obtenerProgramasCatalogo === 'function') {
+        const derivados = obtenerProgramasCatalogo();
+        if (Array.isArray(derivados) && derivados.length > 0) {
+          return ordenarProgramasRelacionales(derivados);
+        }
+      }
+    } catch (error) {
+      console.warn('[ConsultasPublicas] Respaldo relacional desde tabla programas:', error);
+    }
+
+    const filas = await clientePublico.consultarTodo('programas', {
+      select: 'id,nombre,facultad_id,facultades(id,nombre)',
+      order: 'nombre.asc'
+    }, 'public');
+
+    const normalizados = (filas || []).map(function (fila) {
+      const fac = Array.isArray(fila && fila.facultades)
+        ? (fila.facultades[0] || null)
+        : (fila ? fila.facultades : null);
+      return {
+        id: fila ? fila.id : null,
+        nombre: fila && fila.nombre ? String(fila.nombre).trim() : '',
+        facultad_id: fila && fila.facultad_id !== undefined ? fila.facultad_id : (fac ? fac.id : null),
+        facultad: fac && fac.nombre ? String(fac.nombre).trim() : ''
+      };
+    });
+
+    return ordenarProgramasRelacionales(normalizados);
+  }
+
+  /**
+   * Llena un <select> usando el identificador (`programas.id`) como value y el
+   * nombre del programa como texto visible.
+   */
+  async function poblarSelectProgramasPorId(idSelectPrograma, opciones) {
+    const selectPrograma = document.getElementById(idSelectPrograma);
+    if (!selectPrograma) return [];
+
+    try {
+      const programas = await obtenerProgramasConRelacion(opciones);
+      selectPrograma.innerHTML = '<option value="" disabled selected>Seleccione su programa</option>';
+      programas.forEach(function (programa) {
+        const option = document.createElement('option');
+        option.value = String(programa.id);
+        option.textContent = programa.nombre;
+        if (programa.facultad) {
+          option.dataset.facultad = programa.facultad;
+        }
+        if (programa.facultad_id !== undefined && programa.facultad_id !== null) {
+          option.dataset.facultadId = String(programa.facultad_id);
+        }
+        selectPrograma.appendChild(option);
+      });
+      return programas;
+    } catch (error) {
+      console.error('[ConsultasPublicas] Error al cargar programas por ID:', error);
       selectPrograma.innerHTML = '<option value="" disabled selected>Error al cargar programas</option>';
       throw error;
     }
@@ -236,16 +329,13 @@
       temas: resultados[5] || []
     };
 
+    sincronizarCatalogoPublico(catalogos.facultadesCarreras);
     if (typeof datosCache !== 'undefined' && datosCache) {
-      datosCache.facultadesCarreras = catalogos.facultadesCarreras;
       datosCache.tutoresNorte = catalogos.tutoresNorte;
       datosCache.tutoresSur = catalogos.tutoresSur;
       datosCache.profesores = catalogos.profesores;
       datosCache.materias = catalogos.materias;
       datosCache.temas = catalogos.temas;
-      if (typeof procesarFacultadesData === 'function') {
-        procesarFacultadesData();
-      }
     }
 
     return catalogos;
@@ -286,8 +376,11 @@
 
     // Cargadores de dominio públicos reutilizables
     obtenerFacultadesProgramas: obtenerFacultadesProgramas,
+    asegurarCatalogoProgramasYFacultades: asegurarCatalogoProgramasYFacultades,
     obtenerProgramasListaPlana: obtenerProgramasListaPlana,
     poblarSelectProgramasPlana: poblarSelectProgramasPlana,
+    obtenerProgramasConRelacion: obtenerProgramasConRelacion,
+    poblarSelectProgramasPorId: poblarSelectProgramasPorId,
     obtenerTutoresSede: obtenerTutoresSede,
     precargarTutoresAmbasSedes: precargarTutoresAmbasSedes,
     obtenerCatalogosPMA: obtenerCatalogosPMA,

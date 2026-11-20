@@ -83,7 +83,7 @@
       'contadorTextosFiltrados', 'btnLimpiarFiltrosTextos', 'contenedorListaTextos',
       // Modal Pregunta
       'modalPregunta', 'subtituloModalPregunta', 'tituloModalPregunta', 'btnCerrarModalPregunta',
-      'formPregunta', 'avisoRespuestasEdicion', 'textoAvisoRespuestasEdicion',
+      'formPregunta',
       'pregNumero', 'pregEstado', 'pregTextoCompartido', 'btnIrATextosDesdeModal',
       'previewTextoSeleccionado', 'pregEnunciado',
       'contadorOpcionesModal', 'listaOpcionesEditor', 'btnAgregarOpcion',
@@ -475,7 +475,6 @@
 
     const tieneImagen = !!(pregunta.imagen && String(pregunta.imagen).trim());
     const textoAsociado = pregunta.texto_id != null ? estado.textosPorId.get(Number(pregunta.texto_id)) : null;
-    const totalRespuestas = Number(pregunta.total_respuestas) || 0;
 
     // 1. Cabecera de tarjeta
     const header = document.createElement('div');
@@ -506,13 +505,6 @@
       txtPill.className = 'diag-pill diag-pill-info';
       txtPill.textContent = 'Texto compartido';
       badges.appendChild(txtPill);
-    }
-
-    if (totalRespuestas > 0) {
-      const respPill = document.createElement('span');
-      respPill.className = 'diag-pill diag-pill-respuestas';
-      respPill.textContent = totalRespuestas + (totalRespuestas === 1 ? ' respuesta' : ' respuestas');
-      badges.appendChild(respPill);
     }
 
     const acciones = document.createElement('div');
@@ -845,16 +837,6 @@
         editorPregunta.extensionActual = '';
         dom.pregNombreImagen.value = '';
       }
-
-      const respCount = Number(preguntaEditar.total_respuestas) || 0;
-      if (respCount > 0) {
-        dom.textoAvisoRespuestasEdicion.textContent =
-          'Esta pregunta ya cuenta con ' + respCount + (respCount === 1 ? ' respuesta registrada' : ' respuestas registradas') +
-          ' por estudiantes. Los cambios aplicarán únicamente para este registro sin alterar los demás diagnósticos.';
-        dom.avisoRespuestasEdicion.classList.remove('hidden');
-      } else {
-        dom.avisoRespuestasEdicion.classList.add('hidden');
-      }
     } else {
       dom.tituloModalPregunta.textContent = 'Nueva Pregunta';
       dom.pregNumero.value = String(siguienteNumeroPregunta());
@@ -870,7 +852,6 @@
       ];
       editorPregunta.extensionActual = '';
       dom.pregNombreImagen.value = '';
-      dom.avisoRespuestasEdicion.classList.add('hidden');
     }
 
     renderizarOpcionesEditor();
@@ -1139,19 +1120,12 @@
     if (!pregunta) return;
 
     const cfg = configActual();
-    const respCount = Number(pregunta.total_respuestas) || 0;
     let detalle =
       'Se eliminará de forma permanente la Pregunta #' + pregunta.numero +
       ' del diagnóstico de ' + cfg.titulo + ', junto con sus opciones.';
 
     if (pregunta.imagen) {
       detalle += ' También se gestionará la eliminación de su imagen ("' + pregunta.imagen + '") en el Storage.';
-    }
-    if (respCount > 0) {
-      detalle +=
-        ' ATENCIÓN: Esta pregunta tiene ' + respCount +
-        (respCount === 1 ? ' respuesta registrada' : ' respuestas registradas') +
-        ' de estudiantes que ya presentaron este diagnóstico; dichas respuestas asociadas también se eliminarán (si prefieres conservar el historial, puedes marcarla como Inactiva).';
     }
 
     confirmarAccion({

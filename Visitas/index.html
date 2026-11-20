@@ -66,6 +66,7 @@
       <button type="button" class="visitas-btn-area activo" data-area="M">Matemáticas</button>
       <button type="button" class="visitas-btn-area" data-area="C">Comunicación</button>
     </div>
+    <div id="mensajeBecarios"></div>
     <div id="listadoBecarios"></div>
   </section>
 
@@ -73,6 +74,7 @@
   <section id="vistaVisitasBecario" class="container visitas-tab-content hidden">
     <button type="button" class="visitas-btn-volver" onclick="volverABecarios()">&larr; Volver al listado de becarios</button>
     <h2 class="section-title visitas-titulo-becario">VISITAS DE <span id="nombreBecarioSeleccionado"></span></h2>
+    <div id="mensajeVisitasBecario"></div>
     <div id="listadoVisitasBecario"></div>
   </section>
 
@@ -202,6 +204,7 @@
 <div id="loaderInicio" class="loader hidden"></div>
 
 <script src="../Global/global.js"></script>
+<script src="../Global/reintentos.js"></script>
 <script src="../Global/consultas.js"></script>
 <script src="../Global/supabase.js"></script>
 <script src="script.js"></script>

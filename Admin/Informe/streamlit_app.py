@@ -4,16 +4,54 @@ import re
 import sys
 import time
 from functools import lru_cache
-import openpyxl
 import pandas as pd
 import streamlit as st
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-from openpyxl.utils import get_column_letter
 
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 if _APP_DIR not in sys.path:
     sys.path.insert(0, _APP_DIR)
 
+from excel import (
+    TILDES_MAP,
+    ORDEN_COLUMNAS,
+    FORMATO_FECHA,
+    ANCHO_COLUMNA_DEFAULT,
+    SIN_BORDE,
+    RELLENO_AMARILLO,
+    COLUMNAS_FECHA,
+    validar_archivo_xlsx,
+    abrir_excel,
+    buscar_hoja,
+    _buscar_hoja,
+    limpiar_nombre_hoja,
+    normalizar_espacios_celda,
+    normalizar_espacios_df,
+    normalizar_encabezado,
+    normalizar_encabezados_df,
+    encontrar_columna,
+    ordenar_columnas,
+    mapear_columnas,
+    normalizar_nota,
+    convertir_a_fecha,
+    normalizar_columna_fecha,
+    leer_hoja_excel,
+    leer_excel,
+    leer_multiples_hojas,
+    _a_numero,
+    _a_fecha,
+    aplicar_formato_encabezado,
+    configurar_filtro,
+    configurar_anchos_columnas,
+    formatear_fechas_hoja,
+    aplicar_formato_celdas,
+    aplicar_formato,
+    insertar_titulo_combinado,
+    resaltar_filas,
+    generar_libro_excel,
+    exportar_workbook_bytes,
+    exportar_libro,
+    exportar_excel,
+)
 from styles import ESTILOS_CSS, aplicar_estilos
 import supabase as _supabase_mod
 from supabase import (
@@ -43,16 +81,6 @@ from interfaz import (
 )
 
 # ============================================================
-# VALIDACIÓN DE ARCHIVOS
-# ============================================================
-def validar_archivo_xlsx(file_obj):
-    nombre = getattr(file_obj, "name", "")
-    if nombre and not str(nombre).lower().endswith(".xlsx"):
-        raise Exception(
-            "Formato no soportado. Para esta versión en Streamlit Cloud solo se aceptan archivos .xlsx."
-        )
-
-# ============================================================
 # CONFIGURACIÓN DE PÁGINA Y ESTILOS
 # ============================================================
 configurar_pagina()
@@ -62,8 +90,6 @@ aplicar_estilos()
 # ============================================================
 # ==================  UTILIDADES GLOBALES  ===================
 # ============================================================
-
-TILDES_MAP = str.maketrans('ÁÉÍÓÚáéíóúÑñÜü', 'AEIOUaeiouNnUu')
 
 PATRONES_SEMESTRE = {
     'PRIMERO': [
@@ -98,12 +124,9 @@ PATRONES_CALENDARIO = {
     ]
 }
 
-# Cada lista se compila como una sola expresión con alternativas,
-# equivalente a any(re.match(p, g) for p in patrones).
 _REGEX_SEMESTRE = {k: re.compile('|'.join(v)) for k, v in PATRONES_SEMESTRE.items()}
 _REGEX_CALENDARIO = {k: re.compile('|'.join(v)) for k, v in PATRONES_CALENDARIO.items()}
 
-# Materias (en mayúsculas y sin tildes, que es como se comparan)
 MATERIAS_COMUNICACION = {
     'COMUNICACION Y LENGUAJE', 'COMUNICACION Y LENGUAJE I', 'COMUNICACION Y LENGUAJE II',
     'COMUNICACION', 'COMUNICACION I', 'COMUNICACION II',
@@ -145,36 +168,6 @@ def filtrar_por_calendario(df, calendario_a=True, calendario_b=True, calendario_
     return df[mask]
 
 
-def encontrar_columna(df, nombres_posibles):
-    """Primera columna de df que coincide con algún alias (sin distinguir mayúsculas ni tildes)."""
-    columnas = [(col, str(col).strip().upper().translate(TILDES_MAP)) for col in df.columns]
-    for nombre in nombres_posibles:
-        nombre_norm = nombre.upper().translate(TILDES_MAP)
-        for col, col_norm in columnas:
-            if col_norm == nombre_norm:
-                return col
-    return None
-
-
-def mapear_columnas(df_original, mapeo):
-    """DataFrame con los nombres estándar de `mapeo`, tomados de la primera columna que coincida."""
-    df = pd.DataFrame()
-    for col_norm, nombres in mapeo.items():
-        col_enc = encontrar_columna(df_original, nombres)
-        if col_enc:
-            df[col_norm] = df_original[col_enc].copy()
-    return df
-
-
-def normalizar_nota(nota):
-    if pd.isna(nota):
-        return nota
-    try:
-        return float(str(nota).replace(',', '.'))
-    except Exception:
-        return nota
-
-
 def quitar_sufijo_programa(serie):
     """'PROGRAMA - 123' -> 'PROGRAMA' (elimina desde ' - ' en adelante)."""
     return serie.apply(lambda x: str(x).split(' - ')[0].strip() if pd.notna(x) else x)
@@ -187,135 +180,6 @@ def filtrar_por_materias(df, materias):
     return df[materia.isin(materias)]
 
 
-# ---------------------------  LECTURA Y NORMALIZACIÓN  ---------------------------
-
-_REGEX_ESPACIOS = re.compile(r'\s+')
-
-
-def normalizar_espacios_celda(valor):
-    """Elimina espacios al inicio/final y colapsa espacios múltiples internos en valores de texto."""
-    if isinstance(valor, str):
-        return _REGEX_ESPACIOS.sub(' ', valor).strip()
-    return valor
-
-
-def normalizar_espacios_df(df):
-    """Aplica la normalización de espacios a todas las columnas de texto del DataFrame,
-    manteniendo intactos números, fechas, valores nulos y demás tipos no textuales."""
-    df = df.copy()
-    for col in df.columns:
-        if df[col].dtype == object or pd.api.types.is_string_dtype(df[col]):
-            df[col] = df[col].map(normalizar_espacios_celda)
-    return df
-
-
-def _buscar_hoja(excel_file, nombre):
-    """Nombre real de la hoja `nombre` (sin distinguir mayúsculas) o None."""
-    nombre = nombre.upper()
-    return next((hoja for hoja in excel_file.sheet_names if hoja.upper() == nombre), None)
-
-
-def abrir_excel(file_obj):
-    """Valida la extensión .xlsx y abre el archivo con openpyxl."""
-    validar_archivo_xlsx(file_obj)
-    return pd.ExcelFile(file_obj, engine='openpyxl')
-
-
-def leer_excel(file_obj, nombre_hoja=None, filas_header=(0,), columnas_clave=None):
-    """Lee `nombre_hoja` (obligatoria si se indica) o, si no, la hoja ORIGINAL o la primera;
-    detecta la fila de encabezado entre `filas_header` y normaliza los espacios de texto."""
-    try:
-        excel_file = abrir_excel(file_obj)
-        if nombre_hoja:
-            hoja = _buscar_hoja(excel_file, nombre_hoja)
-            if hoja is None:
-                raise Exception(f"No se encontró la hoja '{nombre_hoja}' en el archivo.")
-        else:
-            hoja = _buscar_hoja(excel_file, 'ORIGINAL') or excel_file.sheet_names[0]
-
-        df = None
-        for header_row in filas_header:
-            df = pd.read_excel(excel_file, sheet_name=hoja, header=header_row)
-            if not columnas_clave or any(str(c).strip().upper() in columnas_clave for c in df.columns):
-                break
-        return normalizar_espacios_df(df)
-    except Exception as e:
-        raise Exception(f"Error al leer el archivo Excel: {str(e)}")
-
-
-# ---------------------------  ESCRITURA Y FORMATO  ---------------------------
-
-SIN_BORDE = Border(left=Side(style=None), right=Side(style=None), top=Side(style=None), bottom=Side(style=None))
-
-
-def _a_numero(cell, texto):
-    try:
-        cell.value = float(texto.replace(',', '.'))
-        cell.number_format = '0'
-    except Exception:
-        pass
-
-
-def aplicar_formato(workbook, nombre_hoja, fila_encabezado=1, col_inicio=1, quitar_bordes=False):
-    """Formato común: encabezado en negrita y centrado, autofiltro, DOCUMENTO y CELULAR numéricos
-    sin decimales, GRUPO como texto, N_PERDIDAS centrado y ancho de columna 18."""
-    if nombre_hoja not in workbook.sheetnames:
-        return
-    sheet = workbook[nombre_hoja]
-    max_row, max_col = sheet.max_row, sheet.max_column
-
-    columnas = {}
-    for col in range(col_inicio, max_col + 1):
-        cell = sheet.cell(row=fila_encabezado, column=col)
-        if cell.value is not None:
-            columnas[str(cell.value).upper().strip()] = col
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal='center', vertical='center')
-        if quitar_bordes:
-            cell.border = SIN_BORDE
-    sheet.auto_filter.ref = f'{get_column_letter(col_inicio)}{fila_encabezado}:{get_column_letter(max_col)}{max_row}'
-
-    def celdas(nombre):
-        if nombre not in columnas:
-            return []
-        return [sheet.cell(row=r, column=columnas[nombre]) for r in range(fila_encabezado + 1, max_row + 1)]
-
-    for cell in celdas('DOCUMENTO'):
-        if cell.value is not None:
-            _a_numero(cell, str(cell.value))
-    for cell in celdas('CELULAR'):
-        if cell.value is not None:
-            _a_numero(cell, re.sub(r'[ \-()]', '', str(cell.value)))
-    for cell in celdas('GRUPO'):
-        if cell.value is not None:
-            cell.value = str(cell.value).strip()
-            cell.number_format = '@'
-            cell.alignment = Alignment(horizontal='left', vertical='center')
-    for cell in celdas('N_PERDIDAS'):
-        cell.alignment = Alignment(horizontal='center', vertical='center')
-    for col in range(col_inicio, max_col + 1):
-        sheet.column_dimensions[get_column_letter(col)].width = 18
-
-
-def exportar_libro(hojas, formatear=None, **opciones):
-    """Escribe {hoja: DataFrame} con pandas, reabre el libro con openpyxl, aplica `formatear(workbook)`
-    (por defecto, el formato común en cada hoja) y devuelve los bytes del .xlsx."""
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        for nombre, df in hojas.items():
-            df.to_excel(writer, sheet_name=nombre, index=False, **opciones)
-    buffer.seek(0)
-    workbook = openpyxl.load_workbook(buffer)
-    if formatear is None:
-        for nombre in hojas:
-            aplicar_formato(workbook, nombre)
-    else:
-        formatear(workbook)
-    salida = io.BytesIO()
-    workbook.save(salida)
-    return salida.getvalue()
-
-
 # ============================================================
 # ==================  MÓDULO 1: FACULTADES  ==================
 # ============================================================
@@ -323,21 +187,27 @@ def exportar_libro(hojas, formatear=None, **opciones):
 MAPEO_COLUMNAS_FAC = {
     'DOCUMENTO': ['DOC', 'DOCUM', 'DOCUMENTO', 'PEGE_DOCUMENTOIDENTIDAD'],
     'NOMBRE': ['NOMBRE', 'NOM', 'ESTUDIANTE'],
-    'SEMESTRE': ['SEM', 'SEMESTRE'],
-    'PROGRAMA': ['PROGRAMA', 'PROG', 'PROG_NOMBRE'],
     'FACULTAD': ['FACULTAD'],
+    'PROGRAMA': ['PROGRAMA', 'PROG', 'PROG_NOMBRE'],
     'MATERIA': ['MATERIA'],
     'EVALUACION': ['EVALUACION'],
     'GRUPO': ['GRUPO'],
+    'SEMESTRE': ['SEM', 'SEMESTRE'],
     'NOTA': ['NOTA'],
-    'N_PERDIDAS': ['N_PERDIDAS']
+    'N_PERDIDAS': ['N_PERDIDAS'],
 }
-COLUMNAS_CLAVE_FAC = {'DOCUMENTO', 'NOMBRE', 'PROGRAMA', 'FACULTAD', 'MATERIA', 'NOTA',
-                      'DOC', 'DOCUM', 'PEGE_DOCUMENTOIDENTIDAD', 'PROG', 'PROG_NOMBRE'}
+COLUMNAS_CLAVE_FAC = {
+    'DOCUMENTO', 'NOMBRE', 'PROGRAMA', 'FACULTAD', 'MATERIA', 'NOTA',
+    'DOC', 'DOCUM', 'PEGE_DOCUMENTOIDENTIDAD', 'PROG', 'PROG_NOMBRE',
+}
 COLUMNAS_DEDUP_FAC = ['DOCUMENTO', 'PROGRAMA', 'MATERIA', 'GRUPO', 'NOTA']
-COLUMNAS_HOJA_FAC = ['DOCUMENTO', 'NOMBRE', 'SEMESTRE', 'PROGRAMA', 'MATERIA', 'GRUPO', 'NOTA', 'N_PERDIDAS']
-COLUMNAS_INFORME_GENERAL = ['DOCUMENTO', 'NOMBRE', 'SEMESTRE', 'PROGRAMA', 'FACULTAD', 'MATERIA',
-                            'EVALUACION', 'GRUPO', 'NOTA', 'N_PERDIDAS']
+COLUMNAS_HOJA_FAC = [
+    'DOCUMENTO', 'NOMBRE', 'PROGRAMA', 'MATERIA', 'GRUPO', 'SEMESTRE', 'NOTA', 'N_PERDIDAS'
+]
+COLUMNAS_INFORME_GENERAL = [
+    'DOCUMENTO', 'NOMBRE', 'FACULTAD', 'PROGRAMA', 'SEDE',
+    'MATERIA', 'EVALUACION', 'GRUPO', 'SEMESTRE', 'NOTA', 'N_PERDIDAS',
+]
 
 CORRECCIONES_ORTOGRAFICAS = {
     'ADMINISTRACION': 'ADMINISTRACIÓN',
@@ -376,11 +246,13 @@ CORRECCIONES_ORTOGRAFICAS = {
     'SOCIOLOGIA': 'SOCIOLOGÍA',
     'EVALUACION': 'EVALUACIÓN',
     'TECNOLOGIA': 'TECNOLOGÍA',
-    'TEORIA': 'TEORÍA'
+    'TEORIA': 'TEORÍA',
 }
 _REGEX_PREFIJO_FACULTAD = re.compile(r'(?i)^FACULTAD\s+DE\s+')
-_REGEX_CORRECCIONES = [(re.compile(r'\b' + sin_tilde + r'\b', re.IGNORECASE), con_tilde)
-                       for sin_tilde, con_tilde in CORRECCIONES_ORTOGRAFICAS.items()]
+_REGEX_CORRECCIONES = [
+    (re.compile(r'\b' + sin_tilde + r'\b', re.IGNORECASE), con_tilde)
+    for sin_tilde, con_tilde in CORRECCIONES_ORTOGRAFICAS.items()
+]
 
 
 def fac_leer_excel(file_obj):
@@ -423,8 +295,17 @@ def fac_corregir_ortografia_celda(valor):
     return _corregir_ortografia_texto(valor)
 
 
-def fac_corregir_ortografia_hoja(sheet):
-    for row in sheet.iter_rows():
+def fac_corregir_ortografia_df(df):
+    """Aplica la corrección ortográfica a todas las columnas de texto del DataFrame en memoria."""
+    df = df.copy()
+    for col in df.columns:
+        if df[col].dtype == object or pd.api.types.is_string_dtype(df[col]):
+            df[col] = df[col].map(fac_corregir_ortografia_celda)
+    return df
+
+
+def fac_corregir_ortografia_hoja(sheet, fila_inicio=1):
+    for row in sheet.iter_rows(min_row=fila_inicio):
         for cell in row:
             if isinstance(cell.value, str):
                 cell.value = fac_corregir_ortografia_celda(cell.value)
@@ -438,31 +319,43 @@ def fac_aplicar_formato_especial(workbook, nombre_hoja, titulo_encabezado):
     fac_corregir_ortografia_hoja(sheet)
     if sheet.max_row < 4:
         return
-    sheet.merge_cells(f'B2:{get_column_letter(sheet.max_column)}3')
-    celda_encabezado = sheet['B2']
-    celda_encabezado.value = titulo_encabezado
-    celda_encabezado.font = Font(bold=True, size=20)
-    celda_encabezado.alignment = Alignment(horizontal='center', vertical='center')
+    insertar_titulo_combinado(sheet, titulo_encabezado, fila_inicio=2, fila_fin=3, col_inicio=2, tamano=20)
     aplicar_formato(workbook, nombre_hoja, fila_encabezado=4, col_inicio=2, quitar_bordes=True)
 
 
-def fac_limpiar_nombre_hoja(nombre, nombres_usados):
-    nombre_limpio = str(nombre)[:31]
-    for ch in ['/', '\\', '?', '*', '[', ']', ':']:
-        nombre_limpio = nombre_limpio.replace(ch, '_')
-    nombre_original = nombre_limpio
-    contador = 1
-    while nombre_limpio in nombres_usados:
-        nombre_limpio = f"{nombre_original[:27]}_{contador}"
-        contador += 1
-    nombres_usados.add(nombre_limpio)
-    return nombre_limpio
+fac_limpiar_nombre_hoja = limpiar_nombre_hoja
+
+
+def fac_generar_informe_general(hojas_informe):
+    """Construye en memoria el INFORME GENERAL consolidando todas las facultades,
+    recalculando N_PERDIDAS sobre el total, corrigiendo ortografía y generando las
+    hojas GENERAL, COMUNICACION y MATEMATICAS."""
+    df_informe = fac_calcular_n_perdidas(pd.concat(hojas_informe, ignore_index=True))
+    cols_presentes = [c for c in COLUMNAS_INFORME_GENERAL if c in df_informe.columns]
+    df_general = ordenar_columnas(fac_corregir_ortografia_df(df_informe[cols_presentes]))
+
+    df_comunicacion = filtrar_por_materias(df_general, MATERIAS_COMUNICACION)
+    df_matematicas = filtrar_por_materias(df_general, MATERIAS_MATEMATICAS)
+    vacio = df_general.head(0)
+    hojas = {
+        'GENERAL': df_general,
+        'COMUNICACION': df_comunicacion if not df_comunicacion.empty else vacio,
+        'MATEMATICAS': df_matematicas if not df_matematicas.empty else vacio,
+    }
+
+    def formatear_informe(workbook):
+        for nombre_hoja in hojas:
+            fac_corregir_ortografia_hoja(workbook[nombre_hoja], fila_inicio=2)
+            aplicar_formato(workbook, nombre_hoja, quitar_bordes=True)
+
+    return exportar_libro(hojas, formatear_informe)
 
 
 def fac_procesar_archivo(file_obj1, file_obj2, calendario_a, calendario_b, calendario_c):
-    """Procesa los archivos de facultades y retorna un dict {nombre_archivo: bytes}"""
+    """Procesa los archivos de facultades y retorna un dict {nombre_archivo: bytes}
+    que incluye cada facultad y el INFORME GENERAL.xlsx completo."""
     df_original = fac_leer_excel(file_obj1)
-    if file_obj2 is not None:  # el segundo archivo es opcional
+    if file_obj2 is not None:
         df_original = pd.concat([df_original, fac_leer_excel(file_obj2)], ignore_index=True)
 
     df_general = mapear_columnas(df_original, MAPEO_COLUMNAS_FAC)
@@ -486,10 +379,15 @@ def fac_procesar_archivo(file_obj1, file_obj2, calendario_a, calendario_b, calen
     archivos_resultado = {}
     hojas_informe = []
     for facultad in facultades:
-        df_facultad = fac_aplicar_filtros(df_general[df_general['FACULTAD'] == facultad],
-                                          calendario_a, calendario_b, calendario_c)
-        df_hoja_general = fac_calcular_n_perdidas(
-            df_facultad[[c for c in COLUMNAS_HOJA_FAC if c in df_facultad.columns]])
+        df_facultad = fac_aplicar_filtros(
+            df_general[df_general['FACULTAD'] == facultad],
+            calendario_a, calendario_b, calendario_c,
+        )
+        df_hoja_general = ordenar_columnas(
+            fac_calcular_n_perdidas(
+                df_facultad[[c for c in COLUMNAS_HOJA_FAC if c in df_facultad.columns]]
+            )
+        )
 
         df_para_informe = df_hoja_general.copy()
         df_para_informe['FACULTAD'] = facultad
@@ -503,7 +401,7 @@ def fac_procesar_archivo(file_obj1, file_obj2, calendario_a, calendario_b, calen
         nombres_usados = {'GENERAL'}
         programas = df_facultad['PROGRAMA'].dropna().unique() if 'PROGRAMA' in df_facultad.columns else []
         for programa in programas:
-            nombre_hoja = fac_limpiar_nombre_hoja(programa, nombres_usados)
+            nombre_hoja = limpiar_nombre_hoja(programa, nombres_usados)
             hojas[nombre_hoja] = df_hoja_general[df_hoja_general['PROGRAMA'] == programa]
             titulos[nombre_hoja] = fac_corregir_ortografia_celda(str(programa))
 
@@ -513,18 +411,14 @@ def fac_procesar_archivo(file_obj1, file_obj2, calendario_a, calendario_b, calen
 
         nombre_facultad_limpio = "".join(c for c in str(facultad) if c.isalnum() or c in (' ', '-', '_')).strip()
         nombre_facultad_limpio = nombre_facultad_limpio.replace(' ', '_')
-        archivos_resultado[f"{nombre_facultad_limpio}.xlsx"] = exportar_libro(hojas, formatear, startrow=3, startcol=1)
+        archivos_resultado[f"{nombre_facultad_limpio}.xlsx"] = exportar_libro(
+            hojas, formatear, startrow=3, startcol=1
+        )
 
-    # INFORME GENERAL: todas las facultades, con N_PERDIDAS recalculado sobre el total
-    df_informe = fac_calcular_n_perdidas(pd.concat(hojas_informe, ignore_index=True))
-    df_informe = df_informe[[c for c in COLUMNAS_INFORME_GENERAL if c in df_informe.columns]]
-
-    def formatear_informe(workbook):
-        fac_corregir_ortografia_hoja(workbook['GENERAL'])
-        aplicar_formato(workbook, 'GENERAL', quitar_bordes=True)
-
-    archivos_resultado["INFORME GENERAL.xlsx"] = exportar_libro({'GENERAL': df_informe}, formatear_informe)
+    # INFORME GENERAL: todas las facultades y hojas GENERAL, COMUNICACION y MATEMATICAS generadas en memoria
+    archivos_resultado["INFORME GENERAL.xlsx"] = fac_generar_informe_general(hojas_informe)
     return archivos_resultado
+
 
 # ============================================================
 # ==================  MÓDULO 2: MATRICULADOS  ================
@@ -537,9 +431,9 @@ MAPEO_COLUMNAS_MAT = {
     'SEDE': ['FRANJA', 'SEDE'],
     'MATERIA': ['MATERIA'],
     'GRUPO': ['GRUPO'],
-    'SEMESTRE': ['SEMESTRE'],
+    'SEMESTRE': ['SEMESTRE', 'SEM'],
     'CELULAR': ['CELULAR'],
-    'CORREO_INST': ['CORREO_INST']
+    'CORREO_INST': ['CORREO_INST'],
 }
 
 
@@ -572,14 +466,16 @@ def mat_crear_hoja_general(df_original, programa_a_facultad=None):
                 for p in df_general['PROGRAMA'].dropna().unique()
                 if str(p).strip()
             ]
-            if any(p not in relacion_pf for p in programas_archivo if p) and (time.time() - _supabase_mod._ultimo_fetch_programas_ts) > 2.0:
+            if any(p not in relacion_pf for p in programas_archivo if p) and (
+                time.time() - _supabase_mod._ultimo_fetch_programas_ts
+            ) > 2.0:
                 relacion_pf = obtener_programa_a_facultad(forzar_recarga=True)
         else:
             relacion_pf = programa_a_facultad
 
-        facultades = df_general['PROGRAMA'].apply(lambda p: mat_obtener_facultad_de_programa(p, relacion_pf))
-        idx_prog = list(df_general.columns).index('PROGRAMA')
-        df_general.insert(idx_prog, 'FACULTAD', facultades)
+        df_general['FACULTAD'] = df_general['PROGRAMA'].apply(
+            lambda p: mat_obtener_facultad_de_programa(p, relacion_pf)
+        )
 
     if 'SEDE' in df_general.columns:
         df_general['SEDE'] = df_general['SEDE'].apply(mat_normalizar_sede)
@@ -587,7 +483,7 @@ def mat_crear_hoja_general(df_original, programa_a_facultad=None):
         df_general = filtrar_por_calendario(df_general, True, True, True).copy()
     if 'GRUPO' in df_general.columns:
         df_general['SEMESTRE'] = df_general['GRUPO'].apply(determinar_semestre)
-    return df_general
+    return ordenar_columnas(df_general)
 
 
 def mat_crear_hoja_matriculados(df_general):
@@ -595,13 +491,15 @@ def mat_crear_hoja_matriculados(df_general):
         return pd.DataFrame(columns=['GRUPO', 'MATRICULADOS'])
     df_mat = df_general.groupby('GRUPO')['DOCUMENTO'].nunique().reset_index()
     df_mat.columns = ['GRUPO', 'MATRICULADOS']
-    return df_mat.sort_values('GRUPO').reset_index(drop=True)
+    return ordenar_columnas(df_mat.sort_values('GRUPO').reset_index(drop=True))
 
 
 def mat_procesar_archivo(file_obj):
     df_general = mat_crear_hoja_general(leer_excel(file_obj))
     if df_general.empty:
-        raise Exception("No se pudieron mapear las columnas del archivo original o no hay datos después del filtrado.")
+        raise Exception(
+            "No se pudieron mapear las columnas del archivo original o no hay datos después del filtrado."
+        )
     df_matriculados = mat_crear_hoja_matriculados(df_general)
     df_comunicacion = filtrar_por_materias(df_general, MATERIAS_COMUNICACION)
     df_matematicas = filtrar_por_materias(df_general, MATERIAS_MATEMATICAS)
@@ -620,23 +518,23 @@ def mat_procesar_archivo(file_obj):
 # ============================================================
 
 MAPEO_COLUMNAS_CRUCE = {
+    'FECHA': ['FECHA_ENCUENTRO', 'FECHA'],
     'DOCUMENTO': ['DOC', 'DOCUM', 'DOCUMENTO', 'PEGE_DOCUMENTOIDENTIDAD'],
     'NOMBRE': ['NOMBRE', 'NOM', 'ESTUDIANTE'],
     'FACULTAD': ['FACULTAD'],
     'PROGRAMA': ['PROGRAMA', 'PROG', 'PROG_NOMBRE'],
-    'SEDE': ['FRANJA', 'SEDE'],
-    'TEMA': ['ENCU_TEMA', 'TEMA'],
-    'FECHA': ['FECHA_ENCUENTRO', 'FECHA'],
+    'SEDE': ['FRANJA', 'SEDE', 'SEDE ESTUDIANTE'],
     'AREA': ['AREA'],
-    'TUTOR': ['TUTOR', 'INSTRUCTOR']
+    'TEMA': ['ENCU_TEMA', 'TEMA'],
+    'TUTOR': ['TUTOR', 'INSTRUCTOR'],
 }
 
 
 def cruce_crear_hoja_general(df_original):
     df_general = mapear_columnas(df_original, MAPEO_COLUMNAS_CRUCE)
     if 'FECHA' in df_general.columns:
-        df_general['FECHA'] = pd.to_datetime(df_general['FECHA'], errors='coerce').dt.date
-    return df_general
+        df_general['FECHA'] = normalizar_columna_fecha(df_general['FECHA'])
+    return ordenar_columnas(df_general)
 
 
 def cruce_filtrar_por_area(df_general, valores_area):
@@ -647,7 +545,7 @@ def cruce_filtrar_por_area(df_general, valores_area):
     df_filtrado = df_general[mask].copy()
     if 'DOCUMENTO' in df_filtrado.columns:
         df_filtrado = df_filtrado.drop_duplicates(subset=['DOCUMENTO'], keep='first')
-    return df_filtrado
+    return ordenar_columnas(df_filtrado)
 
 
 def cruce_cruzar_con_matriculados(df_asistencia, file_obj_matriculados, hoja_matriculados):
@@ -658,7 +556,10 @@ def cruce_cruzar_con_matriculados(df_asistencia, file_obj_matriculados, hoja_mat
         if 'DOCUMENTO' not in df_matriculados.columns:
             return pd.DataFrame(columns=df_asistencia.columns)
 
-        docs_mat = [str(d).strip() if pd.notna(d) else None for d in df_matriculados['DOCUMENTO']]
+        docs_mat = [
+            re.sub(r'\.0$', '', str(d).strip()) if pd.notna(d) else None
+            for d in df_matriculados['DOCUMENTO']
+        ]
         doc_to_grupo = {}
         if 'GRUPO' in df_matriculados.columns:
             for doc, grupo in zip(docs_mat, df_matriculados['GRUPO']):
@@ -672,23 +573,20 @@ def cruce_cruzar_con_matriculados(df_asistencia, file_obj_matriculados, hoja_mat
                     doc_to_sede[doc] = sede
 
         df_resultado = df_asistencia.copy()
-        if 'TUTOR' in df_resultado.columns:
-            tutor_idx = list(df_resultado.columns).index('TUTOR')
-            df_resultado.insert(tutor_idx + 1, 'GRUPO', None)
-        else:
-            df_resultado['GRUPO'] = None
+        df_resultado['GRUPO'] = None
 
         indices_a_conservar = []
         for idx, doc_val in zip(df_resultado.index, df_resultado['DOCUMENTO']):
             if pd.notna(doc_val):
-                doc = str(doc_val).strip()
+                doc = re.sub(r'\.0$', '', str(doc_val).strip())
                 if doc in doc_to_grupo:
                     df_resultado.at[idx, 'GRUPO'] = doc_to_grupo[doc]
                     if doc in doc_to_sede:
                         df_resultado.at[idx, 'SEDE'] = doc_to_sede[doc]
                     indices_a_conservar.append(idx)
 
-        return df_resultado.loc[indices_a_conservar].reset_index(drop=True)
+        df_cruzado = df_resultado.loc[indices_a_conservar].reset_index(drop=True)
+        return ordenar_columnas(df_cruzado)
     except Exception as e:
         raise Exception(f"Error al cruzar con MATRICULADOS: {str(e)}")
 
@@ -697,19 +595,24 @@ def cruce_crear_hoja_asistencia_pma(df_matematicas, df_comunicacion):
     df_union = pd.concat([df_matematicas, df_comunicacion], ignore_index=True)
     if 'DOCUMENTO' in df_union.columns and 'GRUPO' in df_union.columns:
         df_union = df_union.drop_duplicates(subset=['DOCUMENTO', 'GRUPO'], keep='first')
-    return df_union.reset_index(drop=True)
+    return ordenar_columnas(df_union.reset_index(drop=True))
 
 
 def cruce_filtrar_ganaron(df_asistencia, file_obj_informe, hoja_informe):
     try:
-        df_informe = leer_excel(file_obj_informe, hoja_informe)
+        if isinstance(file_obj_informe, pd.DataFrame):
+            df_informe = file_obj_informe
+        else:
+            df_informe = leer_excel(file_obj_informe, hoja_informe)
         if 'DOCUMENTO' not in df_asistencia.columns or 'DOCUMENTO' not in df_informe.columns:
             return df_asistencia
-        docs_perdidos = {str(d).strip() for d in df_informe['DOCUMENTO'].dropna()}
+        docs_perdidos = {
+            re.sub(r'\.0$', '', str(d).strip()) for d in df_informe['DOCUMENTO'].dropna()
+        }
         mask = df_asistencia['DOCUMENTO'].apply(
-            lambda x: pd.notna(x) and str(x).strip() not in docs_perdidos
+            lambda x: pd.notna(x) and re.sub(r'\.0$', '', str(x).strip()) not in docs_perdidos
         )
-        return df_asistencia[mask].reset_index(drop=True)
+        return ordenar_columnas(df_asistencia[mask].reset_index(drop=True))
     except Exception as e:
         raise Exception(f"Error al filtrar ganaron: {str(e)}")
 
@@ -722,26 +625,40 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, calendar
     df_asistencia_matematicas = cruce_filtrar_por_area(df_general, ['M', 'DCB'])
     if not df_asistencia_matematicas.empty:
         file_matriculados.seek(0)
-        df_asistencia_matematicas = cruce_cruzar_con_matriculados(df_asistencia_matematicas, file_matriculados, 'MATEMATICAS')
+        df_asistencia_matematicas = cruce_cruzar_con_matriculados(
+            df_asistencia_matematicas, file_matriculados, 'MATEMATICAS'
+        )
 
     df_asistencia_comunicacion = cruce_filtrar_por_area(df_general, ['C'])
     if not df_asistencia_comunicacion.empty:
         file_matriculados.seek(0)
-        df_asistencia_comunicacion = cruce_cruzar_con_matriculados(df_asistencia_comunicacion, file_matriculados, 'COMUNICACION')
+        df_asistencia_comunicacion = cruce_cruzar_con_matriculados(
+            df_asistencia_comunicacion, file_matriculados, 'COMUNICACION'
+        )
 
     if calendario_a or calendario_b or calendario_c:
         if not df_asistencia_matematicas.empty:
-            df_asistencia_matematicas = filtrar_por_calendario(df_asistencia_matematicas, calendario_a, calendario_b, calendario_c).copy()
+            df_asistencia_matematicas = filtrar_por_calendario(
+                df_asistencia_matematicas, calendario_a, calendario_b, calendario_c
+            ).copy()
         if not df_asistencia_comunicacion.empty:
-            df_asistencia_comunicacion = filtrar_por_calendario(df_asistencia_comunicacion, calendario_a, calendario_b, calendario_c).copy()
+            df_asistencia_comunicacion = filtrar_por_calendario(
+                df_asistencia_comunicacion, calendario_a, calendario_b, calendario_c
+            ).copy()
 
-    df_asistencia_pma = cruce_crear_hoja_asistencia_pma(df_asistencia_matematicas, df_asistencia_comunicacion)
+    df_asistencia_pma = cruce_crear_hoja_asistencia_pma(
+        df_asistencia_matematicas, df_asistencia_comunicacion
+    )
 
     file_informe.seek(0)
-    df_ganaron_matematicas = cruce_filtrar_ganaron(df_asistencia_matematicas, file_informe, 'MATEMATICAS')
+    df_ganaron_matematicas = cruce_filtrar_ganaron(
+        df_asistencia_matematicas, file_informe, 'MATEMATICAS'
+    )
 
     file_informe.seek(0)
-    df_ganaron_comunicacion = cruce_filtrar_ganaron(df_asistencia_comunicacion, file_informe, 'COMUNICACION')
+    df_ganaron_comunicacion = cruce_filtrar_ganaron(
+        df_asistencia_comunicacion, file_informe, 'COMUNICACION'
+    )
 
     vacio = df_general.head(0)
     hojas = {
@@ -756,43 +673,7 @@ def cruce_procesar_archivo(file_cruce, file_matriculados, file_informe, calendar
 
 
 # ============================================================
-# ==============  MÓDULO 4: INFORME GENERAL  =================
-# ============================================================
-
-MAPEO_COLUMNAS_INF = {
-    'DOCUMENTO': ['DOC', 'DOCUM', 'DOCUMENTO', 'PEGE_DOCUMENTOIDENTIDAD'],
-    'NOMBRE': ['NOMBRE', 'NOM', 'ESTUDIANTE'],
-    'SEMESTRE': ['SEM', 'SEMESTRE'],
-    'SEDE': ['FRANJA', 'SEDE'],
-    'PROGRAMA': ['PROGRAMA', 'PROG', 'PROG_NOMBRE'],
-    'FACULTAD': ['FACULTAD'],
-    'MATERIA': ['MATERIA'],
-    'EVALUACIÓN': ['EVALUACION'],
-    'GRUPO': ['GRUPO'],
-    'NOTA': ['NOTA'],
-    'N_PERDIDAS': ['N_PERDIDAS']
-}
-
-
-def inf_procesar_archivo(file_obj):
-    df_general = mapear_columnas(leer_excel(file_obj), MAPEO_COLUMNAS_INF)
-    if 'NOTA' in df_general.columns:
-        df_general['NOTA'] = df_general['NOTA'].apply(normalizar_nota)
-    if df_general.empty:
-        raise Exception("No se pudieron mapear las columnas del archivo original.")
-    df_comunicacion = filtrar_por_materias(df_general, MATERIAS_COMUNICACION)
-    df_matematicas = filtrar_por_materias(df_general, MATERIAS_MATEMATICAS)
-    vacio = df_general.head(0)
-    hojas = {
-        'GENERAL': df_general,
-        'COMUNICACION': df_comunicacion if not df_comunicacion.empty else vacio,
-        'MATEMATICAS': df_matematicas if not df_matematicas.empty else vacio,
-    }
-    return exportar_libro(hojas)
-
-
-# ============================================================
-# ==================  MÓDULO 5: ESTUDIANTES SUPABASE  ========
+# ==============  MÓDULO 4: ESTUDIANTES SUPABASE  ============
 # ============================================================
 
 SEMESTRE_MAP_SUP = {'PRIMERO': '1', 'SEGUNDO': '2', 'TERCERO': '3'}
@@ -813,18 +694,7 @@ def sup_limpiar_texto(texto):
 
 
 def sup_leer_hojas(file_obj):
-    try:
-        excel_file = abrir_excel(file_obj)
-        dfs = []
-        for nombre_hoja in ('COMUNICACION', 'MATEMATICAS'):
-            hoja = _buscar_hoja(excel_file, nombre_hoja)
-            if hoja is not None:
-                dfs.append(pd.read_excel(excel_file, sheet_name=hoja, dtype=str))
-        if not dfs:
-            raise Exception("No se encontraron las hojas COMUNICACION ni MATEMATICAS en el archivo.")
-        return normalizar_espacios_df(pd.concat(dfs, ignore_index=True))
-    except Exception as e:
-        raise Exception(f"Error al leer el archivo: {str(e)}")
+    return leer_multiples_hojas(file_obj, ('COMUNICACION', 'MATEMATICAS'), dtype=str)
 
 
 def sup_procesar_archivo(file_obj):
@@ -857,7 +727,7 @@ def sup_procesar_archivo(file_obj):
 
 
 # ============================================================
-# ==================  MÓDULO 6: VISITAS A GRUPOS  ============
+# ==================  MÓDULO 5: VISITAS A GRUPOS  ============
 # ============================================================
 
 DIAS_VALIDOS_VIS = {'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'}
@@ -865,7 +735,6 @@ COLUMNAS_GENERAL_VIS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'JORNADA', 'ASIGNATU
 COLUMNAS_VISITAS_VIS = ['DIA', 'HORARIO', 'SALON', 'GRUPO', 'SEMESTRE', 'JORNADA']
 COLUMNAS_ORIGINALES_VIS = ('SALON', 'GRUPO', 'ASIGNATURA', 'DOCENTE', 'HORARIO')
 FILAS_HEADER_VIS = (6, 5, 7, 0)  # fila 7, fila 6, fila 8, fila 1 (índice 0-based)
-RELLENO_AMARILLO = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
 
 _PATRON_INICIO_HORARIO = re.compile(r'^(\d{3,4})')
 _PATRON_HM = re.compile(r'^(\d{1,2})[:.](\d{2})(?:[:.]\d{2})?$')  # 7:00 / 07:00 / 07.00
@@ -943,14 +812,7 @@ def vis_limpiar_horario(horario):
 
 
 def vis_resaltar_sospechosos(workbook, nombre_hoja, sospechosos):
-    if nombre_hoja not in workbook.sheetnames:
-        return
-    sheet = workbook[nombre_hoja]
-    for idx, es_sospechoso in enumerate(sospechosos):
-        if es_sospechoso:
-            fila_excel = idx + 2  # +1 por encabezado, +1 porque idx es 0-based
-            for col in range(1, sheet.max_column + 1):
-                sheet.cell(row=fila_excel, column=col).fill = RELLENO_AMARILLO
+    resaltar_filas(workbook, nombre_hoja, sospechosos, fill=RELLENO_AMARILLO, fila_encabezado=1)
 
 
 def vis_procesar_archivo(archivos):
@@ -965,14 +827,15 @@ def vis_procesar_archivo(archivos):
             if dia_detectado is None:
                 continue
 
-            df_hoja = None
-            for header_idx in FILAS_HEADER_VIS:
-                df_temp = pd.read_excel(excel_file, sheet_name=nombre_hoja, header=header_idx, dtype=str)
-                df_temp.columns = [str(c).strip().upper().translate(TILDES_MAP) for c in df_temp.columns]
-                if sum(c in df_temp.columns for c in COLUMNAS_ORIGINALES_VIS) >= 2:
-                    df_hoja = normalizar_espacios_df(df_temp)
-                    break
-
+            df_hoja = leer_hoja_excel(
+                excel_file,
+                hoja=nombre_hoja,
+                filas_header=FILAS_HEADER_VIS,
+                columnas_clave=COLUMNAS_ORIGINALES_VIS,
+                min_coincidencias=2,
+                dtype=str,
+                normalizar_headers=True,
+            )
             if df_hoja is None:
                 continue
 
@@ -992,7 +855,9 @@ def vis_procesar_archivo(archivos):
             for col_critica in ('SALON', 'GRUPO', 'HORARIO'):
                 if col_critica in df_hoja.columns:
                     col_str = df_hoja[col_critica].astype(str).str.strip()
-                    df_hoja = df_hoja[df_hoja[col_critica].notna() & (col_str != '') & (col_str.str.upper() != 'NAN')]
+                    df_hoja = df_hoja[
+                        df_hoja[col_critica].notna() & (col_str != '') & (col_str.str.upper() != 'NAN')
+                    ]
 
             generales.append(df_hoja)
 
@@ -1016,8 +881,8 @@ def vis_procesar_archivo(archivos):
     sospechosos_visitas = df_visitas['SOSPECHOSO'].fillna(False).tolist()
 
     hojas = {
-        'GENERAL': df_general[COLUMNAS_GENERAL_VIS],
-        'VISITAS': df_visitas[COLUMNAS_VISITAS_VIS],
+        'GENERAL': ordenar_columnas(df_general[COLUMNAS_GENERAL_VIS]),
+        'VISITAS': ordenar_columnas(df_visitas[COLUMNAS_VISITAS_VIS]),
     }
 
     def formatear(workbook):
@@ -1037,7 +902,6 @@ modulo = renderizar_interfaz(
     fac_procesar_archivo=fac_procesar_archivo,
     mat_procesar_archivo=mat_procesar_archivo,
     cruce_procesar_archivo=cruce_procesar_archivo,
-    inf_procesar_archivo=inf_procesar_archivo,
     sup_procesar_archivo=sup_procesar_archivo,
     vis_procesar_archivo=vis_procesar_archivo,
 )

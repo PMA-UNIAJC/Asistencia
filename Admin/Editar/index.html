@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PMA - Panel de Edición</title>
   <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <style>html:not([data-admin-autorizado="true"]){background:#0a1628 !important;background-image:linear-gradient(135deg,#0a1628 0%,#1a2f5a 50%,#0a1628 100%) !important;min-height:100vh;}html:not([data-admin-autorizado="true"]) body{visibility:hidden !important;opacity:0 !important;}</style>
+  <link rel="stylesheet" href="../compartido/admin-guard.css">
   <link rel="stylesheet" href="../../Global/global.css">
   <link rel="stylesheet" href="../Panel/admin.css">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="../compartido/admin-guard.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -61,8 +62,8 @@
           </div>
 
           <div class="alert-box alert-box-margin" id="alertaSincronizacion" style="display:none;">
-            <strong>Atención</strong>
-            Al guardar, los cambios también se aplicarán en todos los registros de asistencia que coincidan con el documento original.
+            <strong>Información</strong>
+            Los cambios guardados se aplicarán únicamente en la tabla de estudiantes (<code>public.estudiantes</code>), sin modificar formularios ni otros módulos.
           </div>
 
           <div class="form-grid">
@@ -420,7 +421,7 @@
   <div id="modalConfirmacion" class="modal-overlay hidden">
     <div class="modal-confirmacion">
       <h2 id="tituloConfirmacion">¿Guardar cambios?</h2>
-      <p id="mensajeConfirmacion">Esta acción actualizará los datos del estudiante y todos sus registros de asistencia.</p>
+      <p id="mensajeConfirmacion">Esta acción actualizará los datos del estudiante únicamente en public.estudiantes.</p>
       <div class="modal-buttons">
         <button class="btn" id="btnConfirmarModal">Sí, guardar</button>
         <button class="btn btn-secondary" id="btnCancelarModal">Cancelar</button>
@@ -429,6 +430,7 @@
   </div>
 
   <script src="../../Global/global.js"></script>
+  <script src="../../Global/reintentos.js"></script>
   <script src="../../Global/consultas.js"></script>
   <script src="../../Global/supabase.js"></script>
   <script src="../compartido/admin-auth.js"></script>
