@@ -487,6 +487,35 @@ function actualizarAreaDocente() {
 
 // normalizarNombre() — función global definida en ../PMA/script.js
 
+function normalizarListaNombres(texto) {
+  if (texto === null || texto === undefined) return '';
+  const str = String(texto);
+  if (!str.trim()) return '';
+
+  const partes = str.split(/([;,\n][\s;,\n]*)/);
+  const elementos = [];
+  let separadorPendiente = '';
+
+  for (let i = 0; i < partes.length; i++) {
+    const parte = partes[i];
+    if (i % 2 === 1) {
+      const sepExplicit = parte.match(/[;,]/);
+      separadorPendiente = (sepExplicit ? sepExplicit[0] : ';') + '\n';
+    } else {
+      const nombreNorm = normalizarNombre(parte);
+      if (nombreNorm) {
+        if (elementos.length > 0) {
+          elementos.push(separadorPendiente || ';\n');
+        }
+        elementos.push(nombreNorm);
+        separadorPendiente = '';
+      }
+    }
+  }
+
+  return elementos.join('');
+}
+
 function obtenerListaNormalizada(texto) {
   return texto
     .split(/[;,\n]/)
@@ -495,8 +524,8 @@ function obtenerListaNormalizada(texto) {
 }
 
 function limpiarNombresTD(textarea = document.getElementById('td_nombres')) {
-  const limpios = obtenerListaNormalizada(textarea.value);
-  textarea.value = limpios.join(';\n');
+  if (!textarea) return;
+  textarea.value = normalizarListaNombres(textarea.value);
 }
 
 async function guardarTutorDocente() {
@@ -829,10 +858,6 @@ function actualizarCamposFP() {
   document.getElementById('mensajeFP').textContent = '';
   document.getElementById('fp_nueva_facultad').value = '';
   document.getElementById('fp_programas').value = '';
-}
-
-function limpiarProgramasFP() {
-  limpiarNombresTD(document.getElementById('fp_programas'));
 }
 
 async function guardarFacultadPrograma() {

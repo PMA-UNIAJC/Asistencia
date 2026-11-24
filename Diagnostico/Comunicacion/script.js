@@ -6,7 +6,7 @@
 // =========================================================
 
 const BASE_IMAGENES_COMUNICACION =
-  'https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/DIAGNOSTICOS/COMUNICACION/';
+  obtenerUrlImagenStorage('DIAGNOSTICOS/COMUNICACION/');
 
 // pregunta.imagen viene directamente de la columna "imagen" de
 // diagnosticos.preguntas_comunicacion (ver api.cargarPreguntas en examen.js).

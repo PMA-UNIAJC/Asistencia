@@ -23,21 +23,21 @@
       titulo: 'Matemáticas',
       tablaPreguntas: 'preguntas_matematicas',
       carpetaStorage: 'DIAGNOSTICOS/MATEMATICAS',
-      baseUrlImagenes: SUPABASE_URL + '/storage/v1/object/public/IMG/DIAGNOSTICOS/MATEMATICAS/'
+      baseUrlImagenes: obtenerUrlImagenStorage('DIAGNOSTICOS/MATEMATICAS/')
     }),
     COMUNICACION: Object.freeze({
       codigo: 'COMUNICACION',
       titulo: 'Comunicación Escrita',
       tablaPreguntas: 'preguntas_comunicacion',
       carpetaStorage: 'DIAGNOSTICOS/COMUNICACION',
-      baseUrlImagenes: SUPABASE_URL + '/storage/v1/object/public/IMG/DIAGNOSTICOS/COMUNICACION/'
+      baseUrlImagenes: obtenerUrlImagenStorage('DIAGNOSTICOS/COMUNICACION/')
     }),
     LECTURA: Object.freeze({
       codigo: 'LECTURA',
       titulo: 'Lectura Crítica',
       tablaPreguntas: 'preguntas_lectura',
       carpetaStorage: 'DIAGNOSTICOS/LECTURA',
-      baseUrlImagenes: SUPABASE_URL + '/storage/v1/object/public/IMG/DIAGNOSTICOS/LECTURA/'
+      baseUrlImagenes: obtenerUrlImagenStorage('DIAGNOSTICOS/LECTURA/')
     })
   });
 

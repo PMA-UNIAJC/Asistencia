@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PMA - Panel de Edición</title>
-  <link rel="icon" type="image/png" href="https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/LOGO.png">
+  <link rel="icon" type="image/png" data-storage-img="MARCA/Logo.png">
   <style>html:not([data-admin-autorizado="true"]){background:#0a1628 !important;background-image:linear-gradient(135deg,#0a1628 0%,#1a2f5a 50%,#0a1628 100%) !important;min-height:100vh;}html:not([data-admin-autorizado="true"]) body{visibility:hidden !important;opacity:0 !important;}</style>
   <link rel="stylesheet" href="../compartido/admin-guard.css">
   <link rel="stylesheet" href="../../Global/global.css">
@@ -194,7 +194,7 @@
       </div>
 
       <div class="form-group" id="td_grupo_nombre" style="display:none;">
-        <label>Nombre(s) Completo(s) * <span style="font-weight:400; color:#888; font-size:12px;">— separe varios con ";"</span></label>
+        <label>Nombre(s) Completo(s) * <span style="font-weight:400; color:#888; font-size:12px;">— separe varios con "," o ";"</span></label>
         <textarea id="td_nombres" rows="4" placeholder="Ej: MARIO GERMAN DOMINGUEZ POMBO; JUAN MANUEL MAFLA MENESES"
           oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s;,]/g, '')"
           onblur="limpiarNombresTD(this)"></textarea>
@@ -331,7 +331,7 @@
       </div>
 
       <div class="form-group" id="fp_grupo_programas" style="display:none;">
-        <label>Programa(s) * <span style="font-weight:400; color:#888; font-size:12px;">— separe varios con ";"</span></label>
+        <label>Programa(s) * <span style="font-weight:400; color:#888; font-size:12px;">— separe varios con "," o ";"</span></label>
         <textarea id="fp_programas" rows="4" placeholder="Ej: INGENIERIA DE SISTEMAS; INGENIERIA INDUSTRIAL"
           oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s;,]/g, '')"
           onblur="limpiarNombresTD(this)"></textarea>

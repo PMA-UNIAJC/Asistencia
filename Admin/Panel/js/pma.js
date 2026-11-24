@@ -572,14 +572,11 @@ function calcularEstadisticasPMA(data, tipo = 'general', opciones = {}) {
 
   const tutoresPorSedeOrigen = { Norte: {}, Sur: {} };
   if (tipo === 'tutores' && (nombresNorte.size > 0 || nombresSur.size > 0)) {
-    Object.keys(tutoriasPorInstructor).forEach(instructor => {
-      const cantidadTotal = tutoriasPorInstructor[instructor];
-      if (nombresNorte.has(instructor)) {
-        tutoresPorSedeOrigen.Norte[instructor] = cantidadTotal;
-      }
-      if (nombresSur.has(instructor)) {
-        tutoresPorSedeOrigen.Sur[instructor] = cantidadTotal;
-      }
+    nombresNorte.forEach(nombre => {
+      tutoresPorSedeOrigen.Norte[nombre] = tutoriasPorInstructor[nombre] || 0;
+    });
+    nombresSur.forEach(nombre => {
+      tutoresPorSedeOrigen.Sur[nombre] = tutoriasPorInstructor[nombre] || 0;
     });
   }
 
@@ -625,7 +622,6 @@ function calcularRankingTutoresPMA(datosTutores, opciones = {}) {
   const pesoC = op.pesoC !== undefined ? Number(op.pesoC) : pesosDef.pesoC;
 
   const st = op.statsTutores || calcularEstadisticasPMA(datosTutores, 'tutores', op);
-  const tutores = Object.keys(st.tutoriasPorInstructor || {});
 
   const tutoresNorteCat = Array.isArray(op.tutoresNorte) ? op.tutoresNorte : datosCache.tutoresNorte;
   const tutoresSurCat = Array.isArray(op.tutoresSur) ? op.tutoresSur : datosCache.tutoresSur;
@@ -636,12 +632,16 @@ function calcularRankingTutoresPMA(datosTutores, opciones = {}) {
   const wB = pesoB / 100;
   const wC = pesoC / 100;
 
-  const datos = tutores.map(nombre => ({
-    nombre,
-    tutorias: st.tutoriasPorInstructor[nombre] || 0,
-    beneficiados: st.documentosPorInstructor[nombre] ? st.documentosPorInstructor[nombre].size : 0,
-    calificacion: parseFloat((st.promediosPorInstructor && st.promediosPorInstructor[nombre]) || 0)
-  }));
+  function construirDatosGrupo(nombresSet) {
+    return Array.from(nombresSet).map(nombre => ({
+      nombre,
+      tutorias: (st.tutoriasPorInstructor && st.tutoriasPorInstructor[nombre]) || 0,
+      beneficiados: st.documentosPorInstructor && st.documentosPorInstructor[nombre]
+        ? st.documentosPorInstructor[nombre].size
+        : 0,
+      calificacion: parseFloat((st.promediosPorInstructor && st.promediosPorInstructor[nombre]) || 0)
+    }));
+  }
 
   function calcularRankingPorGrupo(grupo) {
     if (!Array.isArray(grupo) || grupo.length === 0) return [];
@@ -658,6 +658,9 @@ function calcularRankingTutoresPMA(datosTutores, opciones = {}) {
     }).sort((a, b) => b.puntaje - a.puntaje);
   }
 
+  const norte = calcularRankingPorGrupo(construirDatosGrupo(nombresNorte));
+  const sur = calcularRankingPorGrupo(construirDatosGrupo(nombresSur));
+
   return {
     pesoT,
     pesoB,
@@ -665,9 +668,9 @@ function calcularRankingTutoresPMA(datosTutores, opciones = {}) {
     wT,
     wB,
     wC,
-    totalTutores: tutores.length,
-    norte: calcularRankingPorGrupo(datos.filter(d => nombresNorte.has(d.nombre))),
-    sur: calcularRankingPorGrupo(datos.filter(d => nombresSur.has(d.nombre)))
+    totalTutores: norte.length + sur.length,
+    norte,
+    sur
   };
 }
 

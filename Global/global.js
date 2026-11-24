@@ -7,6 +7,30 @@
 // ===================================
 const TIMEZONE_COLOMBIA = 'America/Bogota';
 const OFFSET_COLOMBIA = '-05:00'; // Colombia (UTC-5 permanente, sin horario de verano)
+const STORAGE_IMG_URL = 'https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/';
+
+function obtenerUrlImagenStorage(rutaRelativa) {
+  const limpia = String(rutaRelativa || '').replace(/^\/+/, '');
+  return STORAGE_IMG_URL + limpia;
+}
+
+function inicializarImagenesStorage() {
+  document.querySelectorAll('[data-storage-img]').forEach(el => {
+    const ruta = el.getAttribute('data-storage-img');
+    if (!ruta) return;
+    const url = obtenerUrlImagenStorage(ruta);
+    if (el.tagName === 'LINK') {
+      el.setAttribute('href', url);
+    } else {
+      el.setAttribute('src', url);
+    }
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.STORAGE_IMG_URL = STORAGE_IMG_URL;
+  window.obtenerUrlImagenStorage = obtenerUrlImagenStorage;
+}
 
 // Caché de datos de catálogos compartido entre módulos (PMA, AAA, Panel Admin)
 const datosCache = {
@@ -2021,6 +2045,7 @@ function _inicializarObservadorLoaders() {
 // 10. INICIALIZACIÓN GLOBAL DEL DOM
 // ===================================
 function _inicializarGlobalDOM() {
+  inicializarImagenesStorage();
   inicializarCacheDOM();
   formatearAsteriscosLabels();
   _inicializarObservadorLoaders();

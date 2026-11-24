@@ -217,13 +217,14 @@
       prueba: 'todas',
       sede: filtros && filtros.sede
     });
-    const filtrados = filtrarPresentaciones(presentacionesSede, {
-      prueba: filtros && filtros.prueba,
-      sede: 'todas'
-    });
 
     const pruebasPorDocSede = construirMapaPruebasPorEstudiante(presentacionesSede);
     const estudiantesUnicos = new Set();
+    const presentacionesArea = {
+      MATEMATICAS: 0,
+      COMUNICACION: 0,
+      LECTURA: 0
+    };
     const aciertosArea = {
       MATEMATICAS: crearAcumuladorArea(),
       COMUNICACION: crearAcumuladorArea(),
@@ -231,7 +232,7 @@
     };
     const programasMap = new Map();
 
-    filtrados.forEach(fila => {
+    presentacionesSede.forEach(fila => {
       const doc = String(fila && fila.documento || '').trim();
       const area = normalizarPrueba(fila && fila.prueba);
       const pct = obtenerPorcentaje(fila);
@@ -240,6 +241,10 @@
 
       if (doc) {
         estudiantesUnicos.add(doc);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(presentacionesArea, area)) {
+        presentacionesArea[area] += 1;
       }
 
       if (aciertosArea[area]) {
@@ -281,8 +286,10 @@
     }));
 
     return {
-      totalFiltrados: filtrados.length,
       kpis: {
+        presentacionesMatematicas: presentacionesArea.MATEMATICAS,
+        presentacionesComunicacion: presentacionesArea.COMUNICACION,
+        presentacionesLectura: presentacionesArea.LECTURA,
         estudiantesUnicos: estudiantesUnicos.size,
         diagnosticosCompletos,
         promedioMatematicas: calcularPromedio(aciertosArea.MATEMATICAS),
@@ -321,20 +328,10 @@
     });
   }
 
-  function renderizarKpis(kpis) {
-    const grid = document.getElementById('statsGridDiagnosticos');
-    if (!grid) return;
+  function crearFilaStatsGrid(tarjetas) {
+    const fila = document.createElement('div');
+    fila.className = 'stats-grid';
 
-    const tarjetas = [
-      { valor: String(kpis.estudiantesUnicos), etiqueta: 'Estudiantes Únicos Evaluados' },
-      { valor: String(kpis.diagnosticosCompletos), etiqueta: 'Diagnósticos Completos' },
-      { valor: formatearPorcentaje(kpis.promedioMatematicas), etiqueta: 'Promedio Aciertos Matemáticas' },
-      { valor: formatearPorcentaje(kpis.promedioComunicacion), etiqueta: 'Promedio Aciertos Comunicación' },
-      { valor: formatearPorcentaje(kpis.promedioLectura), etiqueta: 'Promedio Aciertos Lectura' }
-    ];
-
-    grid.textContent = '';
-    const fragmento = document.createDocumentFragment();
     tarjetas.forEach(t => {
       const card = document.createElement('div');
       card.className = 'stat-card';
@@ -347,8 +344,34 @@
 
       card.appendChild(h3);
       card.appendChild(p);
-      fragmento.appendChild(card);
+      fila.appendChild(card);
     });
+
+    return fila;
+  }
+
+  function renderizarKpis(kpis) {
+    const grid = document.getElementById('statsGridDiagnosticos');
+    if (!grid) return;
+
+    const tarjetasPresentaciones = [
+      { valor: String(kpis.presentacionesMatematicas), etiqueta: 'Presentaciones Matemáticas' },
+      { valor: String(kpis.presentacionesComunicacion), etiqueta: 'Presentaciones Comunicación' },
+      { valor: String(kpis.presentacionesLectura), etiqueta: 'Presentaciones Lectura' }
+    ];
+
+    const tarjetasResumen = [
+      { valor: String(kpis.estudiantesUnicos), etiqueta: 'Estudiantes Únicos Evaluados' },
+      { valor: String(kpis.diagnosticosCompletos), etiqueta: 'Diagnósticos Completos' },
+      { valor: formatearPorcentaje(kpis.promedioMatematicas), etiqueta: 'Promedio Aciertos Matemáticas' },
+      { valor: formatearPorcentaje(kpis.promedioComunicacion), etiqueta: 'Promedio Aciertos Comunicación' },
+      { valor: formatearPorcentaje(kpis.promedioLectura), etiqueta: 'Promedio Aciertos Lectura' }
+    ];
+
+    grid.textContent = '';
+    const fragmento = document.createDocumentFragment();
+    fragmento.appendChild(crearFilaStatsGrid(tarjetasPresentaciones));
+    fragmento.appendChild(crearFilaStatsGrid(tarjetasResumen));
     grid.appendChild(fragmento);
   }
 
@@ -466,15 +489,12 @@
   }
 
   function renderizarEstadisticasDiagnosticos(datos) {
-    const selectPrueba = document.getElementById('filtroDiagEstPrueba');
     const selectSede = document.getElementById('filtroDiagEstSede');
 
     const sedesReales = extraerSedesReales(datos);
     const sedeActiva = sincronizarSelectSedes(selectSede, sedesReales);
-    const pruebaActiva = selectPrueba ? selectPrueba.value : 'todas';
 
     const resumen = calcularEstadisticas(datos, {
-      prueba: pruebaActiva,
       sede: sedeActiva
     });
 

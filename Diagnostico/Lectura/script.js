@@ -6,7 +6,7 @@
 // =========================================================
 
 const BASE_IMAGENES_LECTURA =
-  'https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/DIAGNOSTICOS/LECTURA/';
+  obtenerUrlImagenStorage('DIAGNOSTICOS/LECTURA/');
 
 // pregunta.imagen viene directamente de la columna "imagen" de
 // diagnosticos.preguntas_lectura (ver api.cargarPreguntas en examen.js).

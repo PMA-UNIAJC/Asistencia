@@ -46,6 +46,23 @@ async function descargarDatos(event) {
 }
 
 
+function construirMapaAreasPorInstructor(tutoresNorte, tutoresSur) {
+  const areasPorInstructor = {};
+  [...(tutoresNorte || []), ...(tutoresSur || [])].forEach(t => {
+    if (t && t.nombre && t.area) {
+      areasPorInstructor[t.nombre.trim()] = t.area.trim().toUpperCase();
+    }
+  });
+  return areasPorInstructor;
+}
+
+function resolverAreaRegistro(fila, areasPorInstructor) {
+  const instructor = (fila && fila.instructor || '').trim();
+  const mapa = areasPorInstructor || {};
+  return mapa[instructor] ||
+    ((fila && fila.facultad_departamento || '').trim().toUpperCase() === 'DCB' ? 'DCB' : '');
+}
+
 async function descargarTodo(event) {
   if (!confirm('¿Descargar todos los registros?')) {
     return;
@@ -57,14 +74,18 @@ async function descargarTodo(event) {
   btnDescarga.textContent = 'Preparando descarga completa...';
 
   try {
-    const data = await ConsultasAdmin.obtenerFormularios({ order: 'fecha.asc' });
-    
+    const [data, { tutoresNorte, tutoresSur }] = await Promise.all([
+      ConsultasAdmin.obtenerFormularios({ order: 'fecha.asc' }),
+      ConsultasAdmin.obtenerCatalogosEstadisticas()
+    ]);
+
     if (data.length === 0) {
       alert('No hay registros para descargar');
       return;
     }
 
-    generarExcelCompleto(data, 'PMA_Completo');
+    const areasPorInstructor = construirMapaAreasPorInstructor(tutoresNorte, tutoresSur);
+    generarExcelCompleto(data, 'PMA_Completo', areasPorInstructor);
     alert(`${data.length} registros descargados exitosamente`);
   } catch (error) {
     alert('Error al descargar datos: ' + error.message);
@@ -165,12 +186,15 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
     const { facultad: nombreFacultad, programa: nombrePrograma } = resolverProgramaYFacultad(fila);
+    const est = Array.isArray(fila.estudiantes) ? fila.estudiantes[0] : fila.estudiantes;
+    const sedeEstudiante = (est && est.sede) || fila.sede_estudiante || '';
     
     return {
       'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento),
       'NOMBRE': fila.nombre || '',
       'SEMESTRE': fila.semestre || '',
+      'SEDE': sedeEstudiante,
       'FACULTAD': nombreFacultad,
       'PROGRAMA': nombrePrograma,
       'ASIGNATURA': fila.asignatura || '',
@@ -187,7 +211,7 @@ function generarExcelPorFacultad(datos, facultadesSeleccionadas) {
   
   ws['!cols'] = [
     { wch: 12 }, { wch: 12 }, { wch: 35 },
-    { wch: 10 }, { wch: 35 }, { wch: 35 }, { wch: 30 }, { wch: 30 }
+    { wch: 10 }, { wch: 15 }, { wch: 35 }, { wch: 35 }, { wch: 30 }, { wch: 30 }
   ];
   
   const nombresFacultades = facultadesSeleccionadas.join('_');
@@ -503,12 +527,13 @@ XLSX.writeFile(wb, `TUTORES_${sufijo}.xlsx`);
 }
 
 
-function generarExcelCompleto(datos, nombreArchivo) {
+function generarExcelCompleto(datos, nombreArchivo, areasPorInstructor = {}) {
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const horaFormateada = formatearHora(fechaColombia);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
     const { facultad: nombreFacultad, programa: nombrePrograma } = resolverProgramaYFacultad(fila);
+    const area = resolverAreaRegistro(fila, areasPorInstructor);
     
     return {
       'FECHA': serialDate,
@@ -518,11 +543,12 @@ function generarExcelCompleto(datos, nombreArchivo) {
       'FACULTAD': nombreFacultad,
       'PROGRAMA': nombrePrograma,
       'SEMESTRE': fila.semestre,
-      'SEDE ESTUDIANTE': fila.sede_estudiante || '',
+      'SEDE': fila.sede_estudiante || '',
       'SEDE TUTORÍA': fila.sede_tutoria,
       'TIPO INSTRUCTOR': fila.tipo_instructor,
       'FACULTAD/DEPARTAMENTO': fila.facultad_departamento || '',
       'INSTRUCTOR': fila.instructor,
+      'AREA': area,
       'ASIGNATURA': fila.asignatura,
       'TEMA': fila.tema,
       'MOTIVO DE CONSULTA': fila.motivo_consulta || '',
@@ -542,11 +568,11 @@ function generarExcelCompleto(datos, nombreArchivo) {
   aplicarFormatoExcel(ws, range, 0, 2);
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
-ws['!cols'] = [
+  ws['!cols'] = [
     { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 35 },
     { wch: 35 }, { wch: 35 }, { wch: 10 },
     { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 },
-    { wch: 25 }, { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 12 },
+    { wch: 25 }, { wch: 8 }, { wch: 30 }, { wch: 30 }, { wch: 25 }, { wch: 12 },
     { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 40 }
   ];
 
@@ -806,7 +832,7 @@ function generarExcelPVU(datos, nombreArchivo, mapaMatriculados) {
 }
 
 
-async function descargarInforme(event) {
+async function descargarInforme(event, incluirEvaluacion = false) {
   const desde = document.getElementById('fechaDesdeInforme').value;
   const hasta = document.getElementById('fechaHastaInforme').value;
 
@@ -827,13 +853,7 @@ async function descargarInforme(event) {
 
   try {
     const { tutoresNorte, tutoresSur } = await ConsultasAdmin.obtenerCatalogosEstadisticas();
-
-    const areasPorInstructor = {};
-    [...tutoresNorte, ...tutoresSur].forEach(t => {
-      if (t.nombre && t.area) {
-        areasPorInstructor[t.nombre.trim()] = t.area.trim().toUpperCase();
-      }
-    });
+    const areasPorInstructor = construirMapaAreasPorInstructor(tutoresNorte, tutoresSur);
 
     const AREAS_PERMITIDAS = new Set(['M', 'C']);
 
@@ -874,7 +894,7 @@ async function descargarInforme(event) {
       return;
     }
 
-    generarExcelInforme(datosFiltrados, areasPorInstructor, desde, hasta);
+    generarExcelInforme(datosFiltrados, areasPorInstructor, desde, hasta, incluirEvaluacion);
     alert(`${datosFiltrados.length} registros descargados exitosamente.`);
 
   } catch (error) {
@@ -886,7 +906,7 @@ async function descargarInforme(event) {
   }
 }
 
-function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
+function generarExcelInforme(datos, areasPorInstructor, desde, hasta, incluirEvaluacion = false) {
 
   const acentos = {
     'ADMINISTRACION': 'ADMINISTRACIÓN',
@@ -939,28 +959,31 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
   const datosExcel = datos.map(fila => {
     const fechaColombia = convertirFechaAColombia(fila.fecha);
     const serialDate = convertirFechaASerialExcel(fechaColombia);
-    const instructor = (fila.instructor || '').trim();
-    const area = areasPorInstructor[instructor] ||
-      ((fila.facultad_departamento || '').trim().toUpperCase() === 'DCB' ? 'DCB' : '');
+    const area = resolverAreaRegistro(fila, areasPorInstructor);
     const { facultad: nombreFacultad, programa: nombrePrograma } = resolverProgramaYFacultad(fila);
 
-    return {
+    const registro = {
       'FECHA': serialDate,
       'DOCUMENTO': parseInt(fila.documento) || '',
       'NOMBRE': fila.nombre || '',
       'FACULTAD': corregirAcentos(nombreFacultad),
       'PROGRAMA': corregirAcentos(nombrePrograma),
-      'SEDE ESTUDIANTE': fila.sede_estudiante || '',
+      'SEDE': fila.sede_estudiante || '',
       'AREA': area,
       'TEMA': corregirAcentos(fila.tema || ''),
-      'MOTIVO DE CONSULTA': fila.motivo_consulta || '',
-      'CALIFICACION': fila.calificacion || '',
-      'DUDAS RESUELTAS': fila.dudas_resueltas || '',
-      'DOMINIO TEMA': fila.dominio_tema || '',
-      'AMBIENTE': fila.ambiente || '',
-      'RECOMIENDA PMA': fila.recomienda_pma || '',
-      'SUGERENCIAS': fila.sugerencias || ''
+      'MOTIVO DE CONSULTA': fila.motivo_consulta || ''
     };
+
+    if (incluirEvaluacion) {
+      registro['CALIFICACION'] = fila.calificacion || '';
+      registro['DUDAS RESUELTAS'] = fila.dudas_resueltas || '';
+      registro['DOMINIO TEMA'] = fila.dominio_tema || '';
+      registro['AMBIENTE'] = fila.ambiente || '';
+      registro['RECOMIENDA PMA'] = fila.recomienda_pma || '';
+      registro['SUGERENCIAS'] = fila.sugerencias || '';
+    }
+
+    return registro;
   });
 
   const wb = XLSX.utils.book_new();
@@ -970,23 +993,29 @@ function generarExcelInforme(datos, areasPorInstructor, desde, hasta) {
   aplicarFormatoExcel(ws, range, 0, 1);
   ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
 
-  ws['!cols'] = [
+  const colsBase = [
     { wch: 12 },  // FECHA
     { wch: 12 },  // DOCUMENTO
     { wch: 35 },  // NOMBRE
     { wch: 35 },  // FACULTAD
     { wch: 35 },  // PROGRAMA
-    { wch: 15 },  // SEDE ESTUDIANTE
+    { wch: 15 },  // SEDE
     { wch: 8 },   // ÁREA
     { wch: 30 },  // TEMA
-    { wch: 25 },  // MOTIVO DE CONSULTA
-    { wch: 13 },  // CALIFICACIÓN
-    { wch: 16 },  // DUDAS RESUELTAS
-    { wch: 14 },  // DOMINIO TEMA
-    { wch: 12 },  // AMBIENTE
-    { wch: 15 },  // RECOMIENDA PMA
-    { wch: 40 }   // SUGERENCIAS
+    { wch: 25 }   // MOTIVO DE CONSULTA
   ];
+
+  ws['!cols'] = incluirEvaluacion
+    ? [
+        ...colsBase,
+        { wch: 13 },  // CALIFICACIÓN
+        { wch: 16 },  // DUDAS RESUELTAS
+        { wch: 14 },  // DOMINIO TEMA
+        { wch: 12 },  // AMBIENTE
+        { wch: 15 },  // RECOMIENDA PMA
+        { wch: 40 }   // SUGERENCIAS
+      ]
+    : colsBase;
 
   XLSX.utils.book_append_sheet(wb, ws, 'INFORME');
 

@@ -489,6 +489,12 @@ input[type="text"][id="adminContrasena"] {
   margin-bottom: 0;
 }
 
+#statsGridDiagnosticos {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 #statsGridDiagnosticos .stat-card {
   min-width: 0;
   padding: 20px 14px;

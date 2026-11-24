@@ -6,7 +6,7 @@
 // =========================================================
 
 const BASE_IMAGENES_MATEMATICAS =
-  'https://hgppzklpukgslnrynvld.supabase.co/storage/v1/object/public/IMG/DIAGNOSTICOS/MATEMATICAS/';
+  obtenerUrlImagenStorage('DIAGNOSTICOS/MATEMATICAS/');
 
 // pregunta.imagen viene directamente de la columna "imagen" de
 // diagnosticos.preguntas_matematicas (ver api.cargarPreguntas en examen.js).
